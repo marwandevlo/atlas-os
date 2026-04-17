@@ -9,14 +9,11 @@ export default function RapportsPage() {
 
   const generatePDF = async (type: string) => {
     setGenerating(type);
-    
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
-    
     const doc = new jsPDF();
     const now = new Date();
-    const dateStr = now.toLocaleDateString('fr-MA');
-    
+
     doc.setFillColor(15, 31, 61);
     doc.rect(0, 0, 210, 35, 'F');
     doc.setTextColor(255, 255, 255);
@@ -26,23 +23,18 @@ export default function RapportsPage() {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Logiciel de comptabilite et fiscalite - Maroc', 15, 22);
-    doc.text(`Date: ${dateStr}`, 15, 29);
+    doc.text(`Date: ${now.toLocaleDateString('fr-MA')}`, 15, 29);
 
     if (type === 'tva') {
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('DECLARATION TVA - Avril 2026', 15, 50);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Periode: Avril 2026', 15, 60);
-      doc.text('Regime: Mensuel', 15, 67);
-
       autoTable(doc, {
-        startY: 75,
+        startY: 65,
         head: [['Description', 'Montant (MAD)']],
         body: [
-          ['Chiffre d\'affaires HT', '15 000.00'],
+          ["Chiffre d'affaires HT", '15 000.00'],
           ['TVA collectee (20%)', '3 000.00'],
           ['Achats HT deductibles', '3 000.00'],
           ['TVA deductible', '600.00'],
@@ -51,18 +43,6 @@ export default function RapportsPage() {
         headStyles: { fillColor: [15, 31, 61] },
         alternateRowStyles: { fillColor: [245, 247, 250] },
       });
-
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.setFillColor(254, 242, 242);
-      doc.rect(15, finalY, 180, 20, 'F');
-      doc.setTextColor(185, 28, 28);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('TVA A PAYER: 2 400.00 MAD', 20, finalY + 13);
-      doc.setTextColor(100, 100, 100);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Echeance: 20 Mai 2026 - Portail: www.tax.gov.ma', 15, finalY + 35);
     }
 
     if (type === 'is') {
@@ -70,13 +50,12 @@ export default function RapportsPage() {
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('DECLARATION IS - Exercice 2025', 15, 50);
-
       autoTable(doc, {
         startY: 65,
         head: [['Element', 'Montant (MAD)']],
         body: [
-          ['Chiffre d\'affaires', '1 200 000.00'],
-          ['Charges d\'exploitation', '450 000.00'],
+          ["Chiffre d'affaires", '1 200 000.00'],
+          ["Charges d'exploitation", '450 000.00'],
           ['Salaires bruts', '300 000.00'],
           ['Amortissements', '50 000.00'],
           ['Resultat fiscal', '400 000.00'],
@@ -96,10 +75,9 @@ export default function RapportsPage() {
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('BORDEREAU CNSS - Avril 2026', 15, 50);
-
       autoTable(doc, {
         startY: 65,
-        head: [['Employe', 'CIN', 'Salaire Brut', 'CNSS Sal.', 'AMO Sal.', 'IR']],
+        head: [['Employe', 'CIN', 'Salaire Brut', 'CNSS', 'AMO', 'IR']],
         body: [
           ['Ahmed Benali', 'BK123456', '8 000.00', '339.12', '180.80', '1 109.59'],
           ['Fatima Zahra', 'BE789012', '12 000.00', '339.12', '271.20', '2 438.85'],
@@ -109,17 +87,15 @@ export default function RapportsPage() {
         headStyles: { fillColor: [21, 128, 61] },
         alternateRowStyles: { fillColor: [245, 247, 250] },
       });
-
-      const finalY2 = (doc as any).lastAutoTable.finalY + 10;
+      const y2 = (doc as any).lastAutoTable.finalY + 10;
       autoTable(doc, {
-        startY: finalY2,
+        startY: y2,
         head: [['Cotisation', 'Taux', 'Montant (MAD)']],
         body: [
           ['CNSS salarial', '4.48%', '947.04'],
           ['CNSS patronal', '21.26%', '5 527.60'],
-          ['AMO salarial', '2.26%', '587.60'],
-          ['AMO patronal', '2.03%', '527.80'],
-          ['TOTAL A VERSER CNSS', '', '7 590.04'],
+          ['AMO total', '4.29%', '1 115.40'],
+          ['TOTAL A VERSER', '', '7 590.04'],
         ],
         headStyles: { fillColor: [21, 128, 61] },
       });
@@ -130,12 +106,11 @@ export default function RapportsPage() {
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('BILAN SIMPLIFIE - Exercice 2025', 15, 50);
-
       autoTable(doc, {
         startY: 65,
-        head: [['Poste ACTIF', 'Montant'], ['Poste PASSIF', 'Montant']],
+        head: [['ACTIF', 'Montant', 'PASSIF', 'Montant']],
         body: [
-          ['Immobilisations nettes', '250 000.00', 'Capital social', '200 000.00'],
+          ['Immobilisations', '250 000.00', 'Capital social', '200 000.00'],
           ['Stocks', '80 000.00', 'Reserves', '100 000.00'],
           ['Creances clients', '120 000.00', 'Resultat net', '80 000.00'],
           ['Tresorerie', '50 000.00', 'Dettes fournisseurs', '120 000.00'],
@@ -157,7 +132,7 @@ export default function RapportsPage() {
       doc.text(`Page ${i}/${pageCount}`, 185, 292);
     }
 
-    doc.save(`${type}_${now.getFullYear()}_${String(now.getMonth() + 1).padStart(2, '0')}.pdf`);
+    doc.save(`${type}_${now.getFullYear()}.pdf`);
     setGenerating(null);
   };
 
