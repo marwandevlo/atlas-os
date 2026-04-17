@@ -168,7 +168,6 @@ export default function RapportsPage() {
         headStyles: { fillColor: [37, 99, 235] },
         alternateRowStyles: { fillColor: [245, 247, 250] },
         tableWidth: 85,
-        margin: { left: 110 },
       });
     }
 
