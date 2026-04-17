@@ -8,7 +8,6 @@ import {
   ArrowUpRight, ArrowDownRight, Calendar, Globe,
   Users, Zap, Shield, Clock
 } from 'lucide-react';
-
 const modules = [
   { id: 'tva', label: 'TVA', labelAr: 'الضريبة على القيمة المضافة', icon: Receipt, color: 'bg-blue-500', href: '/tva', deadline: '20 Mai', urgent: true },
   { id: 'is', label: 'IS Fiscal', labelAr: 'الضريبة على الشركات', icon: Calculator, color: 'bg-purple-500', href: '/is', deadline: '31 Mars', urgent: false },
@@ -28,7 +27,7 @@ const navItems = [
   { id: 'comptabilite', label: 'Comptabilite', labelAr: 'المحاسبة', icon: LayoutDashboard, href: '/comptabilite' },
   { id: 'documents', label: 'Documents IA', labelAr: 'وثائق ذكية', icon: Upload, href: '/documents' },
   { id: 'consultant', label: 'Consultant IA', labelAr: 'المستشار', icon: Brain, href: '/consultant' },
-  { id: 'settings', label: 'Parametres', labelAr: 'الإعدادات', icon: Settings, href: '/settings' },
+  { id: 'companies', label: 'Mes societes', labelAr: 'شركاتي', icon: Building2, href: '/companies' },{ id: 'settings', label: 'Parametres', labelAr: 'الإعدادات', icon: Settings, href: '/settings' },
 ];
 
 const kpis = [
