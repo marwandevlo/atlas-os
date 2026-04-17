@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Brain, Send, User, Bot } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -18,7 +19,7 @@ const suggestions = [
 export default function ConsultantPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Bonjour! Je suis votre conseiller fiscal IA spécialisé en droit marocain. Posez-moi vos questions sur la TVA, IS, IR, CNSS ou toute autre question fiscale. أنا هنا لمساعدتك!' }
+    { role: 'assistant', content: 'Bonjour! Je suis votre conseiller fiscal IA spécialisé en droit marocain. Posez-moi vos questions sur la TVA, IS, IR, CNSS ou toute autre question fiscale.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,7 +89,6 @@ export default function ConsultantPage() {
           </div>
         </header>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
           {messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -97,12 +97,12 @@ export default function ConsultantPage() {
                   <Bot size={16} className="text-white" />
                 </div>
               )}
-              <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+              <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed prose prose-sm max-w-none ${
                 m.role === 'user'
                   ? 'bg-[#1B2A4A] text-white rounded-tr-none'
                   : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'
               }`}>
-                {m.content}
+                <ReactMarkdown>{m.content}</ReactMarkdown>
               </div>
               {m.role === 'user' && (
                 <div className="w-8 h-8 bg-[#1B2A4A] rounded-full flex items-center justify-center shrink-0 mt-1">
@@ -127,7 +127,6 @@ export default function ConsultantPage() {
           )}
         </div>
 
-        {/* Input */}
         <div className="bg-white border-t border-gray-200 px-8 py-4">
           <div className="flex gap-3">
             <input
