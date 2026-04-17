@@ -162,7 +162,38 @@ ${companyData.if_fiscal ? `IF: ${companyData.if_fiscal}` : ''}
 ${companyData.ice ? `ICE: ${companyData.ice}` : ''}
 ${companyData.rc ? `RC: ${companyData.rc}` : ''}
 
-Génère un document juridique COMPLET et FORMEL conforme aux lois marocaines:
+Génère le document juridique suivant: ${selectedDoc?.name}
+
+Tu es un expert juridique marocain spécialisé en droit des sociétés. 
+Génère un document COMPLET, FORMEL et PROFESSIONNEL conforme aux lois marocaines.
+
+DONNÉES FOURNIES:
+${Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join('\n')}
+
+${companyData.if_fiscal ? `Identifiant Fiscal (IF): ${companyData.if_fiscal}` : ''}
+${companyData.ice ? `ICE: ${companyData.ice}` : ''}
+${companyData.rc ? `Registre de Commerce: ${companyData.rc}` : ''}
+${companyData.cnss ? `N° CNSS: ${companyData.cnss}` : ''}
+
+EXIGENCES OBLIGATOIRES:
+1. En-tête formel avec titre officiel en majuscules
+2. Références aux articles de loi applicables (Loi 5-96, Loi 17-95, DOC)
+3. Préambule avec toutes les parties prenantes (identité complète)
+4. Articles numérotés (ARTICLE 1, ARTICLE 2, etc.)
+5. Contenu détaillé de chaque article
+6. Clauses spécifiques au droit marocain
+7. Section signatures avec: Nom, Qualité, Date, Lieu, Signature
+8. Mentions légales obligatoires
+9. Durée de validité si applicable
+10. Enregistrement et formalités post-signature
+
+Le document doit faire minimum 3-4 pages et être prêt pour:
+- Dépôt au Tribunal de Commerce
+- Enregistrement à la Conservation Foncière
+- Certification par notaire
+- Soumission à la DGI
+
+Génère UNIQUEMENT le document complet, sans explications ni commentaires. conforme aux lois marocaines:
 - Loi 5-96 sur les SARL
 - Loi 17-95 sur les SA
 - Code de commerce marocain
