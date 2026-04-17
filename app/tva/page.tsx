@@ -136,7 +136,7 @@ export default function TVAPage() {
               <FileCode size={16} /> Generer XML DGI
             </button>
             <button
-              onClick={() => window.open('https://simpl.tax.gov.ma', '_blank')}
+              onClick={() => window.open('https://www.tax.gov.ma', '_blank')}
               className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
             >
               <Globe size={16} /> SIMPL-TVA
