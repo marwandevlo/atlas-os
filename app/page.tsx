@@ -28,7 +28,7 @@ const navItems = [
   { id: 'comptabilite', label: 'Comptabilite', labelAr: 'المحاسبة', icon: LayoutDashboard, href: '/comptabilite' },
   { id: 'documents', label: 'Documents IA', labelAr: 'وثائق ذكية', icon: Upload, href: '/documents' },
   { id: 'consultant', label: 'Consultant IA', labelAr: 'المستشار', icon: Brain, href: '/consultant' },
-  { id: 'companies', label: 'Mes societes', labelAr: 'شركاتي', icon: Building2, href: '/companies' },
+  { id: 'agents', label: 'Agents IA', labelAr: 'الوكلاء الذكيون', icon: Zap, href: '/agents' },{ id: 'companies', label: 'Mes societes', labelAr: 'شركاتي', icon: Building2, href: '/companies' },
   { id: 'rapports', label: 'Rapports PDF', labelAr: 'التقارير', icon: FileText, href: '/rapports' },
   { id: 'settings', label: 'Parametres', labelAr: 'الإعدادات', icon: Settings, href: '/settings' },
 ];
