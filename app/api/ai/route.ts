@@ -7,7 +7,7 @@ const client = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, type } = await request.json();
+    const { message, type, imageBase64 } = await request.json();
 
     let systemPrompt = '';
 
@@ -19,26 +19,49 @@ export async function POST(request: NextRequest) {
 - L'IR sur salaires et le barème marocain
 - La CNSS (part salariale 4.48%, patronale 21.26%) et AMO
 - Les obligations déclaratives DGI
-
 Réponds en français ou en darija selon la langue de l'utilisateur. Sois précis et pratique.`;
     } else if (type === 'ocr') {
-      systemPrompt = `Tu es un expert en extraction de données de factures marocaines. 
-Extrais les informations suivantes en JSON:
-- numero_facture
-- date
-- fournisseur
-- montant_ht
-- taux_tva (20, 14, 10, 7, ou 0)
-- montant_tva
-- montant_ttc
-Réponds UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
+      systemPrompt = `Tu es un expert en extraction de données de factures marocaines.
+Extrais les informations en JSON avec ces champs exactement:
+{
+  "numero_facture": "...",
+  "date": "...",
+  "fournisseur": "...",
+  "montant_ht": 0,
+  "taux_tva": 20,
+  "montant_tva": 0,
+  "montant_ttc": 0,
+  "description": "..."
+}
+Réponds UNIQUEMENT avec le JSON valide, sans texte supplémentaire.`;
+    }
+
+    let messages: Anthropic.MessageParam[];
+
+    if (type === 'ocr' && imageBase64) {
+      messages = [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: 'image/jpeg',
+              data: imageBase64,
+            },
+          },
+          { type: 'text', text: 'Extrais les données de cette facture en JSON.' }
+        ],
+      }];
+    } else {
+      messages = [{ role: 'user', content: message }];
     }
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
-      messages: [{ role: 'user', content: message }],
+      messages,
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
