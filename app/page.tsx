@@ -6,7 +6,7 @@ import {
   TrendingUp, Upload, Bell, Settings, ChevronRight,
   AlertCircle, CheckCircle, Building2, Brain,
   ArrowUpRight, ArrowDownRight, Calendar, Globe,
-  Users, Zap, Shield, Clock, Menu, X
+  Users, Zap, Shield, Clock, Menu, X, LogIn, LogOut
 } from 'lucide-react';
 
 const modules = [
@@ -51,6 +51,7 @@ export default function Home() {
   const router = useRouter();
   const [lang, setLang] = useState<'fr' | 'ar'>('fr');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [connected, setConnected] = useState(true);
   const t = (fr: string, ar: string) => lang === 'fr' ? fr : ar;
 
   const deadlineColor = (type: string) => {
@@ -72,7 +73,7 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-gray-50" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      
+
       {/* Mobile Overlay */}
       {menuOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMenuOpen(false)} />
@@ -114,19 +115,39 @@ export default function Home() {
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-white/10">
+        {/* Bottom */}
+        <div className="px-3 py-4 border-t border-white/10 space-y-2">
+          {/* Language */}
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
             <Globe size={14} className="text-white/40" />
             <span className="text-white/40 text-xs flex-1">{t('Langue', 'اللغة')}</span>
             <button onClick={() => setLang('fr')} className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${lang === 'fr' ? 'bg-amber-400 text-[#0F1F3D]' : 'text-white/40 hover:text-white'}`}>FR</button>
             <button onClick={() => setLang('ar')} className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${lang === 'ar' ? 'bg-amber-400 text-[#0F1F3D]' : 'text-white/40 hover:text-white'}`}>AR</button>
           </div>
+
+          {/* Login/Logout */}
+          {connected ? (
+            <button
+              onClick={() => { setConnected(false); router.push('/login'); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 text-sm transition-all"
+            >
+              <LogOut size={16} className="shrink-0" />
+              <span>{t('Se deconnecter', 'تسجيل الخروج')}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => { setConnected(true); router.push('/login'); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-green-400 hover:bg-green-500/10 hover:text-green-300 text-sm transition-all"
+            >
+              <LogIn size={16} className="shrink-0" />
+              <span>{t('Se connecter', 'تسجيل الدخول')}</span>
+            </button>
+          )}
         </div>
       </aside>
 
       {/* Main */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <button onClick={() => setMenuOpen(true)} className="lg:hidden p-2 rounded-lg hover:bg-gray-100">
@@ -146,13 +167,15 @@ export default function Home() {
               <Bell size={18} className="text-gray-500" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <div className="w-9 h-9 rounded-full bg-[#0F1F3D] flex items-center justify-center text-white text-sm font-bold">M</div>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div className="w-9 h-9 rounded-full bg-[#0F1F3D] flex items-center justify-center text-white text-sm font-bold">M</div>
+            </div>
           </div>
         </header>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6">
-          
+
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {kpis.map((kpi, i) => (
@@ -228,7 +251,6 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Quick Actions */}
               <div className="mt-3 grid grid-cols-3 gap-2 lg:gap-3">
                 <button onClick={() => window.open('https://www.tax.gov.ma', '_blank')} className="flex items-center gap-2 p-2.5 bg-blue-50 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors">
                   <Shield size={14} className="text-blue-500 shrink-0" />
