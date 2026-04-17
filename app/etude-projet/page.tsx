@@ -1,28 +1,31 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, Building2 } from 'lucide-react';
+import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, Building2, TrendingUp, Users, DollarSign, AlertTriangle } from 'lucide-react';
 
 type Message = { role: 'user' | 'assistant'; content: string; };
 
 const questions = [
   { key: 'nom_projet', q: "Quel est le nom de votre projet?" },
-  { key: 'secteur', q: "Dans quel secteur d'activité? (Commerce, Services, Restauration, BTP, Industrie, Agriculture, Transport, Santé...)" },
-  { key: 'forme_juridique', q: "Quelle forme juridique souhaitez-vous?\n1. Auto-entrepreneur\n2. SARL AU (associé unique)\n3. SARL (plusieurs associés)\n4. SA\n5. Je ne sais pas (je veux une recommandation)" },
+  { key: 'nom_gerant', q: "Quel est votre nom complet (gérant/porteur de projet)?" },
+  { key: 'cin', q: "Votre numéro de CIN?" },
+  { key: 'experience', q: "Décrivez votre expérience dans ce domaine (années, postes, formations...)?" },
+  { key: 'secteur', q: "Dans quel secteur d'activité?\n(Commerce, Services, Restauration, BTP, Industrie, Agriculture, Transport, Santé, IT...)" },
+  { key: 'forme_juridique', q: "Forme juridique souhaitée?\n1. Auto-entrepreneur\n2. SARL AU (associé unique)\n3. SARL (plusieurs associés)\n4. SA\n5. Recommandez-moi la meilleure option" },
   { key: 'ville', q: "Dans quelle ville au Maroc?" },
-  { key: 'capital', q: "Quel est votre capital disponible en MAD?" },
-  { key: 'loyer', q: "Quel est le loyer mensuel prévu en MAD? (0 si local propre)" },
-  { key: 'employes', q: "Combien d'employés prévoyez-vous au démarrage?" },
-  { key: 'ca_prevu', q: "Quel chiffre d'affaires mensuel visez-vous en MAD?" },
-  { key: 'charges', q: "Estimez vos autres charges mensuelles en MAD (fournitures, transport, communication...)" },
-  { key: 'financement', q: "Quel type de financement cherchez-vous?\n1. Prêt bancaire\n2. Programme Intelaka\n3. Fonds Hassan II\n4. Investisseur privé\n5. Autofinancement\n6. Plusieurs options" },
-  { key: 'description', q: "Décrivez brièvement votre projet et ce qui le différencie de la concurrence." },
+  { key: 'capital', q: "Capital disponible en MAD?" },
+  { key: 'loyer', q: "Loyer mensuel prévu en MAD? (0 si local propre)" },
+  { key: 'employes', q: "Nombre d'employés au démarrage?" },
+  { key: 'ca_prevu', q: "Chiffre d'affaires mensuel visé en MAD?" },
+  { key: 'charges', q: "Autres charges mensuelles en MAD (fournitures, transport, communication...)" },
+  { key: 'financement', q: "Type de financement recherché?\n1. Prêt bancaire classique\n2. Programme Intelaka (jeunes entrepreneurs)\n3. Fonds Hassan II\n4. Investisseur privé / Business Angel\n5. Autofinancement\n6. Combinaison de plusieurs sources" },
+  { key: 'description', q: "Décrivez votre projet et ce qui le différencie de la concurrence (2-3 phrases)." },
 ];
 
 export default function EtudeProjetPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Bonjour! 👋 Je suis votre expert en création d'entreprise au Maroc.\n\nJe vais créer pour vous une étude de faisabilité professionnelle, prête à soumettre à une banque, un investisseur ou un programme de soutien.\n\nRépondez simplement à mes questions!\n\n" + questions[0].q }
+    { role: 'assistant', content: "Bonjour! 👋 Je suis votre expert en création d'entreprise au Maroc.\n\nJe vais créer une étude de faisabilité PROFESSIONNELLE prête à soumettre à une banque, un investisseur ou un programme de soutien (Intelaka, Hassan II...).\n\nRépondez à mes questions et votre dossier sera prêt en quelques minutes!\n\n" + questions[0].q }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,14 +34,20 @@ export default function EtudeProjetPage() {
   const [etudeReady, setEtudeReady] = useState(false);
   const [etude, setEtude] = useState('');
   const [companyData, setCompanyData] = useState<Record<string, string>>({});
+  const [financials, setFinancials] = useState<Record<string, number>>({});
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('atlas_company');
     if (saved) setCompanyData(JSON.parse(saved));
   }, []);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
     const userMsg: Message = { role: 'user', content: input };
     const currentKey = questions[step]?.key;
     const newData = { ...data, [currentKey]: input };
@@ -57,7 +66,7 @@ export default function EtudeProjetPage() {
       setLoading(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "✅ Parfait! J'ai toutes les informations nécessaires.\n\n🔄 Génération de votre étude de faisabilité complète en cours...\n\nCela peut prendre quelques secondes ⏳"
+        content: "✅ Parfait! J'ai toutes les informations.\n\n🔄 Génération de votre étude complète...\nCela peut prendre 15-30 secondes ⏳"
       }]);
       await generateEtude(newData);
       setLoading(false);
@@ -65,108 +74,120 @@ export default function EtudeProjetPage() {
   };
 
   const generateEtude = async (projectData: Record<string, string>) => {
-    try {
-      const capital = parseFloat(projectData.capital) || 0;
-      const loyer = parseFloat(projectData.loyer) || 0;
-      const employes = parseFloat(projectData.employes) || 0;
-      const ca = parseFloat(projectData.ca_prevu) || 0;
-      const charges = parseFloat(projectData.charges) || 0;
-      const salaireMoyen = 4500;
-      const totalSalaires = employes * salaireMoyen;
-      const cnssPatronal = totalSalaires * 0.2126;
-      const totalCharges = loyer + totalSalaires + cnssPatronal + charges;
-      const resultatMensuel = ca - totalCharges;
-      const resultatAnnuel = resultatMensuel * 12;
-      const tva = ca * 0.20;
-      const is = resultatAnnuel > 0 ? (resultatAnnuel <= 300000 ? resultatAnnuel * 0.10 : resultatAnnuel * 0.20) : 0;
-      const payback = capital > 0 && resultatMensuel > 0 ? Math.ceil(capital / resultatMensuel) : 0;
-      const rentabilite = ca > 0 ? ((resultatMensuel / ca) * 100).toFixed(1) : '0';
-      const score = resultatMensuel > ca * 0.25 ? '🟢 EXCELLENT' : resultatMensuel > ca * 0.10 ? '🟡 BON' : resultatMensuel > 0 ? '🟠 ACCEPTABLE' : '🔴 RISQUÉ';
+    const capital = parseFloat(projectData.capital) || 0;
+    const loyer = parseFloat(projectData.loyer) || 0;
+    const employes = parseFloat(projectData.employes) || 0;
+    const ca = parseFloat(projectData.ca_prevu) || 0;
+    const charges = parseFloat(projectData.charges) || 0;
+    const salaireMoyen = 4500;
+    const totalSalaires = employes * salaireMoyen;
+    const cnssPatronal = totalSalaires * 0.2126;
+    const amoPatronal = totalSalaires * 0.0203;
+    const totalCharges = loyer + totalSalaires + cnssPatronal + amoPatronal + charges;
+    const resultatMensuel = ca - totalCharges;
+    const resultatAnnuel = resultatMensuel * 12;
+    const tva = ca * 0.20;
+    const is = resultatAnnuel > 0 ? (resultatAnnuel <= 300000 ? resultatAnnuel * 0.10 : resultatAnnuel <= 1000000 ? resultatAnnuel * 0.20 : resultatAnnuel * 0.26) : 0;
+    const payback = capital > 0 && resultatMensuel > 0 ? Math.ceil(capital / resultatMensuel) : 0;
+    const rentabilite = ca > 0 ? ((resultatMensuel / ca) * 100).toFixed(1) : '0';
+    const score = resultatMensuel > ca * 0.25 ? '🟢 EXCELLENT' : resultatMensuel > ca * 0.10 ? '🟡 BON' : resultatMensuel > 0 ? '🟠 ACCEPTABLE' : '🔴 RISQUÉ';
 
+    setFinancials({ capital, loyer, employes, ca, charges, totalSalaires, cnssPatronal, amoPatronal, totalCharges, resultatMensuel, resultatAnnuel, tva, is, payback, rentabilite: parseFloat(rentabilite) });
+
+    try {
       const response = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'consultant',
-          message: `Tu es un expert-comptable et conseiller en création d'entreprise au Maroc. 
-Génère une étude de faisabilité PROFESSIONNELLE et COMPLÈTE pour ce projet, destinée à être présentée à une banque, un investisseur ou un programme de soutien gouvernemental.
+          message: `Tu es un expert-comptable et conseiller en création d'entreprise au Maroc. Génère une étude de faisabilité PROFESSIONNELLE et COMPLÈTE.
 
-INFORMATIONS DU PORTEUR DE PROJET:
-${companyData.raisonSociale ? `Raison sociale: ${companyData.raisonSociale}` : ''}
-${companyData.if_fiscal ? `IF: ${companyData.if_fiscal}` : ''}
-${companyData.ice ? `ICE: ${companyData.ice}` : ''}
-${companyData.rc ? `RC: ${companyData.rc}` : ''}
+PORTEUR DU PROJET:
+- Nom: ${projectData.nom_gerant}
+- CIN: ${projectData.cin}
+- Expérience: ${projectData.experience}
 
-DONNÉES DU PROJET:
-- Nom du projet: ${projectData.nom_projet}
+ENTREPRISE (si existante):
+- Raison sociale: ${companyData.raisonSociale || 'À créer'}
+- IF: ${companyData.if_fiscal || 'À obtenir'}
+- ICE: ${companyData.ice || 'À obtenir'}
+- RC: ${companyData.rc || 'À obtenir'}
+- CNSS: ${companyData.cnss || 'À obtenir'}
+- Adresse: ${companyData.adresse || ''} ${companyData.ville || ''}
+
+PROJET:
+- Nom: ${projectData.nom_projet}
 - Secteur: ${projectData.secteur}
-- Forme juridique choisie: ${projectData.forme_juridique}
+- Forme juridique: ${projectData.forme_juridique}
 - Ville: ${projectData.ville}
-- Capital disponible: ${capital.toLocaleString()} MAD
-- Loyer mensuel: ${loyer.toLocaleString()} MAD
-- Nombre d'employés: ${employes}
-- CA mensuel visé: ${ca.toLocaleString()} MAD
-- Charges mensuelles autres: ${charges.toLocaleString()} MAD
-- Financement recherché: ${projectData.financement}
 - Description: ${projectData.description}
+- Financement: ${projectData.financement}
 
 ANALYSE FINANCIÈRE:
-- Total charges mensuelles: ${totalCharges.toLocaleString()} MAD
-  • Loyer: ${loyer.toLocaleString()} MAD
-  • Salaires bruts: ${totalSalaires.toLocaleString()} MAD
-  • CNSS patronal (21.26%): ${cnssPatronal.toFixed(0)} MAD
-  • Autres charges: ${charges.toLocaleString()} MAD
-- Résultat mensuel net: ${resultatMensuel.toLocaleString()} MAD
-- Résultat annuel: ${resultatAnnuel.toLocaleString()} MAD
-- TVA mensuelle (20%): ${tva.toLocaleString()} MAD
-- IS estimé annuel: ${is.toLocaleString()} MAD
-- Seuil de rentabilité: ${totalCharges.toLocaleString()} MAD/mois
-- Délai de récupération: ${payback} mois
-- Taux de rentabilité: ${rentabilite}%
-- Score global: ${score}
+- Capital: ${capital.toLocaleString()} MAD
+- CA mensuel visé: ${ca.toLocaleString()} MAD | Annuel: ${(ca*12).toLocaleString()} MAD
+- Loyer: ${loyer.toLocaleString()} MAD/mois
+- Salaires (${employes} emp × 4500): ${totalSalaires.toLocaleString()} MAD
+- CNSS patronal: ${cnssPatronal.toFixed(0)} MAD | AMO: ${amoPatronal.toFixed(0)} MAD
+- Autres charges: ${charges.toLocaleString()} MAD
+- TOTAL CHARGES: ${totalCharges.toLocaleString()} MAD/mois
+- RÉSULTAT NET: ${resultatMensuel.toLocaleString()} MAD/mois | ${resultatAnnuel.toLocaleString()} MAD/an
+- TVA mensuelle: ${tva.toLocaleString()} MAD
+- IS annuel estimé: ${is.toLocaleString()} MAD
+- Seuil rentabilité: ${totalCharges.toLocaleString()} MAD/mois
+- Délai retour: ${payback} mois
+- Taux rentabilité: ${rentabilite}%
+- Score: ${score}
 
-GÉNÈRE L'ÉTUDE AVEC CES SECTIONS OBLIGATOIRES:
+GÉNÈRE L'ÉTUDE AVEC CES SECTIONS:
 
-═══════════════════════════════════════
-ÉTUDE DE FAISABILITÉ - ${projectData.nom_projet.toUpperCase()}
+══════════════════════════════════════════
+ÉTUDE DE FAISABILITÉ — ${projectData.nom_projet.toUpperCase()}
 Préparée par Atlas OS Enterprise
 Date: ${new Date().toLocaleDateString('fr-MA')}
-═══════════════════════════════════════
+Confidentiel — Usage bancaire et administratif
+══════════════════════════════════════════
 
 1. RÉSUMÉ EXÉCUTIF
-[Synthèse du projet, opportunité, viabilité, besoins en financement]
+[Synthèse projet, opportunité, montant financement demandé, viabilité]
 
 2. PRÉSENTATION DU PORTEUR DE PROJET
-[Profil, compétences requises, expérience]
+[${projectData.nom_gerant}, CIN: ${projectData.cin}, expérience, compétences, motivations]
 
 3. DESCRIPTION DU PROJET
-[Concept, produits/services, valeur ajoutée, avantage concurrentiel]
+[Concept détaillé, produits/services, valeur ajoutée, avantage concurrentiel, zone de chalandise ${projectData.ville}]
 
-4. ANALYSE DU MARCHÉ MAROCAIN
-[Taille du marché ${projectData.secteur} à ${projectData.ville}, concurrence, opportunités, tendances 2024-2025]
+4. ANALYSE DU MARCHÉ MAROCAIN — ${projectData.secteur}
+[Taille marché, tendances 2024-2026, concurrence locale à ${projectData.ville}, part de marché visée, clientèle cible]
 
 5. FORME JURIDIQUE ET CADRE LÉGAL
-[Analyse ${projectData.forme_juridique}, procédures création, documents requis tribunal de commerce, coûts, délais, obligations fiscales]
+[Analyse ${projectData.forme_juridique}, étapes création, documents tribunal commerce, coûts et délais, obligations fiscales et sociales]
 
-6. PLAN FINANCIER DÉTAILLÉ
-[Tableau investissements, compte d'exploitation prévisionnel 3 ans, flux de trésorerie, bilan prévisionnel]
+6. PLAN FINANCIER PRÉVISIONNEL 3 ANS
+Année 1: CA ${(ca*12).toLocaleString()} MAD | Charges ${(totalCharges*12).toLocaleString()} MAD | Résultat ${(resultatAnnuel).toLocaleString()} MAD
+Année 2: [+20% croissance estimée]
+Année 3: [+15% croissance estimée]
+[Tableau détaillé investissements, BFR, flux trésorerie]
 
-7. ANALYSE FISCALE ET SOCIALE
-[TVA, IS, IR, CNSS, AMO, obligations déclaratives DGI, avantages fiscaux applicables]
+7. ANALYSE FISCALE ET SOCIALE COMPLÈTE
+[TVA ${tva.toLocaleString()} MAD/mois, IS ${is.toLocaleString()} MAD/an, CNSS ${cnssPatronal.toFixed(0)} MAD/mois, déclarations DGI, avantages fiscaux applicables au secteur]
 
-8. BESOINS EN FINANCEMENT ET SOLUTIONS
-[Montant exact, options: ${projectData.financement}, conditions Intelaka/Hassan II/banques marocaines, tableau remboursement]
+8. BESOINS EN FINANCEMENT ET SOLUTIONS DÉTAILLÉES
+[Montant: ${capital.toLocaleString()} MAD, options ${projectData.financement}, conditions Intelaka/banques marocaines, garanties, tableau amortissement]
 
-9. ANALYSE SWOT ET RISQUES
-[Forces, faiblesses, opportunités, menaces, mesures d'atténuation]
+9. ANALYSE SWOT
+Forces | Faiblesses | Opportunités | Menaces
 
-10. PLAN D'ACTION ET CALENDRIER
-[Étapes de création, démarrage, objectifs 6 mois / 1 an / 3 ans]
+10. INDICATEURS CLÉS DE PERFORMANCE (KPIs)
+[Seuil rentabilité: ${totalCharges.toLocaleString()} MAD, Payback: ${payback} mois, ROI: ${rentabilite}%, score: ${score}]
 
-11. CONCLUSION ET RECOMMANDATION
-[Avis d'expert, recommandations, score de viabilité]
+11. PLAN D'ACTION — CALENDRIER DE LANCEMENT
+[Mois 1-3: création, Mois 4-6: démarrage, Année 1: objectifs]
 
-Sois très précis avec des chiffres réels du marché marocain. Le document doit être prêt à soumettre à une banque.`
+12. CONCLUSION ET RECOMMANDATION D'EXPERT
+[Avis professionnel, recommandations prioritaires, conditions de succès]
+
+Sois très précis avec des données réelles du marché marocain. Le document doit convaincre une banque.`
         }),
       });
       const responseData = await response.json();
@@ -174,101 +195,197 @@ Sois très précis avec des chiffres réels du marché marocain. Le document doi
       setEtudeReady(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `🎉 Votre étude de faisabilité est prête!\n\n${score}\n\n📊 Synthèse financière:\n• CA visé: ${ca.toLocaleString()} MAD/mois\n• Charges totales: ${totalCharges.toLocaleString()} MAD/mois\n• Résultat net: ${resultatMensuel.toLocaleString()} MAD/mois\n• Délai retour sur investissement: ${payback} mois\n• Taux de rentabilité: ${rentabilite}%\n\n📄 Téléchargez votre étude PDF prête pour la banque! →`
+        content: `🎉 Votre étude de faisabilité est prête!\n\n${score}\n\n📊 Indicateurs clés:\n• CA visé: ${ca.toLocaleString()} MAD/mois\n• Charges: ${totalCharges.toLocaleString()} MAD/mois\n• Résultat net: ${resultatMensuel.toLocaleString()} MAD/mois\n• Rentabilité: ${rentabilite}%\n• Payback: ${payback} mois\n\n✅ Document prêt pour:\n• Demande de prêt bancaire\n• Programme Intelaka\n• Présentation investisseurs\n\n📄 Téléchargez votre PDF professionnel →`
       }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur lors de la génération. Réessayez.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Réessayez.' }]);
     }
   };
 
   const downloadPDF = async () => {
     const { jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF();
 
-    // Cover page
+    // PAGE 1 — Couverture
     doc.setFillColor(15, 31, 61);
     doc.rect(0, 0, 210, 297, 'F');
+    doc.setFillColor(251, 191, 36);
+    doc.rect(0, 0, 8, 297, 'F');
     
     doc.setTextColor(251, 191, 36);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ATLAS OS ENTERPRISE', 105, 40, { align: 'center' });
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
-    doc.text('ÉTUDE DE', 105, 100, { align: 'center' });
-    doc.text('FAISABILITÉ', 105, 118, { align: 'center' });
-    
-    doc.setFontSize(18);
-    doc.setTextColor(251, 191, 36);
-    doc.text(data.nom_projet || 'Mon Projet', 105, 145, { align: 'center' });
-    
-    doc.setFontSize(11);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`Secteur: ${data.secteur || ''}`, 105, 170, { align: 'center' });
-    doc.text(`Ville: ${data.ville || ''}`, 105, 182, { align: 'center' });
-    doc.text(`Forme juridique: ${data.forme_juridique || ''}`, 105, 194, { align: 'center' });
-    
-    if (companyData.raisonSociale) {
-      doc.text(`Société: ${companyData.raisonSociale}`, 105, 210, { align: 'center' });
-    }
-    if (companyData.if_fiscal) {
-      doc.text(`IF: ${companyData.if_fiscal}`, 105, 220, { align: 'center' });
-    }
-    
     doc.setFontSize(10);
-    doc.setTextColor(255, 255, 255, 0.5);
-    doc.text(`Document préparé le ${new Date().toLocaleDateString('fr-MA')}`, 105, 260, { align: 'center' });
-    doc.text('Confidentiel — Pour usage bancaire et administratif', 105, 270, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.text('ATLAS OS ENTERPRISE', 20, 35);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(32);
+    doc.text('ÉTUDE DE', 20, 80);
+    doc.text('FAISABILITÉ', 20, 100);
+    
+    doc.setFillColor(251, 191, 36);
+    doc.rect(20, 108, 120, 2, 'F');
+    
+    doc.setFontSize(20);
+    doc.setTextColor(251, 191, 36);
+    doc.text(data.nom_projet || 'Mon Projet', 20, 125);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Secteur: ${data.secteur || ''}`, 20, 145);
+    doc.text(`Forme juridique: ${data.forme_juridique || ''}`, 20, 157);
+    doc.text(`Ville: ${data.ville || ''}`, 20, 169);
+    doc.text(`Porteur: ${data.nom_gerant || ''}`, 20, 181);
+    doc.text(`CIN: ${data.cin || ''}`, 20, 193);
 
-    // Content pages
+    if (companyData.raisonSociale) {
+      doc.setFillColor(255, 255, 255, 0.1);
+      doc.rect(20, 205, 170, 35, 'F');
+      doc.setTextColor(251, 191, 36);
+      doc.setFontSize(9);
+      doc.text('SOCIÉTÉ', 25, 215);
+      doc.setTextColor(255, 255, 255);
+      doc.text(companyData.raisonSociale, 25, 224);
+      if (companyData.if_fiscal) doc.text(`IF: ${companyData.if_fiscal}  |  ICE: ${companyData.ice || ''}  |  RC: ${companyData.rc || ''}`, 25, 233);
+    }
+
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255, 0.5);
+    doc.text(`Préparée le ${new Date().toLocaleDateString('fr-MA')} par Atlas OS Enterprise`, 20, 265);
+    doc.text('Document confidentiel — Usage bancaire et administratif', 20, 274);
+
+    // PAGE 2 — Tableau de bord financier
     doc.addPage();
     doc.setFillColor(15, 31, 61);
-    doc.rect(0, 0, 210, 15, 'F');
+    doc.rect(0, 0, 210, 20, 'F');
+    doc.setFillColor(251, 191, 36);
+    doc.rect(0, 0, 8, 297, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text(`Atlas OS Enterprise · Étude de faisabilité · ${data.nom_projet}`, 15, 10);
-    doc.text(new Date().toLocaleDateString('fr-MA'), 185, 10, { align: 'right' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TABLEAU DE BORD FINANCIER', 20, 13);
 
-    doc.setTextColor(0, 0, 0);
-    const lines = doc.splitTextToSize(etude.replace(/\*\*/g, '').replace(/#{1,3} /g, ''), 180);
-    let y = 25;
-    
+    // KPI Cards
+    const kpis = [
+      { label: 'CA MENSUEL VISÉ', value: `${financials.ca?.toLocaleString()} MAD`, color: [37, 99, 235] },
+      { label: 'RÉSULTAT NET/MOIS', value: `${financials.resultatMensuel?.toLocaleString()} MAD`, color: financials.resultatMensuel > 0 ? [21, 128, 61] : [185, 28, 28] },
+      { label: 'RENTABILITÉ', value: `${financials.rentabilite}%`, color: [124, 58, 237] },
+      { label: 'PAYBACK', value: `${financials.payback} mois`, color: [217, 119, 6] },
+    ];
+
+    kpis.forEach((kpi, i) => {
+      const x = 15 + (i % 2) * 95;
+      const y = 30 + Math.floor(i / 2) * 35;
+      doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+      doc.rect(x, y, 88, 28, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(kpi.label, x + 5, y + 10);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.value, x + 5, y + 22);
+    });
+
+    // Charges breakdown table
+    autoTable(doc, {
+      startY: 105,
+      head: [['POSTE DE CHARGES', 'MENSUEL (MAD)', 'ANNUEL (MAD)', '%']],
+      body: [
+        ['Loyer', financials.loyer?.toLocaleString(), (financials.loyer * 12)?.toLocaleString(), `${((financials.loyer / financials.totalCharges) * 100).toFixed(1)}%`],
+        ['Salaires bruts', financials.totalSalaires?.toLocaleString(), (financials.totalSalaires * 12)?.toLocaleString(), `${((financials.totalSalaires / financials.totalCharges) * 100).toFixed(1)}%`],
+        ['CNSS patronal (21.26%)', financials.cnssPatronal?.toFixed(0), (financials.cnssPatronal * 12)?.toFixed(0), `${((financials.cnssPatronal / financials.totalCharges) * 100).toFixed(1)}%`],
+        ['AMO patronal (2.03%)', financials.amoPatronal?.toFixed(0), (financials.amoPatronal * 12)?.toFixed(0), `${((financials.amoPatronal / financials.totalCharges) * 100).toFixed(1)}%`],
+        ['Autres charges', financials.charges?.toLocaleString(), (financials.charges * 12)?.toLocaleString(), `${((financials.charges / financials.totalCharges) * 100).toFixed(1)}%`],
+        ['TOTAL CHARGES', financials.totalCharges?.toLocaleString(), (financials.totalCharges * 12)?.toLocaleString(), '100%'],
+      ],
+      headStyles: { fillColor: [15, 31, 61], textColor: [255, 255, 255] },
+      footStyles: { fillColor: [15, 31, 61], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      styles: { fontSize: 9 },
+    });
+
+    // P&L Table
+    const y2 = (doc as any).lastAutoTable.finalY + 10;
+    autoTable(doc, {
+      startY: y2,
+      head: [['COMPTE DE RÉSULTAT', 'ANNÉE 1', 'ANNÉE 2 (+20%)', 'ANNÉE 3 (+15%)']],
+      body: [
+        ['Chiffre d\'affaires', `${(financials.ca * 12)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 * 1.15)?.toLocaleString()} MAD`],
+        ['Total charges', `${(financials.totalCharges * 12)?.toLocaleString()} MAD`, `${(financials.totalCharges * 12 * 1.1)?.toLocaleString()} MAD`, `${(financials.totalCharges * 12 * 1.1 * 1.05)?.toLocaleString()} MAD`],
+        ['Résultat avant IS', `${(financials.resultatAnnuel)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 - financials.totalCharges * 12 * 1.1)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 * 1.15 - financials.totalCharges * 12 * 1.1 * 1.05)?.toLocaleString()} MAD`],
+        ['IS estimé', `${financials.is?.toLocaleString()} MAD`, `${(financials.is * 1.2)?.toLocaleString()} MAD`, `${(financials.is * 1.38)?.toLocaleString()} MAD`],
+        ['RÉSULTAT NET', `${(financials.resultatAnnuel - financials.is)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 - financials.totalCharges * 12 * 1.1 - financials.is * 1.2)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 * 1.15 - financials.totalCharges * 12 * 1.1 * 1.05 - financials.is * 1.38)?.toLocaleString()} MAD`],
+      ],
+      headStyles: { fillColor: [15, 31, 61] },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      styles: { fontSize: 9 },
+    });
+
+    // PAGE 3 — Étude complète
+    doc.addPage();
+    doc.setFillColor(15, 31, 61);
+    doc.rect(0, 0, 210, 20, 'F');
+    doc.setFillColor(251, 191, 36);
+    doc.rect(0, 0, 8, 297, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ÉTUDE DE FAISABILITÉ DÉTAILLÉE', 20, 13);
+
+    doc.setTextColor(50, 50, 50);
+    const lines = doc.splitTextToSize(etude.replace(/\*\*/g, '').replace(/#{1,3} /g, ''), 178);
+    let y = 28;
+
     lines.forEach((line: string) => {
-      if (y > 275) {
+      if (y > 278) {
         doc.addPage();
         doc.setFillColor(15, 31, 61);
-        doc.rect(0, 0, 210, 15, 'F');
+        doc.rect(0, 0, 210, 20, 'F');
+        doc.setFillColor(251, 191, 36);
+        doc.rect(0, 0, 8, 297, 'F');
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(8);
-        doc.text(`Atlas OS Enterprise · ${data.nom_projet}`, 15, 10);
-        doc.setTextColor(0, 0, 0);
-        y = 25;
-      }
-      
-      if (line.includes('═') || (line.toUpperCase() === line && line.trim().length > 5 && !line.includes('MAD'))) {
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(15, 31, 61);
+        doc.text(data.nom_projet || '', 20, 13);
+        doc.setTextColor(50, 50, 50);
+        y = 28;
+      }
+
+      if (line.includes('═') || line.includes('──')) {
+        doc.setFillColor(15, 31, 61);
+        doc.rect(15, y - 3, 180, 0.5, 'F');
         y += 4;
+        return;
+      }
+
+      if (line.match(/^\d+\.\s+[A-ZÀÁÂÉÊÈÎÏÔÙÛÜ]/) || (line.toUpperCase() === line && line.trim().length > 3 && !line.includes('MAD') && !line.includes('%'))) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 31, 61);
+        y += 3;
       } else {
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
+        doc.setFontSize(8.5);
         doc.setTextColor(50, 50, 50);
       }
       doc.text(line, 15, y);
-      y += 5.5;
+      y += 5;
     });
 
-    // Footer on last page
-    doc.setFillColor(15, 31, 61);
-    doc.rect(0, 282, 210, 15, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(7);
-    doc.text('Atlas OS Enterprise · Logiciel de comptabilité et gestion · Maroc', 15, 291);
-    doc.text(`Page ${doc.getNumberOfPages()}`, 190, 291);
+    // Footer on all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFillColor(15, 31, 61);
+      doc.rect(0, 287, 210, 10, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7);
+      doc.text('Atlas OS Enterprise · Étude de faisabilité · Confidentiel', 15, 293);
+      doc.text(`Page ${i}/${totalPages}`, 190, 293, { align: 'right' });
+    }
 
-    doc.save(`etude_faisabilite_${data.nom_projet || 'projet'}.pdf`);
+    doc.save(`etude_${data.nom_projet || 'projet'}_${new Date().getFullYear()}.pdf`);
   };
 
   const progress = Math.min((step / questions.length) * 100, 100);
@@ -296,39 +413,44 @@ Sois très précis avec des chiffres réels du marché marocain. Le document doi
             </div>
             <p className="text-white/40 text-xs mt-1">{step}/{questions.length} questions</p>
           </div>
+
           {companyData.raisonSociale && (
-            <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-white/30 text-xs mb-1">Société détectée</p>
-              <div className="flex items-center gap-2">
-                <Building2 size={12} className="text-amber-400" />
-                <p className="text-white/60 text-xs">{companyData.raisonSociale}</p>
-              </div>
-              {companyData.if_fiscal && <p className="text-white/30 text-xs mt-0.5">IF: {companyData.if_fiscal}</p>}
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-white/30 text-xs mb-1 flex items-center gap-1">
+                <CheckCircle size={10} className="text-green-400" /> Données société
+              </p>
+              <p className="text-white/70 text-xs font-medium">{companyData.raisonSociale}</p>
+              {companyData.if_fiscal && <p className="text-white/30 text-xs">IF: {companyData.if_fiscal}</p>}
+              {companyData.ice && <p className="text-white/30 text-xs">ICE: {companyData.ice}</p>}
+              {companyData.rc && <p className="text-white/30 text-xs">RC: {companyData.rc}</p>}
             </div>
           )}
-          {Object.entries(data).slice(-3).map(([k, v]) => (
-            <div key={k} className="flex items-start gap-1">
-              <CheckCircle size={10} className="text-green-400 mt-0.5 shrink-0" />
-              <p className="text-white/30 text-xs truncate">{v}</p>
-            </div>
-          ))}
+
+          <div className="space-y-1">
+            {questions.slice(0, step).map((q, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <CheckCircle size={10} className="text-green-400 shrink-0" />
+                <p className="text-white/30 text-xs truncate">{data[q.key]}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
               <BarChart2 size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">Étude de Faisabilité du Projet</h1>
+              <h1 className="text-lg font-bold text-gray-800">Étude de Faisabilité du Projet</h1>
               <p className="text-xs text-gray-400">Document professionnel · Prêt pour banque / investisseur / Intelaka</p>
             </div>
           </div>
           {etudeReady && (
             <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors">
-              <Download size={16} /> Télécharger PDF
+              <Download size={16} /> PDF Professionnel
             </button>
           )}
         </header>
@@ -370,6 +492,7 @@ Sois très précis avec des chiffres réels du marché marocain. Le document doi
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             {step < questions.length && (
@@ -396,12 +519,33 @@ Sois très précis avec des chiffres réels du marché marocain. Le document doi
               <div className="bg-[#0F1F3D] px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} className="text-green-400" />
-                  <p className="text-white font-semibold text-sm">Étude Complète</p>
+                  <p className="text-white font-semibold text-sm">Aperçu Étude</p>
                 </div>
                 <button onClick={downloadPDF} className="flex items-center gap-1 text-amber-400 hover:text-amber-300 text-xs">
                   <Download size={12} /> PDF
                 </button>
               </div>
+
+              {/* KPI Summary */}
+              <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 border-b border-gray-200">
+                <div className="bg-blue-500 rounded-lg p-2 text-white text-center">
+                  <p className="text-xs opacity-70">CA/mois</p>
+                  <p className="font-bold text-sm">{financials.ca?.toLocaleString()} MAD</p>
+                </div>
+                <div className={`${financials.resultatMensuel > 0 ? 'bg-green-500' : 'bg-red-500'} rounded-lg p-2 text-white text-center`}>
+                  <p className="text-xs opacity-70">Résultat</p>
+                  <p className="font-bold text-sm">{financials.resultatMensuel?.toLocaleString()} MAD</p>
+                </div>
+                <div className="bg-purple-500 rounded-lg p-2 text-white text-center">
+                  <p className="text-xs opacity-70">Rentabilité</p>
+                  <p className="font-bold text-sm">{financials.rentabilite}%</p>
+                </div>
+                <div className="bg-amber-500 rounded-lg p-2 text-white text-center">
+                  <p className="text-xs opacity-70">Payback</p>
+                  <p className="font-bold text-sm">{financials.payback} mois</p>
+                </div>
+              </div>
+
               <div className="flex-1 overflow-y-auto p-4 text-xs text-gray-600 leading-relaxed whitespace-pre-line">
                 {etude}
               </div>
