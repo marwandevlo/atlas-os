@@ -156,7 +156,7 @@ export default function RapportsPage() {
       doc.text('PASSIF', 115, 65);
       autoTable(doc, {
         startY: 70,
-        startX: 110,
+        margin: { left: 110 },
         head: [['Poste', 'Montant (MAD)']],
         body: [
           ['Capital social', '200 000.00'],
