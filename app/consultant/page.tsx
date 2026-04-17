@@ -10,16 +10,18 @@ type Message = {
 };
 
 const suggestions = [
+  'Analyse mes données et prévis combien je vais payer en TVA le mois prochain',
   'Quel est le taux de TVA applicable pour les services informatiques?',
   'Comment calculer l\'IS pour une société avec 500 000 MAD de bénéfice?',
   'Quelles sont les obligations CNSS pour un employé à 8000 MAD?',
-  'Quand est la deadline pour la déclaration TVA mensuelle?',
+  'Optimise ma fiscalite pour reduire l\'IS legalement',
+  'Vérifie si mes écritures comptables sont correctes',
 ];
 
 export default function ConsultantPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Bonjour! Je suis votre conseiller fiscal IA spécialisé en droit marocain. Posez-moi vos questions sur la TVA, IS, IR, CNSS ou toute autre question fiscale.' }
+    { role: 'assistant', content: 'Bonjour! Je suis votre conseiller fiscal IA spécialisé en droit marocain. Posez-moi vos questions sur la TVA, IS, IR, CNSS ou toute autre question fiscale. كنساعدك بالدارجة والفرنسية!' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,7 +65,7 @@ export default function ConsultantPage() {
           </button>
         </nav>
         <div className="px-4 py-4 border-t border-white/10">
-          <p className="text-white/30 text-xs mb-3">Questions fréquentes</p>
+          <p className="text-white/30 text-xs mb-3">Questions frequentes</p>
           {suggestions.map((s, i) => (
             <button key={i} onClick={() => sendMessage(s)} className="w-full text-left text-white/40 hover:text-white/80 text-xs py-2 border-b border-white/5 last:border-0 transition-colors">
               {s.substring(0, 45)}...
@@ -80,7 +82,7 @@ export default function ConsultantPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-800">Consultant Fiscal IA</h1>
-              <p className="text-xs text-gray-400">Spécialisé en droit fiscal marocain · DGI · CNSS · AMO</p>
+              <p className="text-xs text-gray-400">Specialise en droit fiscal marocain · DGI · CNSS · AMO · Prevision fiscale</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -133,14 +135,10 @@ export default function ConsultantPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && sendMessage()}
-              placeholder="Posez votre question fiscale en français ou en darija..."
+              placeholder="Posez votre question fiscale en francais ou en darija..."
               className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
             />
-            <button
-              onClick={() => sendMessage()}
-              disabled={loading}
-              className="px-4 py-3 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors disabled:opacity-50"
-            >
+            <button onClick={() => sendMessage()} disabled={loading} className="px-4 py-3 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors disabled:opacity-50">
               <Send size={18} />
             </button>
           </div>
