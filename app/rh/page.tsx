@@ -183,7 +183,23 @@ EXIGENCES:
 - Mentions legales obligatoires
 - Minimum 1-2 pages
 
-Genere UNIQUEMENT le document sans explications.`
+Genere un document RH COMPLET, FORMEL et PROFESSIONNEL de haute qualite.
+
+EXIGENCES OBLIGATOIRES:
+1. En-tete avec: nom societe, adresse, tel, IF, CNSS, logo textuel
+2. Titre officiel centre en majuscules et souligne
+3. Reference: "Fait a [ville], le [date]" en haut a droite  
+4. Corps du document detaille avec toutes les clauses legales
+5. Pour les contrats: minimum 15 articles detailles
+6. Pour les attestations: formules officielles et certifications
+7. Pour le bulletin de paie: tableau complet CNSS/AMO/IR avec calculs
+8. Mentions legales: references au Code du travail (Loi 65-99)
+9. Clause de confidentialite si applicable
+10. Signatures: Nom, Qualite, Date, "Lu et approuve", empreinte
+11. Tampon et cachet de la societe (mentionner l'espace)
+12. Le document doit faire minimum 2-3 pages
+
+Genere UNIQUEMENT le document complet et detaille, sans commentaires.`
         }),
       });
       const responseData = await res.json();
