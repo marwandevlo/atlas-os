@@ -35,6 +35,17 @@ const docs: Doc[] = [
 
 const categories = ['Attestations', 'Contrats de travail', 'Fin de contrat', 'Contrats commerciaux'];
 
+const companyFields = [
+  { key: 'raisonSociale', label: 'Raison sociale de la societe?' },
+  { key: 'adresse', label: 'Adresse complete de la societe?' },
+  { key: 'telephone', label: 'Telephone de la societe?' },
+  { key: 'if_fiscal', label: 'Identifiant Fiscal (IF)?' },
+  { key: 'ice', label: 'ICE de la societe?' },
+  { key: 'rc', label: 'Registre de Commerce (RC)?' },
+  { key: 'cnss', label: 'Numero CNSS employeur?' },
+  { key: 'ville', label: 'Ville du siege social?' },
+];
+
 const fieldLabels: Record<string, string> = {
   nom_employe: "Nom complet de l'employe",
   cin_employe: "Numero CIN de l'employe",
@@ -71,7 +82,7 @@ const fieldLabels: Record<string, string> = {
   indemnite_licenciement: 'Indemnite de licenciement en MAD',
   total: 'Total solde de tout compte en MAD',
   vendeur: 'Nom/Societe du vendeur',
-  acheteur: 'Nom/Societe de l\'acheteur',
+  acheteur: "Nom/Societe de l'acheteur",
   objet_vente: "Description de l'objet vendu",
   prix: 'Prix de vente en MAD',
   date_livraison: 'Date de livraison prevue',
@@ -106,11 +117,12 @@ export default function RHPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fieldStep, setFieldStep] = useState(0);
+  const [step, setStep] = useState(0);
+  const [phase, setPhase] = useState<'company' | 'doc'>('company');
   const [fieldData, setFieldData] = useState<Record<string, string>>({});
+  const [companyData, setCompanyData] = useState<Record<string, string>>({});
   const [docReady, setDocReady] = useState(false);
   const [docContent, setDocContent] = useState('');
-  const [companyData, setCompanyData] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const saved = localStorage.getItem('atlas_company');
@@ -119,36 +131,76 @@ export default function RHPage() {
 
   const selectDoc = (doc: Doc) => {
     setSelectedDoc(doc);
-    setFieldStep(0);
+    setStep(0);
     setFieldData({});
     setDocReady(false);
     setDocContent('');
-    setMessages([{
-      role: 'assistant',
-      content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\n${companyData.raisonSociale ? `✅ Societe: ${companyData.raisonSociale}\n\n` : ''}${fieldLabels[doc.fields[0]]}?`
-    }]);
+
+    const saved = localStorage.getItem('atlas_company');
+    const company = saved ? JSON.parse(saved) : {};
+
+    if (!company.raisonSociale) {
+      setPhase('company');
+      setMessages([{
+        role: 'assistant',
+        content: `📄 ${doc.name} — ${doc.nameAr}\n\nJe n'ai pas encore les informations de votre societe. Permettez-moi de les collecter d'abord.\n\n${companyFields[0].label}`
+      }]);
+    } else {
+      setPhase('doc');
+      setCompanyData(company);
+      setMessages([{
+        role: 'assistant',
+        content: `📄 ${doc.name} — ${doc.nameAr}\n\n✅ Societe: ${company.raisonSociale}\n\nMaintenant les informations du document:\n\n${fieldLabels[doc.fields[0]]}?`
+      }]);
+    }
   };
 
   const sendMessage = async () => {
     if (!input.trim() || !selectedDoc || loading) return;
     const userMsg: Message = { role: 'user', content: input };
-    const currentField = selectedDoc.fields[fieldStep];
-    const newData = { ...fieldData, [currentField]: input };
-    setFieldData(newData);
     setMessages(prev => [...prev, userMsg]);
+    const val = input;
     setInput('');
-    const nextStep = fieldStep + 1;
-    setFieldStep(nextStep);
 
-    if (nextStep < selectedDoc.fields.length) {
-      setTimeout(() => {
-        setMessages(prev => [...prev, { role: 'assistant', content: fieldLabels[selectedDoc.fields[nextStep]] + '?' }]);
-      }, 300);
+    if (phase === 'company') {
+      const field = companyFields[step];
+      const newCompany = { ...companyData, [field.key]: val };
+      setCompanyData(newCompany);
+      const nextStep = step + 1;
+      setStep(nextStep);
+
+      if (nextStep < companyFields.length) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, { role: 'assistant', content: companyFields[nextStep].label }]);
+        }, 300);
+      } else {
+        localStorage.setItem('atlas_company', JSON.stringify(newCompany));
+        setPhase('doc');
+        setStep(0);
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `✅ Informations societe enregistrees!\n\nMaintenant les informations du document:\n\n${fieldLabels[selectedDoc.fields[0]]}?`
+          }]);
+        }, 300);
+      }
     } else {
-      setLoading(true);
-      setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation du document...' }]);
-      await generateDoc(newData);
-      setLoading(false);
+      const currentField = selectedDoc.fields[step];
+      const newData = { ...fieldData, [currentField]: val };
+      setFieldData(newData);
+      const nextStep = step + 1;
+      setStep(nextStep);
+
+      if (nextStep < selectedDoc.fields.length) {
+        setTimeout(() => {
+          setMessages(prev => [...prev, { role: 'assistant', content: fieldLabels[selectedDoc.fields[nextStep]] + '?' }]);
+        }, 300);
+      } else {
+        setLoading(true);
+        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation du document...' }]);
+        await generateDoc(newData);
+        setLoading(false);
+      }
     }
   };
 
@@ -164,44 +216,34 @@ Genere le document: ${selectedDoc?.name}
 
 SOCIETE EMPLOYEUR:
 - Raison sociale: ${companyData.raisonSociale || ''}
+- Adresse: ${companyData.adresse || ''} ${companyData.ville || ''}
+- Tel: ${companyData.telephone || ''}
 - IF: ${companyData.if_fiscal || ''}
 - ICE: ${companyData.ice || ''}
 - RC: ${companyData.rc || ''}
 - CNSS: ${companyData.cnss || ''}
-- Adresse: ${companyData.adresse || ''} ${companyData.ville || ''}
-- Tel: ${companyData.telephone || ''}
 
 DONNEES:
 ${Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join('\n')}
 
-EXIGENCES:
-- Document formel conforme Code du travail marocain (Loi 65-99)
-- En-tete avec nom societe et coordonnees
-- Contenu complet et detaille
-- Calculs CNSS/AMO/IR si bulletin de paie
-- Section signatures avec date, lieu, nom, qualite
-- Mentions legales obligatoires
-- Minimum 1-2 pages
+REGLES STRICTES:
+- N'utilise JAMAIS de tableaux ASCII (%, |, +, -, T, Z, W, Q, P comme bordures)
+- N'utilise JAMAIS de HTML ou balises
+- N'utilise JAMAIS de caracteres speciaux comme bordures
+- Ecris tout en texte simple avec tirets et numeros
+- Paragraphes bien structures
 
-Genere un document RH COMPLET, FORMEL et PROFESSIONNEL de haute qualite.
+EXIGENCES DU DOCUMENT:
+1. En-tete: nom societe, adresse, tel, IF, ICE, RC, CNSS
+2. Titre du document en majuscules et centre
+3. "Fait a [ville], le [date]" 
+4. Corps avec articles numerotes (ARTICLE 1, ARTICLE 2...)
+5. Contenu complet et detaille conforme Code du travail (Loi 65-99)
+6. Pour contrats: minimum 12 articles avec toutes les clauses
+7. Signatures: nom, qualite, date, lieu, "Lu et approuve"
+8. Document minimum 2-3 pages de contenu riche
 
-EXIGENCES OBLIGATOIRES:
-1. En-tete avec: nom societe, adresse, tel, IF, CNSS, logo textuel
-2. Titre officiel centre en majuscules et souligne
-3. Reference: "Fait a [ville], le [date]" en haut a droite  
-4. Corps du document detaille avec toutes les clauses legales
-5. Pour les contrats: minimum 15 articles detailles
-6. Pour les attestations: formules officielles et certifications
-7. Pour le bulletin de paie: tableau complet CNSS/AMO/IR avec calculs
-8. Mentions legales: references au Code du travail (Loi 65-99)
-9. Clause de confidentialite si applicable
-10. Signatures: Nom, Qualite, Date, "Lu et approuve", empreinte
-11. Tampon et cachet de la societe (mentionner l'espace)
-12. Le document doit faire minimum 2-3 pages
-
-IMPORTANT: N'utilise PAS de tableaux ASCII (avec des caracteres comme %, |, +, -, =).
-Ecris tout en texte simple et structure avec des tirets ou des numeros.
-Genere UNIQUEMENT le document complet en texte simple, sans tableaux ASCII, sans HTML, sans commentaires.`
+Genere UNIQUEMENT le document en texte propre, sans commentaires.`
         }),
       });
       const responseData = await res.json();
@@ -209,7 +251,7 @@ Genere UNIQUEMENT le document complet en texte simple, sans tableaux ASCII, sans
       setDocReady(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `✅ Document genere!\n\n📄 ${selectedDoc?.name} est pret.\n\nConforme Code du travail marocain (Loi 65-99).\n\n📥 Telechargez votre PDF →`
+        content: `✅ Document genere avec succes!\n\n📄 ${selectedDoc?.name} est pret.\n\nConforme Code du travail marocain (Loi 65-99).\n\n📥 Telechargez votre PDF →`
       }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
@@ -220,42 +262,40 @@ Genere UNIQUEMENT le document complet en texte simple, sans tableaux ASCII, sans
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
 
-    doc.setFillColor(15, 31, 61);
-    doc.rect(0, 0, 210, 35, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text(companyData.raisonSociale || 'SOCIETE', 15, 13);
-    doc.setFontSize(11);
-    doc.text(selectedDoc?.name?.toUpperCase() || '', 15, 23);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${companyData.ville || ''} · Tel: ${companyData.telephone || ''} · CNSS: ${companyData.cnss || ''}`, 15, 31);
-
-    doc.setTextColor(50, 50, 50);
     const cleanContent = docContent
-  .replace(/\*\*/g, '')
-  .replace(/#{1,3} /g, '')
-  .replace(/```/g, '')
-  .replace(/%[A-Z]/g, '')
-  .replace(/\[.*?\]/g, '')
-  .replace(/_{3,}/g, '___')
-  .trim();
-const lines = doc.splitTextToSize(cleanContent, 180);
-    let y = 45;
+      .replace(/\*\*/g, '')
+      .replace(/#{1,3} /g, '')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`/g, '')
+      .replace(/%[A-Z]/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>/g, '')
+      .replace(/_{3,}/g, '___')
+      .replace(/\|/g, ' ')
+      .trim();
+
+    const lines = doc.splitTextToSize(cleanContent, 175);
+    let y = 20;
 
     lines.forEach((line: string) => {
-      if (y > 275) {
+      if (y > 278) {
         doc.addPage();
-        doc.setFillColor(15, 31, 61);
-        doc.rect(0, 0, 210, 12, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(7);
-        doc.text(`${companyData.raisonSociale || ''} · ${selectedDoc?.name || ''}`, 15, 8);
-        doc.setTextColor(50, 50, 50);
         y = 20;
       }
-      if (line.toUpperCase() === line && line.trim().length > 3 && !line.includes('MAD')) {
+
+      const trimmed = line.trim();
+      if (trimmed === '') {
+        y += 3;
+        return;
+      }
+
+      if (trimmed.toUpperCase() === trimmed && trimmed.length > 5 && !trimmed.includes('MAD') && !trimmed.includes(':')) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(15, 31, 61);
+        y += 3;
+      } else if (trimmed.startsWith('ARTICLE') || trimmed.startsWith('Art.')) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
         doc.setTextColor(15, 31, 61);
@@ -263,18 +303,12 @@ const lines = doc.splitTextToSize(cleanContent, 180);
       } else {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
-        doc.setTextColor(50, 50, 50);
+        doc.setTextColor(30, 30, 30);
       }
+
       doc.text(line, 15, y);
       y += 5.5;
     });
-
-    doc.setFillColor(15, 31, 61);
-    doc.rect(0, 285, 210, 12, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(7);
-    doc.text('Atlas OS Enterprise · Document RH · Conforme Code du Travail Maroc', 15, 292);
-    doc.text(new Date().toLocaleDateString('fr-MA'), 185, 292, { align: 'right' });
 
     doc.save(`${selectedDoc?.id}_${new Date().getFullYear()}.pdf`);
   };
@@ -285,6 +319,8 @@ const lines = doc.splitTextToSize(cleanContent, 180);
     'Fin de contrat': FileCheck,
     'Contrats commerciaux': FileText,
   };
+
+  const isComplete = phase === 'doc' && step >= (selectedDoc?.fields.length || 0);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -406,7 +442,7 @@ const lines = doc.splitTextToSize(cleanContent, 180);
               )}
             </div>
 
-            {fieldStep < selectedDoc.fields.length && (
+            {!isComplete && !docReady && (
               <div className="bg-white border-t border-gray-200 px-6 py-3">
                 <div className="flex gap-2">
                   <input
