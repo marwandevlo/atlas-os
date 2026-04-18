@@ -231,7 +231,15 @@ Genere UNIQUEMENT le document complet et detaille, sans commentaires.`
     doc.text(`${companyData.ville || ''} · Tel: ${companyData.telephone || ''} · CNSS: ${companyData.cnss || ''}`, 15, 31);
 
     doc.setTextColor(50, 50, 50);
-    const lines = doc.splitTextToSize(docContent.replace(/\*\*/g, '').replace(/#{1,3} /g, ''), 180);
+    const cleanContent = docContent
+  .replace(/\*\*/g, '')
+  .replace(/#{1,3} /g, '')
+  .replace(/```/g, '')
+  .replace(/%[A-Z]/g, '')
+  .replace(/\[.*?\]/g, '')
+  .replace(/_{3,}/g, '___')
+  .trim();
+const lines = doc.splitTextToSize(cleanContent, 180);
     let y = 45;
 
     lines.forEach((line: string) => {
