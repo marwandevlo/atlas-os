@@ -1,7 +1,24 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck, Search } from 'lucide-react';
+
+type Company = {
+  id: number;
+  raisonSociale: string;
+  formeJuridique: string;
+  if_fiscal: string;
+  ice: string;
+  rc: string;
+  cnss: string;
+  adresse: string;
+  ville: string;
+  telephone: string;
+  email: string;
+  activite: string;
+  regimeTVA: string;
+  actif: boolean;
+};
 
 type Doc = {
   id: string;
@@ -34,17 +51,6 @@ const docs: Doc[] = [
 ];
 
 const categories = ['Attestations', 'Contrats de travail', 'Fin de contrat', 'Contrats commerciaux'];
-
-const companyFields = [
-  { key: 'raisonSociale', label: 'Raison sociale de la societe?' },
-  { key: 'adresse', label: 'Adresse complete de la societe?' },
-  { key: 'telephone', label: 'Telephone de la societe?' },
-  { key: 'if_fiscal', label: 'Identifiant Fiscal (IF)?' },
-  { key: 'ice', label: 'ICE de la societe?' },
-  { key: 'rc', label: 'Registre de Commerce (RC)?' },
-  { key: 'cnss', label: 'Numero CNSS employeur?' },
-  { key: 'ville', label: 'Ville du siege social?' },
-];
 
 const fieldLabels: Record<string, string> = {
   nom_employe: "Nom complet de l'employe",
@@ -118,16 +124,23 @@ export default function RHPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
-  const [phase, setPhase] = useState<'company' | 'doc'>('company');
   const [fieldData, setFieldData] = useState<Record<string, string>>({});
-  const [companyData, setCompanyData] = useState<Record<string, string>>({});
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [searchCompany, setSearchCompany] = useState('');
+  const [phase, setPhase] = useState<'select_company' | 'doc'>('select_company');
   const [docReady, setDocReady] = useState(false);
   const [docContent, setDocContent] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('atlas_company');
-    if (saved) setCompanyData(JSON.parse(saved));
+    const saved = localStorage.getItem('atlas_companies');
+    if (saved) setCompanies(JSON.parse(saved));
   }, []);
+
+  const filteredCompanies = companies.filter(c =>
+    c.raisonSociale.toLowerCase().includes(searchCompany.toLowerCase()) ||
+    c.ville.toLowerCase().includes(searchCompany.toLowerCase())
+  );
 
   const selectDoc = (doc: Doc) => {
     setSelectedDoc(doc);
@@ -135,78 +148,51 @@ export default function RHPage() {
     setFieldData({});
     setDocReady(false);
     setDocContent('');
+    setSelectedCompany(null);
+    setSearchCompany('');
+    setPhase('select_company');
+    setMessages([{
+      role: 'assistant',
+      content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle societe souhaitez-vous generer ce document?\nChoisissez dans la liste ci-dessous ou recherchez.`
+    }]);
+  };
 
-    const saved = localStorage.getItem('atlas_company');
-    const company = saved ? JSON.parse(saved) : {};
-    setCompanyData(company);
-
-    if (!company.raisonSociale || !company.if_fiscal) {
-      setPhase('company');
-      setMessages([{
-        role: 'assistant',
-        content: `📄 ${doc.name} — ${doc.nameAr}\n\nJe n'ai pas encore les informations de votre societe. Permettez-moi de les collecter d'abord.\n\n${companyFields[0].label}`
-      }]);
-    } else {
-      setPhase('doc');
-      setCompanyData(company);
-      setMessages([{
-        role: 'assistant',
-        content: `📄 ${doc.name} — ${doc.nameAr}\n\n✅ Societe: ${company.raisonSociale}\n\nMaintenant les informations du document:\n\n${fieldLabels[doc.fields[0]]}?`
-      }]);
-    }
+  const chooseCompany = (company: Company) => {
+    setSelectedCompany(company);
+    setPhase('doc');
+    setStep(0);
+    setMessages(prev => [...prev,
+      { role: 'user', content: `✅ ${company.raisonSociale}` },
+      { role: 'assistant', content: `✅ Societe selectionnee: ${company.raisonSociale}\nIF: ${company.if_fiscal} | CNSS: ${company.cnss} | ${company.ville}\n\nMaintenant les informations du document:\n\n${fieldLabels[selectedDoc!.fields[0]]}?` }
+    ]);
   };
 
   const sendMessage = async () => {
     if (!input.trim() || !selectedDoc || loading) return;
     const userMsg: Message = { role: 'user', content: input };
+    const currentField = selectedDoc.fields[step];
+    const newData = { ...fieldData, [currentField]: input };
+    setFieldData(newData);
     setMessages(prev => [...prev, userMsg]);
-    const val = input;
     setInput('');
+    const nextStep = step + 1;
+    setStep(nextStep);
 
-    if (phase === 'company') {
-      const field = companyFields[step];
-      const newCompany = { ...companyData, [field.key]: val };
-      setCompanyData(newCompany);
-      const nextStep = step + 1;
-      setStep(nextStep);
-
-      if (nextStep < companyFields.length) {
-        setTimeout(() => {
-          setMessages(prev => [...prev, { role: 'assistant', content: companyFields[nextStep].label }]);
-        }, 300);
-      } else {
-        localStorage.setItem('atlas_company', JSON.stringify(newCompany));
-        setPhase('doc');
-        setStep(0);
-        setTimeout(() => {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `✅ Informations societe enregistrees!\n\nMaintenant les informations du document:\n\n${fieldLabels[selectedDoc.fields[0]]}?`
-          }]);
-        }, 300);
-      }
+    if (nextStep < selectedDoc.fields.length) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { role: 'assistant', content: fieldLabels[selectedDoc.fields[nextStep]] + '?' }]);
+      }, 300);
     } else {
-      const currentField = selectedDoc.fields[step];
-      const newData = { ...fieldData, [currentField]: val };
-      setFieldData(newData);
-      const nextStep = step + 1;
-      setStep(nextStep);
-
-      if (nextStep < selectedDoc.fields.length) {
-        setTimeout(() => {
-          setMessages(prev => [...prev, { role: 'assistant', content: fieldLabels[selectedDoc.fields[nextStep]] + '?' }]);
-        }, 300);
-      } else {
-        setLoading(true);
-        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation du document...' }]);
-        await generateDoc(newData);
-        setLoading(false);
-      }
+      setLoading(true);
+      setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation du document...' }]);
+      await generateDoc(newData);
+      setLoading(false);
     }
   };
 
   const generateDoc = async (data: Record<string, string>) => {
     try {
+      const company = selectedCompany!;
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,33 +202,35 @@ export default function RHPage() {
 Genere le document: ${selectedDoc?.name}
 
 SOCIETE EMPLOYEUR:
-- Raison sociale: ${companyData.raisonSociale || ''}
-- Adresse: ${companyData.adresse || ''} ${companyData.ville || ''}
-- Tel: ${companyData.telephone || ''}
-- IF: ${companyData.if_fiscal || ''}
-- ICE: ${companyData.ice || ''}
-- RC: ${companyData.rc || ''}
-- CNSS: ${companyData.cnss || ''}
+- Raison sociale: ${company.raisonSociale}
+- Forme juridique: ${company.formeJuridique}
+- Adresse: ${company.adresse} ${company.ville}
+- Tel: ${company.telephone}
+- Email: ${company.email}
+- IF: ${company.if_fiscal}
+- ICE: ${company.ice}
+- RC: ${company.rc}
+- CNSS: ${company.cnss}
+- Activite: ${company.activite}
+- Regime TVA: ${company.regimeTVA}
 
-DONNEES:
+DONNEES DU DOCUMENT:
 ${Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join('\n')}
 
 REGLES STRICTES:
-- N'utilise JAMAIS de tableaux ASCII (%, |, +, -, T, Z, W, Q, P comme bordures)
+- N'utilise JAMAIS de tableaux ASCII (%, |, +, T, Z, W, Q, P comme bordures)
 - N'utilise JAMAIS de HTML ou balises
-- N'utilise JAMAIS de caracteres speciaux comme bordures
 - Ecris tout en texte simple avec tirets et numeros
-- Paragraphes bien structures
 
 EXIGENCES DU DOCUMENT:
 1. En-tete: nom societe, adresse, tel, IF, ICE, RC, CNSS
-2. Titre du document en majuscules et centre
-3. "Fait a [ville], le [date]" 
+2. Titre du document en majuscules
+3. "Fait a ${company.ville}, le [date]"
 4. Corps avec articles numerotes (ARTICLE 1, ARTICLE 2...)
-5. Contenu complet et detaille conforme Code du travail (Loi 65-99)
-6. Pour contrats: minimum 12 articles avec toutes les clauses
+5. Contenu complet conforme Code du travail (Loi 65-99)
+6. Pour contrats: minimum 12 articles
 7. Signatures: nom, qualite, date, lieu, "Lu et approuve"
-8. Document minimum 2-3 pages de contenu riche
+8. Document minimum 2-3 pages
 
 Genere UNIQUEMENT le document en texte propre, sans commentaires.`
         }),
@@ -252,7 +240,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
       setDocReady(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `✅ Document genere avec succes!\n\n📄 ${selectedDoc?.name} est pret.\n\nConforme Code du travail marocain (Loi 65-99).\n\n📥 Telechargez votre PDF →`
+        content: `✅ Document genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${selectedCompany?.raisonSociale}\n\nConforme Code du travail marocain (Loi 65-99).\n\n📥 Telechargez votre PDF →`
       }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
@@ -262,6 +250,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
   const downloadPDF = async () => {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
+    const company = selectedCompany!;
 
     const cleanContent = docContent
       .replace(/\*\*/g, '')
@@ -284,12 +273,8 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
         doc.addPage();
         y = 20;
       }
-
       const trimmed = line.trim();
-      if (trimmed === '') {
-        y += 3;
-        return;
-      }
+      if (trimmed === '') { y += 3; return; }
 
       if (trimmed.toUpperCase() === trimmed && trimmed.length > 5 && !trimmed.includes('MAD') && !trimmed.includes(':')) {
         doc.setFont('helvetica', 'bold');
@@ -306,12 +291,11 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
         doc.setFontSize(9);
         doc.setTextColor(30, 30, 30);
       }
-
       doc.text(line, 15, y);
       y += 5.5;
     });
 
-    doc.save(`${selectedDoc?.id}_${new Date().getFullYear()}.pdf`);
+    doc.save(`${selectedDoc?.id}_${company.raisonSociale.replace(/ /g, '_')}_${new Date().getFullYear()}.pdf`);
   };
 
   const categoryIcons: Record<string, any> = {
@@ -320,8 +304,6 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
     'Fin de contrat': FileCheck,
     'Contrats commerciaux': FileText,
   };
-
-  const isComplete = phase === 'doc' && step >= (selectedDoc?.fields.length || 0);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -351,18 +333,19 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
             })}
           </div>
         </nav>
-        {companyData.raisonSociale && (
+        {selectedCompany && (
           <div className="px-4 py-3 border-t border-white/10">
             <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-white/30 text-xs mb-1">Societe employeur</p>
-              <p className="text-white/70 text-xs font-medium truncate">{companyData.raisonSociale}</p>
-              {companyData.cnss && <p className="text-white/30 text-xs">CNSS: {companyData.cnss}</p>}
+              <p className="text-white/30 text-xs mb-1">Societe selectionnee</p>
+              <p className="text-white/70 text-xs font-medium truncate">{selectedCompany.raisonSociale}</p>
+              <p className="text-white/30 text-xs">{selectedCompany.ville}</p>
             </div>
           </div>
         )}
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
+        {/* Documents list */}
         <div className={`${selectedDoc ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-80 border-r border-gray-200 bg-white overflow-hidden shrink-0`}>
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
             <h2 className="font-semibold text-gray-700 text-sm">{activeCategory}</h2>
@@ -399,7 +382,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800 text-sm">{selectedDoc.name}</p>
-                  <p className="text-xs text-gray-400">{selectedDoc.nameAr}</p>
+                  <p className="text-xs text-gray-400">{selectedCompany ? selectedCompany.raisonSociale : 'Selectionnez une societe'}</p>
                 </div>
               </div>
               {docReady && (
@@ -409,57 +392,108 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
-              {messages.map((m, i) => (
-                <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  {m.role === 'assistant' && (
-                    <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shrink-0 mt-1">
-                      <Bot size={14} className="text-white" />
+            <div className="flex-1 overflow-hidden flex">
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+                  {messages.map((m, i) => (
+                    <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      {m.role === 'assistant' && (
+                        <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shrink-0 mt-1">
+                          <Bot size={14} className="text-white" />
+                        </div>
+                      )}
+                      <div className={`max-w-lg px-4 py-2.5 rounded-xl text-sm leading-relaxed whitespace-pre-line ${m.role === 'user' ? 'bg-[#1B2A4A] text-white rounded-tr-none' : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'}`}>
+                        {m.content}
+                      </div>
+                      {m.role === 'user' && (
+                        <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center shrink-0 mt-1">
+                          <User size={14} className="text-gray-600" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className={`max-w-lg px-4 py-2.5 rounded-xl text-sm leading-relaxed whitespace-pre-line ${m.role === 'user' ? 'bg-[#1B2A4A] text-white rounded-tr-none' : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'}`}>
-                    {m.content}
-                  </div>
-                  {m.role === 'user' && (
-                    <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center shrink-0 mt-1">
-                      <User size={14} className="text-gray-600" />
+                  ))}
+                  {loading && (
+                    <div className="flex gap-3">
+                      <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shrink-0">
+                        <Bot size={14} className="text-white" />
+                      </div>
+                      <div className="bg-white px-4 py-2.5 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-green-300 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-green-300 rounded-full animate-bounce" style={{animationDelay:'0.1s'}}></div>
+                          <div className="w-2 h-2 bg-green-300 rounded-full animate-bounce" style={{animationDelay:'0.2s'}}></div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-              ))}
-              {loading && (
-                <div className="flex gap-3">
-                  <div className="w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shrink-0">
-                    <Bot size={14} className="text-white" />
-                  </div>
-                  <div className="bg-white px-4 py-2.5 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-green-300 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-green-300 rounded-full animate-bounce" style={{animationDelay:'0.1s'}}></div>
-                      <div className="w-2 h-2 bg-green-300 rounded-full animate-bounce" style={{animationDelay:'0.2s'}}></div>
+
+                {phase === 'doc' && !docReady && (
+                  <div className="bg-white border-t border-gray-200 px-6 py-3">
+                    <div className="flex gap-2">
+                      <input
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                        placeholder="Votre reponse..."
+                        className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400"
+                        autoFocus
+                      />
+                      <button onClick={sendMessage} disabled={loading} className="px-4 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50">
+                        <Send size={16} />
+                      </button>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Company selector */}
+              {phase === 'select_company' && (
+                <div className="w-80 border-l border-gray-200 bg-white flex flex-col overflow-hidden shrink-0">
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                    <p className="font-semibold text-gray-700 text-sm">Choisir la societe</p>
+                    <p className="text-xs text-gray-400">{companies.length} societes disponibles</p>
+                  </div>
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <div className="relative">
+                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        value={searchCompany}
+                        onChange={e => setSearchCompany(e.target.value)}
+                        placeholder="Rechercher..."
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-400"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                    {filteredCompanies.map(c => (
+                      <button key={c.id} onClick={() => chooseCompany(c)}
+                        className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-green-300 hover:bg-green-50 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${c.actif ? 'bg-green-500' : 'bg-[#1B2A4A]'}`}>
+                            {c.raisonSociale.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-800 text-sm truncate">{c.raisonSociale}</p>
+                            <p className="text-xs text-gray-400">{c.ville} · {c.formeJuridique}</p>
+                            {c.if_fiscal && <p className="text-xs text-gray-300 font-mono">IF: {c.if_fiscal}</p>}
+                          </div>
+                          {c.actif && <span className="text-xs text-green-500 font-medium shrink-0">Active</span>}
+                        </div>
+                      </button>
+                    ))}
+                    {filteredCompanies.length === 0 && (
+                      <div className="text-center py-8">
+                        <p className="text-gray-400 text-sm">Aucune societe trouvee</p>
+                        <button onClick={() => router.push('/companies')} className="mt-2 text-xs text-green-500 hover:underline">
+                          + Ajouter une societe
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
-
-            {!isComplete && !docReady && (
-              <div className="bg-white border-t border-gray-200 px-6 py-3">
-                <div className="flex gap-2">
-                  <input
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                    placeholder="Votre reponse..."
-                    className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400"
-                    autoFocus
-                  />
-                  <button onClick={sendMessage} disabled={loading} className="px-4 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50">
-                    <Send size={16} />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div className="flex-1 hidden lg:flex items-center justify-center bg-gray-50">
