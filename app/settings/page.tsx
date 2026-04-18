@@ -1,147 +1,44 @@
 'use client';
-import { useState } from 'react';
-import { ArrowLeft, Download, FileText, TrendingUp, Calculator, Users, Receipt } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, Building2, Save, CheckCircle } from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [generating, setGenerating] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [company, setCompany] = useState({
+    raisonSociale: '',
+    formeJuridique: 'SARL',
+    if_fiscal: '',
+    ice: '',
+    rc: '',
+    cnss: '',
+    taxeProfessionnelle: '',
+    adresse: '',
+    ville: '',
+    telephone: '',
+    email: '',
+    activite: '',
+    regimeTVA: 'mensuel',
+    exerciceFiscal: '2025',
+    ribBancaire: '',
+    banque: '',
+  });
 
-  const generatePDF = async (type: string) => {
-    setGenerating(type);
-    const { jsPDF } = await import('jspdf');
-    const autoTable = (await import('jspdf-autotable')).default;
-    const doc = new jsPDF();
-    const now = new Date();
+  useEffect(() => {
+    const saved = localStorage.getItem('atlas_company');
+    if (saved) setCompany(JSON.parse(saved));
+  }, []);
 
-    doc.setFillColor(15, 31, 61);
-    doc.rect(0, 0, 210, 35, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ATLAS OS ENTERPRISE', 15, 15);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Logiciel de comptabilite et fiscalite - Maroc', 15, 22);
-    doc.text(`Date: ${now.toLocaleDateString('fr-MA')}`, 15, 29);
-
-    if (type === 'tva') {
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('DECLARATION TVA - Avril 2026', 15, 50);
-      autoTable(doc, {
-        startY: 65,
-        head: [['Description', 'Montant (MAD)']],
-        body: [
-          ["Chiffre d'affaires HT", '15 000.00'],
-          ['TVA collectee (20%)', '3 000.00'],
-          ['Achats HT deductibles', '3 000.00'],
-          ['TVA deductible', '600.00'],
-          ['TVA nette a payer', '2 400.00'],
-        ],
-        headStyles: { fillColor: [15, 31, 61] },
-        alternateRowStyles: { fillColor: [245, 247, 250] },
-      });
-    }
-
-    if (type === 'is') {
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('DECLARATION IS - Exercice 2025', 15, 50);
-      autoTable(doc, {
-        startY: 65,
-        head: [['Element', 'Montant (MAD)']],
-        body: [
-          ["Chiffre d'affaires", '1 200 000.00'],
-          ["Charges d'exploitation", '450 000.00'],
-          ['Salaires bruts', '300 000.00'],
-          ['Amortissements', '50 000.00'],
-          ['Resultat fiscal', '400 000.00'],
-          ['Taux IS applique', '20%'],
-          ['IS calcule', '80 000.00'],
-          ['Cotisation minimale (0.5%)', '6 000.00'],
-          ['IS A PAYER', '80 000.00'],
-          ['Acompte trimestriel', '20 000.00'],
-        ],
-        headStyles: { fillColor: [88, 28, 135] },
-        alternateRowStyles: { fillColor: [245, 247, 250] },
-      });
-    }
-
-    if (type === 'cnss') {
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('BORDEREAU CNSS - Avril 2026', 15, 50);
-      autoTable(doc, {
-        startY: 65,
-        head: [['Employe', 'CIN', 'Salaire Brut', 'CNSS', 'AMO', 'IR']],
-        body: [
-          ['Ahmed Benali', 'BK123456', '8 000.00', '339.12', '180.80', '1 109.59'],
-          ['Fatima Zahra', 'BE789012', '12 000.00', '339.12', '271.20', '2 438.85'],
-          ['Youssef Kadiri', 'BJ345678', '6 000.00', '268.80', '135.60', '513.15'],
-          ['TOTAL', '', '26 000.00', '947.04', '587.60', '4 061.59'],
-        ],
-        headStyles: { fillColor: [21, 128, 61] },
-        alternateRowStyles: { fillColor: [245, 247, 250] },
-      });
-      const y2 = (doc as any).lastAutoTable.finalY + 10;
-      autoTable(doc, {
-        startY: y2,
-        head: [['Cotisation', 'Taux', 'Montant (MAD)']],
-        body: [
-          ['CNSS salarial', '4.48%', '947.04'],
-          ['CNSS patronal', '21.26%', '5 527.60'],
-          ['AMO total', '4.29%', '1 115.40'],
-          ['TOTAL A VERSER', '', '7 590.04'],
-        ],
-        headStyles: { fillColor: [21, 128, 61] },
-      });
-    }
-
-    if (type === 'bilan') {
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('BILAN SIMPLIFIE - Exercice 2025', 15, 50);
-      autoTable(doc, {
-        startY: 65,
-        head: [['ACTIF', 'Montant', 'PASSIF', 'Montant']],
-        body: [
-          ['Immobilisations', '250 000.00', 'Capital social', '200 000.00'],
-          ['Stocks', '80 000.00', 'Reserves', '100 000.00'],
-          ['Creances clients', '120 000.00', 'Resultat net', '80 000.00'],
-          ['Tresorerie', '50 000.00', 'Dettes fournisseurs', '120 000.00'],
-          ['TOTAL ACTIF', '500 000.00', 'TOTAL PASSIF', '500 000.00'],
-        ],
-        headStyles: { fillColor: [37, 99, 235] },
-        alternateRowStyles: { fillColor: [245, 247, 250] },
-      });
-    }
-
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFillColor(15, 31, 61);
-      doc.rect(0, 285, 210, 12, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(7);
-      doc.text('Atlas OS Enterprise - Logiciel de comptabilite Maroc', 15, 292);
-      doc.text(`Page ${i}/${pageCount}`, 185, 292);
-    }
-
-    doc.save(`${type}_${now.getFullYear()}.pdf`);
-    setGenerating(null);
+  const handleSave = () => {
+    localStorage.setItem('atlas_company', JSON.stringify(company));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
   };
 
-  const rapports = [
-    { id: 'tva', label: 'Declaration TVA', desc: 'TVA collectee, deductible, net a payer', icon: Receipt, color: 'bg-blue-500', period: 'Avril 2026' },
-    { id: 'is', label: 'Declaration IS', desc: 'Resultat fiscal, IS calcule, acomptes', icon: Calculator, color: 'bg-purple-500', period: 'Exercice 2025' },
-    { id: 'cnss', label: 'Bordereau CNSS', desc: 'Salaries, cotisations, total a verser', icon: Users, color: 'bg-green-500', period: 'Avril 2026' },
-    { id: 'bilan', label: 'Bilan simplifie', desc: 'Actif, passif, situation nette', icon: TrendingUp, color: 'bg-amber-500', period: 'Exercice 2025' },
-  ];
+  const formes = ['SARL', 'SA', 'SNC', 'Auto-entrepreneur', 'Personne physique', 'Association'];
+  const villes = ['Casablanca', 'Rabat', 'Marrakech', 'Fes', 'Tanger', 'Agadir', 'Meknes', 'Oujda', 'Kenitra', 'Autre'];
+  const banques = ['Attijariwafa Bank', 'CIH Bank', 'BMCE Bank', 'BMCI', 'Banque Populaire', 'Societe Generale', 'CFG Bank', 'Al Barid Bank'];
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -155,50 +52,123 @@ export default function SettingsPage() {
             <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <FileText size={16} /> Rapports PDF
+            <Building2 size={16} /> Parametres
           </button>
         </nav>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <h1 className="text-xl font-bold text-gray-800">Rapports & Declarations PDF</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Generez vos documents officiels en un clic</p>
+        <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">Parametres de la societe</h1>
+            <p className="text-xs text-gray-400 mt-0.5">IF · ICE · RC · CNSS · Coordonnees fiscales</p>
+          </div>
+          <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-colors ${saved ? 'bg-green-500 text-white' : 'bg-[#1B2A4A] text-white hover:bg-[#243660]'}`}>
+            {saved ? <><CheckCircle size={16} /> Sauvegarde!</> : <><Save size={16} /> Enregistrer</>}
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <div className="grid grid-cols-2 gap-6">
-            {rapports.map(r => (
-              <div key={r.id} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 ${r.color} rounded-xl flex items-center justify-center shrink-0`}>
-                    <r.icon size={24} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="font-bold text-gray-800">{r.label}</h2>
-                    <p className="text-sm text-gray-400 mt-1">{r.desc}</p>
-                    <p className="text-xs text-blue-500 mt-1 font-medium">Periode: {r.period}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => generatePDF(r.id)}
-                  disabled={generating === r.id}
-                  className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1B2A4A] text-white rounded-lg text-sm font-medium hover:bg-[#243660] transition-colors disabled:opacity-50"
-                >
-                  {generating === r.id ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Generation en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Download size={16} /> Telecharger PDF
-                    </>
-                  )}
-                </button>
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <h2 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <Building2 size={16} className="text-blue-500" />
+              Identification de la societe
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="text-xs text-gray-400 mb-1 block">Raison sociale *</label>
+                <input value={company.raisonSociale} onChange={e => setCompany({...company, raisonSociale: e.target.value})} placeholder="Ex: ATLAS COMMERCE SARL" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
               </div>
-            ))}
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Forme juridique</label>
+                <select value={company.formeJuridique} onChange={e => setCompany({...company, formeJuridique: e.target.value})} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                  {formes.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Activite principale</label>
+                <input value={company.activite} onChange={e => setCompany({...company, activite: e.target.value})} placeholder="Ex: Commerce de detail" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+              </div>
+            </div>
           </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <h2 className="font-semibold text-gray-700 mb-4 text-blue-600">Identifiants fiscaux et sociaux</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Identifiant Fiscal (IF) *</label>
+                <input value={company.if_fiscal} onChange={e => setCompany({...company, if_fiscal: e.target.value})} placeholder="Ex: 12345678" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">ICE *</label>
+                <input value={company.ice} onChange={e => setCompany({...company, ice: e.target.value})} placeholder="Ex: 001234567000012" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Registre de Commerce (RC)</label>
+                <input value={company.rc} onChange={e => setCompany({...company, rc: e.target.value})} placeholder="Ex: 123456" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">N CNSS employeur</label>
+                <input value={company.cnss} onChange={e => setCompany({...company, cnss: e.target.value})} placeholder="Ex: 1234567" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Taxe professionnelle</label>
+                <input value={company.taxeProfessionnelle} onChange={e => setCompany({...company, taxeProfessionnelle: e.target.value})} placeholder="Ex: TP123456" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Regime TVA</label>
+                <select value={company.regimeTVA} onChange={e => setCompany({...company, regimeTVA: e.target.value})} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                  <option value="mensuel">Mensuel</option>
+                  <option value="trimestriel">Trimestriel</option>
+                  <option value="exonere">Exonere</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <h2 className="font-semibold text-gray-700 mb-4">Coordonnees</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="text-xs text-gray-400 mb-1 block">Adresse</label>
+                <input value={company.adresse} onChange={e => setCompany({...company, adresse: e.target.value})} placeholder="Ex: 123 Rue Mohammed V" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Ville</label>
+                <select value={company.ville} onChange={e => setCompany({...company, ville: e.target.value})} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                  <option value="">Choisir...</option>
+                  {villes.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Telephone</label>
+                <input value={company.telephone} onChange={e => setCompany({...company, telephone: e.target.value})} placeholder="Ex: 0522123456" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Email</label>
+                <input value={company.email} onChange={e => setCompany({...company, email: e.target.value})} placeholder="contact@societe.ma" type="email" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <h2 className="font-semibold text-gray-700 mb-4">Informations bancaires</h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Banque</label>
+                <select value={company.banque} onChange={e => setCompany({...company, banque: e.target.value})} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                  <option value="">Choisir...</option>
+                  {banques.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">RIB / IBAN</label>
+                <input value={company.ribBancaire} onChange={e => setCompany({...company, ribBancaire: e.target.value})} placeholder="Ex: 007 780 0001234567890123 26" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono text-xs" />
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
     </div>
