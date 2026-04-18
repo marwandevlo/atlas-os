@@ -269,6 +269,85 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
     let y = 20;
 
     lines.forEach((line: string) => {
+      if (y > 278) { doc.addPage(); y = 20; }
+      const trimmed = line.trim();
+      if (trimmed === '') { y += 3; return; }
+      if (trimmed.toUpperCase() === trimmed && trimmed.length > 5 && !trimmed.includes('MAD') && !trimmed.includes(':')) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 31, 61); y += 3;
+      } else if (trimmed.startsWith('ARTICLE') || trimmed.startsWith('Art.')) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2;
+      } else {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
+      }
+      doc.text(line, 15, y);
+      y += 5.5;
+    });
+
+    doc.save(`${selectedDoc?.id}_${company.raisonSociale.replace(/ /g, '_')}.pdf`);
+  };
+
+  const downloadWord = async () => {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+    const company = selectedCompany!;
+
+    const cleanContent = docContent
+      .replace(/\*\*/g, '').replace(/#{1,3} /g, '').replace(/```[\s\S]*?```/g, '')
+      .replace(/`/g, '').replace(/%[A-Z]/g, '').replace(/\[.*?\]/g, '')
+      .replace(/&nbsp;/g, ' ').replace(/<[^>]*>/g, '').trim();
+
+    const paragraphs = cleanContent.split('\n').map(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return new Paragraph({ text: '' });
+      if (trimmed.toUpperCase() === trimmed && trimmed.length > 5 && !trimmed.includes('MAD')) {
+        return new Paragraph({ text: trimmed, heading: HeadingLevel.HEADING_2 });
+      }
+      if (trimmed.startsWith('ARTICLE')) {
+        return new Paragraph({ text: trimmed, heading: HeadingLevel.HEADING_3 });
+      }
+      return new Paragraph({ children: [new TextRun({ text: trimmed, size: 22 })] });
+    });
+
+    const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedDoc?.id}_${company.raisonSociale.replace(/ /g, '_')}.docx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const shareDocument = async () => {
+    const company = selectedCompany!;
+    const text = `Document: ${selectedDoc?.name}\nSociete: ${company.raisonSociale}\n\n${docContent.substring(0, 500)}...`;
+    if (navigator.share) {
+      await navigator.share({ title: selectedDoc?.name, text });
+    } else {
+      await navigator.clipboard.writeText(text);
+      alert('Document copie dans le presse-papier!');
+    }
+  };
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const company = selectedCompany!;
+
+    const cleanContent = docContent
+      .replace(/\*\*/g, '')
+      .replace(/#{1,3} /g, '')
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`/g, '')
+      .replace(/%[A-Z]/g, '')
+      .replace(/\[.*?\]/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>/g, '')
+      .replace(/_{3,}/g, '___')
+      .replace(/\|/g, ' ')
+      .trim();
+
+    const lines = doc.splitTextToSize(cleanContent, 175);
+    let y = 20;
+
+    lines.forEach((line: string) => {
       if (y > 278) {
         doc.addPage();
         y = 20;
@@ -386,9 +465,17 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
                 </div>
               </div>
               {docReady && (
-                <button onClick={downloadPDF} className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">
-                  <Download size={14} /> PDF
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={downloadPDF} className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">
+                    <Download size={14} /> PDF
+                  </button>
+                  <button onClick={downloadWord} className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">
+                    <Download size={14} /> Word
+                  </button>
+                  <button onClick={shareDocument} className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600">
+                    <Download size={14} /> Partager
+                  </button>
+                </div>
               )}
             </div>
 
