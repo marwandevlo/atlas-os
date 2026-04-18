@@ -52,7 +52,7 @@ const deadlines = [
   { label: 'Declaration IR salaires', labelAr: 'تصريح IR الرواتب', date: '30 Juin 2026', jours: 44, type: 'ok', lien: 'https://www.tax.gov.ma' },
 ];
 
-export default function Home() {
+export default function JuridiquePage() {
   const router = useRouter();
   const [lang, setLang] = useState<'fr' | 'ar'>('fr');
   const [menuOpen, setMenuOpen] = useState(false);
