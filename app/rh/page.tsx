@@ -199,7 +199,9 @@ EXIGENCES OBLIGATOIRES:
 11. Tampon et cachet de la societe (mentionner l'espace)
 12. Le document doit faire minimum 2-3 pages
 
-Genere UNIQUEMENT le document complet et detaille, sans commentaires.`
+IMPORTANT: N'utilise PAS de tableaux ASCII (avec des caracteres comme %, |, +, -, =).
+Ecris tout en texte simple et structure avec des tirets ou des numeros.
+Genere UNIQUEMENT le document complet en texte simple, sans tableaux ASCII, sans HTML, sans commentaires.`
         }),
       });
       const responseData = await res.json();
