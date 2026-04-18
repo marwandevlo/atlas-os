@@ -32,7 +32,7 @@ const navItems = [
   { id: 'agents', label: 'Agents IA', labelAr: 'الوكلاء الذكيون', icon: Zap, href: '/agents' },
   { id: 'etude', label: 'Etude de Projet', labelAr: 'دراسة الجدوى', icon: BarChart2, href: '/etude-projet' },
   { id: 'juridique', label: 'Juridique', labelAr: 'القانونية', icon: Scale, href: '/juridique' },
-  { id: 'companies', label: 'Mes societes', labelAr: 'شركاتي', icon: Building2, href: '/companies' },
+  { id: 'rh', label: 'Ressources Humaines', labelAr: 'الموارد البشرية', icon: Users, href: '/rh' },{ id: 'companies', label: 'Mes societes', labelAr: 'شركاتي', icon: Building2, href: '/companies' },
   { id: 'rapports', label: 'Rapports PDF', labelAr: 'التقارير', icon: FileText, href: '/rapports' },
   { id: 'settings', label: 'Parametres', labelAr: 'الإعدادات', icon: Settings, href: '/settings' },
 ];
