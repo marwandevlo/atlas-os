@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck, Search } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck, Search, Share2 } from 'lucide-react';
 
 type Company = {
   id: number;
@@ -116,6 +116,11 @@ const fieldLabels: Record<string, string> = {
   date: 'Date de signature',
 };
 
+const cleanText = (text: string) => text
+  .replace(/\*\*/g, '').replace(/#{1,3} /g, '').replace(/```[\s\S]*?```/g, '')
+  .replace(/`/g, '').replace(/%[A-Z]/g, '').replace(/\[.*?\]/g, '')
+  .replace(/&nbsp;/g, ' ').replace(/<[^>]*>/g, '').replace(/\|/g, ' ').trim();
+
 export default function RHPage() {
   const router = useRouter();
   const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
@@ -151,10 +156,7 @@ export default function RHPage() {
     setSelectedCompany(null);
     setSearchCompany('');
     setPhase('select_company');
-    setMessages([{
-      role: 'assistant',
-      content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle societe souhaitez-vous generer ce document?\nChoisissez dans la liste ci-dessous ou recherchez.`
-    }]);
+    setMessages([{ role: 'assistant', content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle societe souhaitez-vous ce document?\nChoisissez dans la liste.` }]);
   };
 
   const chooseCompany = (company: Company) => {
@@ -163,17 +165,16 @@ export default function RHPage() {
     setStep(0);
     setMessages(prev => [...prev,
       { role: 'user', content: `✅ ${company.raisonSociale}` },
-      { role: 'assistant', content: `✅ Societe selectionnee: ${company.raisonSociale}\nIF: ${company.if_fiscal} | CNSS: ${company.cnss} | ${company.ville}\n\nMaintenant les informations du document:\n\n${fieldLabels[selectedDoc!.fields[0]]}?` }
+      { role: 'assistant', content: `✅ Societe: ${company.raisonSociale}\nIF: ${company.if_fiscal} | CNSS: ${company.cnss} | ${company.ville}\n\n${fieldLabels[selectedDoc!.fields[0]]}?` }
     ]);
   };
 
   const sendMessage = async () => {
     if (!input.trim() || !selectedDoc || loading) return;
-    const userMsg: Message = { role: 'user', content: input };
     const currentField = selectedDoc.fields[step];
     const newData = { ...fieldData, [currentField]: input };
     setFieldData(newData);
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => [...prev, { role: 'user', content: input }]);
     setInput('');
     const nextStep = step + 1;
     setStep(nextStep);
@@ -206,15 +207,13 @@ SOCIETE EMPLOYEUR:
 - Forme juridique: ${company.formeJuridique}
 - Adresse: ${company.adresse} ${company.ville}
 - Tel: ${company.telephone}
-- Email: ${company.email}
 - IF: ${company.if_fiscal}
 - ICE: ${company.ice}
 - RC: ${company.rc}
 - CNSS: ${company.cnss}
 - Activite: ${company.activite}
-- Regime TVA: ${company.regimeTVA}
 
-DONNEES DU DOCUMENT:
+DONNEES:
 ${Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join('\n')}
 
 REGLES STRICTES:
@@ -222,15 +221,15 @@ REGLES STRICTES:
 - N'utilise JAMAIS de HTML ou balises
 - Ecris tout en texte simple avec tirets et numeros
 
-EXIGENCES DU DOCUMENT:
+EXIGENCES:
 1. En-tete: nom societe, adresse, tel, IF, ICE, RC, CNSS
-2. Titre du document en majuscules
+2. Titre en majuscules
 3. "Fait a ${company.ville}, le [date]"
-4. Corps avec articles numerotes (ARTICLE 1, ARTICLE 2...)
-5. Contenu complet conforme Code du travail (Loi 65-99)
+4. Articles numerotes (ARTICLE 1, ARTICLE 2...)
+5. Conforme Code du travail (Loi 65-99)
 6. Pour contrats: minimum 12 articles
-7. Signatures: nom, qualite, date, lieu, "Lu et approuve"
-8. Document minimum 2-3 pages
+7. Signatures: nom, qualite, date, "Lu et approuve"
+8. Minimum 2-3 pages
 
 Genere UNIQUEMENT le document en texte propre, sans commentaires.`
         }),
@@ -238,10 +237,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
       const responseData = await res.json();
       setDocContent(responseData.response);
       setDocReady(true);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `✅ Document genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${selectedCompany?.raisonSociale}\n\nConforme Code du travail marocain (Loi 65-99).\n\n📥 Telechargez votre PDF →`
-      }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\n📥 Telechargez en PDF ou Word →` }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
     }
@@ -250,31 +246,16 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
   const downloadPDF = async () => {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
-    const company = selectedCompany!;
-
-    const cleanContent = docContent
-      .replace(/\*\*/g, '')
-      .replace(/#{1,3} /g, '')
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`/g, '')
-      .replace(/%[A-Z]/g, '')
-      .replace(/\[.*?\]/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/<[^>]*>/g, '')
-      .replace(/_{3,}/g, '___')
-      .replace(/\|/g, ' ')
-      .trim();
-
-    const lines = doc.splitTextToSize(cleanContent, 175);
+    const clean = cleanText(docContent);
+    const lines = doc.splitTextToSize(clean, 175);
     let y = 20;
-
     lines.forEach((line: string) => {
       if (y > 278) { doc.addPage(); y = 20; }
-      const trimmed = line.trim();
-      if (trimmed === '') { y += 3; return; }
-      if (trimmed.toUpperCase() === trimmed && trimmed.length > 5 && !trimmed.includes('MAD') && !trimmed.includes(':')) {
+      const t = line.trim();
+      if (!t) { y += 3; return; }
+      if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD') && !t.includes(':')) {
         doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 31, 61); y += 3;
-      } else if (trimmed.startsWith('ARTICLE') || trimmed.startsWith('Art.')) {
+      } else if (t.startsWith('ARTICLE') || t.startsWith('Art.')) {
         doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2;
       } else {
         doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
@@ -282,99 +263,41 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
       doc.text(line, 15, y);
       y += 5.5;
     });
-
-    doc.save(`${selectedDoc?.id}_${company.raisonSociale.replace(/ /g, '_')}.pdf`);
+    doc.save(`${selectedDoc?.id}_${selectedCompany?.raisonSociale.replace(/ /g, '_')}.pdf`);
   };
 
   const downloadWord = async () => {
     const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
-    const company = selectedCompany!;
-
-    const cleanContent = docContent
-      .replace(/\*\*/g, '').replace(/#{1,3} /g, '').replace(/```[\s\S]*?```/g, '')
-      .replace(/`/g, '').replace(/%[A-Z]/g, '').replace(/\[.*?\]/g, '')
-      .replace(/&nbsp;/g, ' ').replace(/<[^>]*>/g, '').trim();
-
-    const paragraphs = cleanContent.split('\n').map(line => {
-      const trimmed = line.trim();
-      if (!trimmed) return new Paragraph({ text: '' });
-      if (trimmed.toUpperCase() === trimmed && trimmed.length > 5 && !trimmed.includes('MAD')) {
-        return new Paragraph({ text: trimmed, heading: HeadingLevel.HEADING_2 });
+    const clean = cleanText(docContent);
+    const paragraphs = clean.split('\n').map(line => {
+      const t = line.trim();
+      if (!t) return new Paragraph({ text: '' });
+      if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD')) {
+        return new Paragraph({ text: t, heading: HeadingLevel.HEADING_2 });
       }
-      if (trimmed.startsWith('ARTICLE')) {
-        return new Paragraph({ text: trimmed, heading: HeadingLevel.HEADING_3 });
+      if (t.startsWith('ARTICLE')) {
+        return new Paragraph({ text: t, heading: HeadingLevel.HEADING_3 });
       }
-      return new Paragraph({ children: [new TextRun({ text: trimmed, size: 22 })] });
+      return new Paragraph({ children: [new TextRun({ text: t, size: 22 })] });
     });
-
-    const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
-    const blob = await Packer.toBlob(doc);
+    const wordDoc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
+    const blob = await Packer.toBlob(wordDoc);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${selectedDoc?.id}_${company.raisonSociale.replace(/ /g, '_')}.docx`;
+    a.download = `${selectedDoc?.id}_${selectedCompany?.raisonSociale.replace(/ /g, '_')}.docx`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const shareDocument = async () => {
-    const company = selectedCompany!;
-    const text = `Document: ${selectedDoc?.name}\nSociete: ${company.raisonSociale}\n\n${docContent.substring(0, 500)}...`;
+    const text = `${selectedDoc?.name}\n${selectedCompany?.raisonSociale}\n\n${docContent.substring(0, 500)}...`;
     if (navigator.share) {
       await navigator.share({ title: selectedDoc?.name, text });
     } else {
       await navigator.clipboard.writeText(text);
-      alert('Document copie dans le presse-papier!');
+      alert('Copie dans le presse-papier!');
     }
-  };
-    const { jsPDF } = await import('jspdf');
-    const doc = new jsPDF();
-    const company = selectedCompany!;
-
-    const cleanContent = docContent
-      .replace(/\*\*/g, '')
-      .replace(/#{1,3} /g, '')
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/`/g, '')
-      .replace(/%[A-Z]/g, '')
-      .replace(/\[.*?\]/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/<[^>]*>/g, '')
-      .replace(/_{3,}/g, '___')
-      .replace(/\|/g, ' ')
-      .trim();
-
-    const lines = doc.splitTextToSize(cleanContent, 175);
-    let y = 20;
-
-    lines.forEach((line: string) => {
-      if (y > 278) {
-        doc.addPage();
-        y = 20;
-      }
-      const trimmed = line.trim();
-      if (trimmed === '') { y += 3; return; }
-
-      if (trimmed.toUpperCase() === trimmed && trimmed.length > 5 && !trimmed.includes('MAD') && !trimmed.includes(':')) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.setTextColor(15, 31, 61);
-        y += 3;
-      } else if (trimmed.startsWith('ARTICLE') || trimmed.startsWith('Art.')) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(15, 31, 61);
-        y += 2;
-      } else {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(30, 30, 30);
-      }
-      doc.text(line, 15, y);
-      y += 5.5;
-    });
-
-    doc.save(`${selectedDoc?.id}_${company.raisonSociale.replace(/ /g, '_')}_${new Date().getFullYear()}.pdf`);
   };
 
   const categoryIcons: Record<string, any> = {
@@ -424,7 +347,6 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
       </aside>
 
       <main className="flex-1 flex overflow-hidden">
-        {/* Documents list */}
         <div className={`${selectedDoc ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-80 border-r border-gray-200 bg-white overflow-hidden shrink-0`}>
           <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
             <h2 className="font-semibold text-gray-700 text-sm">{activeCategory}</h2>
@@ -466,14 +388,14 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
               </div>
               {docReady && (
                 <div className="flex gap-2">
-                  <button onClick={downloadPDF} className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">
-                    <Download size={14} /> PDF
+                  <button onClick={downloadPDF} className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg text-xs hover:bg-green-600">
+                    <Download size={13} /> PDF
                   </button>
-                  <button onClick={downloadWord} className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">
-                    <Download size={14} /> Word
+                  <button onClick={downloadWord} className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600">
+                    <Download size={13} /> Word
                   </button>
-                  <button onClick={shareDocument} className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600">
-                    <Download size={14} /> Partager
+                  <button onClick={shareDocument} className="flex items-center gap-1 px-3 py-2 bg-amber-500 text-white rounded-lg text-xs hover:bg-amber-600">
+                    <Share2 size={13} /> Partager
                   </button>
                 </div>
               )}
@@ -518,14 +440,8 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
                 {phase === 'doc' && !docReady && (
                   <div className="bg-white border-t border-gray-200 px-6 py-3">
                     <div className="flex gap-2">
-                      <input
-                        value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                        placeholder="Votre reponse..."
-                        className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400"
-                        autoFocus
-                      />
+                      <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                        placeholder="Votre reponse..." className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400" autoFocus />
                       <button onClick={sendMessage} disabled={loading} className="px-4 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50">
                         <Send size={16} />
                       </button>
@@ -534,7 +450,6 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
                 )}
               </div>
 
-              {/* Company selector */}
               {phase === 'select_company' && (
                 <div className="w-80 border-l border-gray-200 bg-white flex flex-col overflow-hidden shrink-0">
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
@@ -544,12 +459,8 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`
                   <div className="px-3 py-2 border-b border-gray-100">
                     <div className="relative">
                       <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        value={searchCompany}
-                        onChange={e => setSearchCompany(e.target.value)}
-                        placeholder="Rechercher..."
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-400"
-                      />
+                      <input value={searchCompany} onChange={e => setSearchCompany(e.target.value)}
+                        placeholder="Rechercher..." className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-400" />
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-1">
