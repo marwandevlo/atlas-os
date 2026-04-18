@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ArrowLeft, Download, FileText, TrendingUp, Calculator, Users, Receipt } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export default function RapportsPage() {
+export default function SettingsPage() {
   const router = useRouter();
   const [generating, setGenerating] = useState<string | null>(null);
 
