@@ -138,8 +138,9 @@ export default function RHPage() {
 
     const saved = localStorage.getItem('atlas_company');
     const company = saved ? JSON.parse(saved) : {};
+    setCompanyData(company);
 
-    if (!company.raisonSociale) {
+    if (!company.raisonSociale || !company.if_fiscal) {
       setPhase('company');
       setMessages([{
         role: 'assistant',
