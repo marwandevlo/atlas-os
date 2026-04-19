@@ -39,15 +39,15 @@ const docs: Doc[] = [
   { id: 'changement_nom', category: 'Modifications', name: 'PV Changement Denomination', nameAr: 'تغيير الاسم التجاري', description: 'PV AGE modification denomination', fields: ['ancien_nom', 'nouveau_nom', 'date', 'raison'] },
   { id: 'augmentation_capital', category: 'Modifications', name: 'PV Augmentation Capital', nameAr: 'الزيادة في رأس المال', description: 'Decision augmentation capital social', fields: ['capital_actuel', 'capital_nouveau', 'modalites', 'date'] },
   { id: 'nomination_gerant', category: 'Modifications', name: 'PV Nomination Gerant', nameAr: 'تعيين مدير جديد', description: 'Decision nomination nouveau gerant', fields: ['ancien_gerant', 'nouveau_gerant', 'cin_nouveau_gerant', 'adresse_gerant', 'date_prise_fonction'] },
-  { id: 'cession_parts', category: 'Cession', name: 'Cession de Parts Sociales', nameAr: 'بيع الحصص الاجتماعية', description: 'Contrat cession parts entre associes', fields: ['cedant', 'cin_cedant', 'adresse_cedant', 'cessionnaire', 'cin_cessionnaire', 'adresse_cessionnaire', 'nombre_parts', 'prix', 'date'] },
+  { id: 'cession_parts', category: 'Cession', name: 'Cession de Parts Sociales', nameAr: 'بيع الحصص الاجتماعية', description: 'Contrat cession parts - 2 pages', fields: ['cedant', 'cin_cedant', 'adresse_cedant', 'cessionnaire', 'cin_cessionnaire', 'adresse_cessionnaire', 'nombre_parts', 'prix', 'date'] },
   { id: 'entree_associe', category: 'Cession', name: 'Entree Nouvel Associe', nameAr: 'دخول شريك جديد', description: 'Acte entree nouvel associe', fields: ['nouvel_associe', 'cin_nouvel_associe', 'adresse_nouvel_associe', 'apport', 'parts', 'date'] },
-  { id: 'lettre_demission', category: 'Cession', name: 'Lettre de Demission Gerant', nameAr: 'رسالة استقالة المدير', description: 'Demission du gerant avec date effet', fields: ['gerant_demissionnaire', 'cin_gerant', 'adresse_gerant', 'destinataire', 'date_effet'] },
+  { id: 'lettre_demission', category: 'Cession', name: 'Lettre de Demission Gerant', nameAr: 'رسالة استقالة المدير', description: 'Demission du gerant - 1 page', fields: ['gerant_demissionnaire', 'cin_gerant', 'adresse_gerant', 'destinataire', 'date_effet'] },
   { id: 'dissolution', category: 'Dissolution', name: 'PV Dissolution Societe', nameAr: 'حل الشركة', description: 'Decision de dissolution volontaire', fields: ['date', 'motif', 'liquidateur', 'cin_liquidateur'] },
   { id: 'pv_liquidation', category: 'Dissolution', name: 'PV Cloture Liquidation', nameAr: 'محضر إقفال التصفية', description: 'Cloture de liquidation', fields: ['liquidateur', 'boni', 'date'] },
   { id: 'pv_age', category: 'Decisions', name: 'PV Assemblee Generale', nameAr: 'محضر الجمعية العامة', description: 'PV assemblee generale ordinaire', fields: ['date', 'ordre_du_jour', 'decisions', 'participants'] },
   { id: 'pv_dividendes', category: 'Decisions', name: 'PV Distribution Dividendes', nameAr: 'توزيع الأرباح', description: 'Decision distribution benefices', fields: ['exercice', 'benefice', 'dividende_par_part', 'date'] },
-  { id: 'contrat_bail', category: 'Contrats', name: 'Contrat de Bail Commercial', nameAr: 'عقد الكراء التجاري', description: 'Bail commercial avec toutes clauses', fields: ['bailleur', 'cin_bailleur', 'adresse_bailleur', 'adresse_local', 'loyer_mensuel', 'duree_bail', 'depot_garantie', 'date'] },
-  { id: 'contrat_domiciliation', category: 'Contrats', name: 'Contrat de Domiciliation', nameAr: 'عقد التوطين', description: 'Domiciliation siege social avec art 93 CRCP', fields: ['domiciliataire', 'if_domiciliataire', 'rc_domiciliataire', 'ice_domiciliataire', 'gerant_domiciliataire', 'cin_domiciliataire', 'adresse_domiciliation', 'duree', 'honoraires_mensuels'] },
+  { id: 'contrat_bail', category: 'Contrats', name: 'Contrat de Bail Commercial', nameAr: 'عقد الكراء التجاري', description: 'Bail commercial - 2 pages', fields: ['bailleur', 'cin_bailleur', 'adresse_bailleur', 'adresse_local', 'loyer_mensuel', 'duree_bail', 'depot_garantie', 'date'] },
+  { id: 'contrat_domiciliation', category: 'Contrats', name: 'Contrat de Domiciliation', nameAr: 'عقد التوطين', description: 'Domiciliation siege - 2 pages', fields: ['domiciliataire', 'if_domiciliataire', 'rc_domiciliataire', 'ice_domiciliataire', 'gerant_domiciliataire', 'cin_domiciliataire', 'adresse_domiciliation', 'duree', 'honoraires_mensuels'] },
   { id: 'contrat_prestation', category: 'Contrats', name: 'Contrat de Prestation', nameAr: 'عقد الخدمات', description: 'Contrat de prestation de services', fields: ['client', 'nature_prestation', 'duree', 'honoraires', 'modalites_paiement'] },
   { id: 'nda', category: 'Contrats', name: 'Accord de Confidentialite NDA', nameAr: 'اتفاقية السرية', description: 'Non-Disclosure Agreement', fields: ['partie_2', 'objet_confidentialite', 'duree', 'date'] },
 ];
@@ -55,12 +55,12 @@ const docs: Doc[] = [
 const categories = ['Creation', 'Modifications', 'Cession', 'Dissolution', 'Decisions', 'Contrats'];
 
 const fieldLabels: Record<string, string> = {
-  associes: 'Noms, CIN, adresses et parts de chaque associe (ex: Ahmed CIN A123 50%, Sara CIN B456 50%)',
+  associes: 'Noms, CIN, adresses et parts de chaque associe',
   associe_unique: "Nom complet de l'associe unique",
   cin_associe: "CIN de l'associe unique",
   capital: 'Capital social en MAD (ex: 100000)',
   siege: 'Adresse complete du siege social',
-  activite: 'Objet social / activites principales (detaillees)',
+  activite: 'Objet social / activites principales',
   gerant: 'Nom complet du gerant',
   cin_gerant: 'CIN du gerant',
   date: "Date de l'acte (JJ/MM/AAAA)",
@@ -74,7 +74,7 @@ const fieldLabels: Record<string, string> = {
   capital_actuel: 'Capital actuel en MAD',
   capital_nouveau: 'Nouveau capital en MAD',
   modalites: "Modalites de l'augmentation",
-  ancien_gerant: 'Nom de l\'ancien gerant',
+  ancien_gerant: "Nom de l'ancien gerant",
   nouveau_gerant: 'Nom complet du nouveau gerant',
   cin_nouveau_gerant: 'CIN du nouveau gerant',
   adresse_gerant: 'Adresse du gerant',
@@ -93,8 +93,8 @@ const fieldLabels: Record<string, string> = {
   apport: "Montant de l'apport en MAD",
   parts: 'Nombre de parts attribuees',
   gerant_demissionnaire: 'Nom complet du gerant demissionnaire',
-  destinataire: 'Nom du destinataire (associes ou nouveau gerant)',
-  date_effet: 'Date de prise d\'effet de la demission',
+  destinataire: 'Nom du destinataire',
+  date_effet: "Date d'effet de la demission",
   motif: 'Motif de la dissolution',
   liquidateur: 'Nom du liquidateur',
   cin_liquidateur: 'CIN du liquidateur',
@@ -103,13 +103,13 @@ const fieldLabels: Record<string, string> = {
   exercice: 'Exercice fiscal (ex: 2025)',
   benefice: 'Benefice net distribuable en MAD',
   dividende_par_part: 'Dividende par part sociale en MAD',
-  bailleur: 'Nom complet du bailleur (proprietaire)',
+  bailleur: 'Nom complet du bailleur',
   cin_bailleur: 'CIN du bailleur',
   adresse_bailleur: 'Adresse personnelle du bailleur',
   adresse_local: 'Adresse complete du local loue',
   loyer_mensuel: 'Loyer mensuel TTC en MAD',
   duree_bail: 'Duree du bail (ex: 2 ans)',
-  depot_garantie: 'Montant caution en MAD (generalement 2 mois)',
+  depot_garantie: 'Montant caution en MAD',
   domiciliataire: 'Nom/Societe du domiciliataire',
   if_domiciliataire: 'IF du domiciliataire',
   rc_domiciliataire: 'RC du domiciliataire',
@@ -120,7 +120,7 @@ const fieldLabels: Record<string, string> = {
   duree: 'Duree (ex: du 01/01/2026 au 01/01/2027)',
   honoraires_mensuels: 'Honoraires mensuels en MAD',
   client: 'Nom/Societe du client',
-  nature_prestation: 'Nature de la prestation de services',
+  nature_prestation: 'Nature de la prestation',
   honoraires: 'Honoraires en MAD',
   modalites_paiement: 'Modalites de paiement',
   partie_2: 'Nom/Societe Partie 2',
@@ -132,323 +132,23 @@ const cleanText = (text: string) => text
   .replace(/`/g, '').replace(/%[A-Z]/g, '').replace(/\[.*?\]/g, '')
   .replace(/&nbsp;/g, ' ').replace(/<[^>]*>/g, '').replace(/\|/g, ' ').trim();
 
-const getPrompt = (docId: string, docName: string, company: Company, data: Record<string, string>) => {
-  const companyInfo = `
-SOCIETE:
-- Raison sociale: ${company.raisonSociale}
-- Forme juridique: ${company.formeJuridique}
-- Capital: ${data.capital || ''} DH
-- IF: ${company.if_fiscal}
-- ICE: ${company.ice}
-- RC: ${company.rc}
-- CNSS: ${company.cnss}
-- Adresse: ${company.adresse} ${company.ville}
-- Tel: ${company.telephone}
-- Activite: ${company.activite}`;
-
-  const dataInfo = Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join('\n');
-
-  const rules = `
-REGLES STRICTES:
-- N'utilise JAMAIS de tableaux ASCII (%, |, +, T, Z, W, Q, P comme bordures)
-- N'utilise JAMAIS de HTML ou balises
-- Ecris tout en texte simple structure
-- Montants toujours en chiffres ET en toutes lettres`;
-
-  if (docId === 'statuts_sarl' || docId === 'statuts_sarl_au') {
-    return `Tu es un expert juridique marocain. Genere les STATUTS complets de la societe.
-${companyInfo}
-DONNEES: ${dataInfo}
-${rules}
-
-STRUCTURE OBLIGATOIRE (30 articles minimum, 7 pages):
-
-En-tete: "${company.raisonSociale} - SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [CAPITAL] DIRHAMS - SIEGE SOCIAL: [ADRESSE] - STATUTS"
-
-"LES SOUSSIGNES:" avec identite complete de chaque associe (nom, nationalite, date naissance, ville naissance, CIN, adresse)
-"A etabli ainsi qu'il suit les statuts d'une societe a responsabilite limitee..."
-
-TITRE PREMIER - FORMATION-DENOMINATION-OBJET-SIEGE-DUREE
-Article 1: Formation - "Il est forme par les presentes, entre les soussignes... une societe a responsabilite limitee regie par le Dahir 1-97-49 du 13 fevrier 1997 portant promulgation de la loi 5-96 et le Dahir 1-06-21 du 14 fevrier 2006 portant promulgation de la loi 21-05..."
-Article 2: Denomination - mentions obligatoires sur actes (SARL, capital, ICE, RC)
-Article 3: Objet social - liste detaillee avec tirets de toutes les activites
-Article 4: Siege social - adresse complete, possibilite transfert par AGE
-Article 5: Duree - 99 ans, dissolution anticipee possible
-
-TITRE II - APPORTS-CAPITAL-PARTS SOCIALES
-Article 6: Apports en numeraire - montant par associe en chiffres et lettres
-Article 7: Capital social - total, nombre parts, valeur nominale 100 DH, repartition par associe avec numerotation (Part 1 a X)
-Article 8: Augmentation ou reduction du capital - conditions, commissaire apports si > 100000 DH
-Article 9: Parts sociales - non negociables, copie certifiee par gerance
-Article 10: Cession des parts - libre entre associes/conjoint/parents, agrement associes pour tiers, droit de preemption
-Article 11: Transmission par succession - libre, mandataire dans 3 mois
-
-TITRE III - GERANCE DE LA SOCIETE
-Article 12: Gerance - "Mr/Mme [NOM GERANT], nationalite marocaine, ne le... a..., titulaire CIN N°... demeurant a... Est nomme GERANT UNIQUE pour une duree illimitee." + liste complete des pouvoirs
-Article 13: Signature sociale - nom et CIN gerant
-Article 14: Remuneration de la gerance - fixe ou proportionnel par AGO
-
-TITRE IV - DECISIONS COLLECTIVES
-Article 15: Droit de vote - parts = voix, vote ecrit ou assemblee, usufruit vote usufruitier
-Article 16: Assemblee annuelle - dans 3 mois apres cloture, quorum 75% capital
-Article 17: Quorum - majorite voix et moitie capital, seconde consultation majorite simple
-Article 18: AGE - modifications statutaires unanimite
-Article 19: Registre resolutions - PV signes par gerant president bureau
-
-TITRE V - EXERCICE SOCIAL-COMPTES-RESULTATS
-Article 20: Annee sociale - 1er janvier au 31 decembre
-Article 21: Repartition benefices - proportionnellement aux parts
-Article 22: Comptes courants - avec accord gerance, interets taux bancaire
-
-TITRE VI - DISSOLUTION-LIQUIDATION
-Article 23: Deces associe - societe continue, heritiers dans 3 mois, subrogation droits
-Article 24: Deces/demission/revocation gerant - remplacement par vote majoritaire
-Article 25: Dissolution - expiration ou 3/4 capital, prorogation tacite annuelle
-Article 26: Liquidation - par gerant en fonction, remboursement passif puis repartition proportionnelle
-
-TITRE VII - DISPOSITIONS DIVERSES
-Article 27: Contestation - tribunaux competents circonscription siege
-Article 28: Publications - pouvoir porteur original pour formalites
-Article 29: Frais - timbres, redaction, enregistrement, depot a compte frais constitution
-Article 30: Transformation-Fusion - decision unanime associes
-
-"Les statuts seront deposes conformement a la loi au Tribunal de commerce de ${company.ville}."
-
-"LES ASSOCIES"
-[noms des associes]
-
-Genere le document COMPLET en texte propre.`;
-  }
-
-  if (docId === 'cession_parts') {
-    return `Tu es un expert juridique marocain. Genere une CESSION DE PARTS SOCIALES complete.
-${companyInfo}
-DONNEES: ${dataInfo}
-${rules}
-
-STRUCTURE OBLIGATOIRE (modele marocain officiel):
-
-"${company.raisonSociale}
-SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [CAPITAL] DIRHAMS
-SIEGE SOCIAL: ${company.adresse} ${company.ville}
-ICE: ${company.ice}   RC: ${company.rc}   IF: ${company.if_fiscal}"
-
-"CESSION DE PARTS SOCIALES"
-
-"ENTRE-LES SOUSSIGNES:"
-Cedant: [nom], nationalite marocaine, ne le [date], demeurant a [adresse], titulaire CIN N° [cin]
-"D'UNE PART"
-Cessionnaire: [nom], nationalite marocaine, ne le [date], demeurant a [adresse], titulaire CIN N° [cin]
-"D'AUTRE PART"
-
-"IL EST EXPRESSEMENT CONVENU ET ARRETE CE QUI SUIT:"
-Cession de [nombre] parts soit [totalite/partie] des parts au prix de [montant] DH
-
-"ETANT ICI PRECISE:"
-- RC de la societe: ${company.rc}
-- Capital: [montant] DH divise en [nombre] parts de 100 DH chacune integralement liberees
-
-"ORIGINE DE PROPRIETE:" - parts appartenant au cedant pour les avoir acquises lors...
-
-"SUBROGATION DANS LES DROITS DU CEDANT:" - cessionnaire subroge dans tous droits...
-
-"PROPRIETE ET JOUISSANCE:" - propriete et jouissance immediate, droit dividendes...
-
-"PRIX DE VENTE:" - prix principal de [montant en lettres] ([chiffres]) DIRHAMS, paye comptant, quittance definitive
-
-"DONT QUITTANCE"
-
-"NANTISSEMENT - SAISIES:" - parts libres de tous nantissements...
-
-"FRAIS:" - a charge exclusive du cessionnaire
-
-"ELECTION DE DOMICILE:" - demeures respectives et siege social
-
-"CLAUSE PARTICULIERE:" - cessionnaire declare statuts valables...
-
-"FORMALITES - POUVOIRS:" - tous pouvoirs au porteur original
-
-"REQUISITION:" - parties requierent chef service enregistrement...
-
-"FAIT A ${company.ville} EN SIX EXEMPLAIRES ET EN BONNE FOI LE [DATE EN TOUTES LETTRES]"
-
-"LE CEDANT" / "LE CESSIONNAIRE"
-[noms]
-
-Genere le document COMPLET en texte propre.`;
-  }
-
-  if (docId === 'transfert_siege' || docId === 'changement_nom' || docId === 'augmentation_capital' || docId === 'nomination_gerant' || docId === 'pv_age' || docId === 'pv_dividendes' || docId === 'pv_constitution') {
-    return `Tu es un expert juridique marocain. Genere un PROCES-VERBAL D'ASSEMBLEE GENERALE EXTRAORDINAIRE.
-${companyInfo}
-DONNEES: ${dataInfo}
-${rules}
-
-STRUCTURE OBLIGATOIRE (modele marocain officiel):
-
-"${company.raisonSociale}
-SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [CAPITAL] DIRHAMS
-SIEGE SOCIAL: ${company.adresse} ${company.ville}
-RC: ${company.rc}"
-
-"PROCES-VERBAL DE L'ASSEMBLEE GENERALE EXTRAORDINAIRE
-TENUE LE [DATE]"
-
-"Le [DATE], Les associes de la societe ${company.raisonSociale}, Societe a Responsabilite Limitee, au capital de [CAPITAL] DH et dont le siege social est ${company.adresse} ${company.ville}, s'est rendu audit siege sur convocation du gerant conformement aux dispositions statutaires et a la legislation en vigueur."
-
-Pour chaque decision:
-"Premiere Resolution"
-[Texte de la decision detaillee]
-"Cette resolution, mise au voix est adoptee a l'unanimite."
-
-"Deuxieme Resolution"
-[Adoption nouveaux statuts si modification]
-"Cette resolution, mise au voix est adoptee a l'unanimite."
-
-"Troisieme Resolution"
-"L'Assemblee Generale Extraordinaire confere tous pouvoirs au porteur d'un original d'une expedition, d'une copie ou d'un extrait du present proces-verbal, pour accomplir les formalites prescrites par la loi."
-"Cette resolution, mise au voix est adoptee a l'unanimite."
-
-"L'ordre du jour etant epuise, la seance est levee. De tout ce qui precede, il a ete dresse le present Proces-verbal qui apres lecture a ete signe par Les associes."
-
-[Signatures des associes avec noms complets]
-
-Genere le document COMPLET en texte propre.`;
-  }
-
-  if (docId === 'lettre_demission') {
-    return `Tu es un expert juridique marocain. Genere une LETTRE DE DEMISSION DE GERANT.
-${companyInfo}
-DONNEES: ${dataInfo}
-${rules}
-
-STRUCTURE OBLIGATOIRE (modele marocain officiel):
-
-"${company.ville} le [DATE]"
-
-"[NOM GERANT DEMISSIONNAIRE], nationalite marocaine, demeurant a [ADRESSE], titulaire CIN N° [CIN]"
-
-"[NOM DESTINATAIRE], nationalite marocaine, demeurant a [ADRESSE], titulaire CIN N° [si connu]"
-
-"OBJET: LETTRE DE DEMISSION"
-
-"Mr/Mme [NOM DESTINATAIRE]"
-
-"J'ai l'honneur de vous faire part de ma decision de demissionner de mes fonctions de gerant de la societe ${company.raisonSociale} RC: ${company.rc}"
-
-"Conformement aux dispositions statutaires, cette demission prendra effet le [DATE EFFET]."
-
-"Je tiens a vous assurer que toutes les dispositions seront prises pour la convocation d'une decision generale aux fins de nomination d'un nouveau gerant."
-
-"Je vous prie d'agreer Mr/Mme [NOM DESTINATAIRE], l'expression de mes sentiments distingues."
-
-"[NOM GERANT DEMISSIONNAIRE]"
-
-Genere le document COMPLET en texte propre.`;
-  }
-
-  if (docId === 'contrat_bail') {
-    return `Tu es un expert juridique marocain. Genere un CONTRAT DE BAIL COMMERCIAL.
-${companyInfo}
-DONNEES: ${dataInfo}
-${rules}
-
-STRUCTURE OBLIGATOIRE (modele marocain officiel):
-
-"CONTRAT DE BAIL"
-
-"Entre les soussignes:"
-"Mr/Mme [BAILLEUR] de nationalite marocaine, titulaire de la CIN N° [CIN], demeurant a [ADRESSE] en qualite de proprietaire."
-"Et"
-"La societe ${company.raisonSociale}, ayant son siege social a ${company.adresse} ${company.ville}, representee par ${company.raisonSociale} marocain, titulaire de la CIN N° ${company.if_fiscal}, gerant de la societe."
-"Ci-apres denomme(e)(s) le locataire"
-
-"IL A ETE CONVENU ET ARRETE CE QUI SUIT:"
-
-"1. Le bailleur donne en location les locaux ci-apres designes au locataire qui les accepte:"
-- Local privatif: [ADRESSE LOCAL]
-- Le local fait objet du titre foncier [si disponible]
-- Usage: bureau/commercial
-
-"Duree du contrat:"
-"Le present bail est consenti pour une duree de [DUREE] a compter du [DATE], renouvelable par tacite reconduction pour une periode equivalente. Toute resiliation d'une ou l'autre des parties devant se faire par courrier R/AR au moins trois mois a l'avance."
-
-"Condition:"
-1. Pas de construction/demolition sans accord ecrit bailleur
-2. Activite compatible bureau/commerce uniquement
-3. Pas de cession ou sous-location sans accord ecrit
-
-"Loyer et caution:"
-"Le present bail est consenti et accepte moyennant le loyer mensuel TTC de [MONTANT] MAD ([EN LETTRES]), le preneur a verser un montant de [CAUTION] MAD ([EN LETTRES]) representant [X] mois de caution. Cette caution sera restituee au preneur au moment ou il quittera les lieux."
-
-"Clause resolutoire:"
-"En cas de non-paiement des termes du loyer, ou d'inexecution par le locataire d'une seule des clauses de present bail, celui-ci pourra etre resilie de plein droit, si bon semble au bailleur, et ce 30 jours apres l'envoi au locataire d'une mise en demeure."
-
-"Frais:"
-"Tous les frais des presentes, droits d'enregistrement ainsi que leurs suites et consequences seront a la charge du locataire."
-
-"Clause attributive et juridiction:"
-"Tout litige entre les parties est ressorti exclusif des tribunaux de ${company.ville}."
-
-"Election de domicile:"
-"Pour l'execution des presentes, les parties elisent domicile dans les lieux loues."
-
-"Pouvoirs:"
-"Tous les pouvoirs sont donnes au porteur d'un exemplaire pour accomplir toutes les formalites requises par la loi."
-
-"Fait a ${company.ville} le [DATE]"
-"Signatures legalises:"
-"[NOM BAILLEUR] / ${company.raisonSociale} represente par [GERANT]"
-"Le bailleur / Le locataire"
-
-Genere le document COMPLET en texte propre.`;
-  }
-
-  if (docId === 'contrat_domiciliation') {
-    return `Tu es un expert juridique marocain. Genere un CONTRAT DE DOMICILIATION.
-${companyInfo}
-DONNEES: ${dataInfo}
-${rules}
-
-STRUCTURE OBLIGATOIRE (modele marocain officiel avec article 93 CRCP):
-
-Declaration initiale:
-"Nous Soussignes, [DOMICILIATAIRE] SARL AU, declarant par la presente que la societe ${company.raisonSociale}, a domicilie son adresse fiscale dans nos locaux situes au [ADRESSE DOMICILIATION]"
-"Nous declarons en outre avoir pris connaissance qu'en application des dispositions de l'article 93 du CRCP, les roles d'impots, etats de produits et autres titres de perception regulierement emis sont executoires contre les redevables..."
-
-"CONDITIONS GENERALES DE DOMICILIATION JURIDIQUE ET FISCAL"
-
-Identification domiciliataire avec IF, RC, ICE, gerant CIN
-Identification domicilie: ${company.raisonSociale} represente par gerant CIN
-
-"ARTICLE I - CADRE LEGAL" - loi marocaine, COC, facilitation investissement jeunes promoteurs
-"ARTICLE II - OBJET" - domiciliation siege, reception courrier, fax, mises a disposition
-"ARTICLE III - DUREE" - dates exactes [DEBUT] au [FIN], tacite reconduction, preavis 1 mois R/AR, obligation informer greffe et impots en cas non-renouvellement
-"ARTICLE IV - OBLIGATIONS DU DOMICILIE" - paiement honoraires, declaration changements situation, remise annuelle copies depots declarations fiscales (TVA, bilan, declarations sociales)
-"ARTICLE V - RESILIATION DU CONTRAT" - 30 jours mise en demeure R/AR: non-paiement, non-observation clauses, non-depot declarations, non-information changements
-"ARTICLE VI - ELECTION DE DOMICILE" - adresses respectives
-"ARTICLE VII - PROCURATION SPECIALE" - "[NOM GERANT DOMICILIE] agissant en qualite de Gerant de la societe ${company.raisonSociale}... donne par la presente procuration [DOMICILIATAIRE] pour la reception de toutes sortes de notifications en notre nom"
-
-Signatures: domiciliataire / domicilie
-
-Genere le document COMPLET en texte propre.`;
-  }
-
-  return `Tu es un expert juridique marocain. Genere le document: ${docName}
-${companyInfo}
-DONNEES: ${dataInfo}
-${rules}
-
-Exigences:
-1. En-tete avec nom societe, capital, siege, IF, ICE, RC
-2. Titre officiel en majuscules
-3. "Fait a ${company.ville}, le [date]"
-4. Articles numerotes
-5. Conforme loi marocaine (Loi 5-96, Loi 17-95)
-6. Signatures completes
-
-Genere le document COMPLET en texte propre, sans commentaires.`;
+const callAI = async (message: string) => {
+  const res = await fetch('/api/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'consultant', message }),
+  });
+  const data = await res.json();
+  return data.response as string;
 };
+
+const getBaseInfo = (company: Company, data: Record<string, string>) => `
+SOCIETE: ${company.raisonSociale} | ${company.formeJuridique} | Capital: ${data.capital || ''} DH
+IF: ${company.if_fiscal} | ICE: ${company.ice} | RC: ${company.rc} | CNSS: ${company.cnss}
+Adresse: ${company.adresse} ${company.ville} | Tel: ${company.telephone}
+Activite: ${company.activite}
+DONNEES: ${Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join(' | ')}
+REGLES: Texte simple uniquement. Pas de tableaux ASCII. Montants en chiffres ET lettres.`;
 
 export default function JuridiquePage() {
   const router = useRouter();
@@ -485,7 +185,7 @@ export default function JuridiquePage() {
     setSelectedCompany(null);
     setSearchCompany('');
     setPhase('select_company');
-    setMessages([{ role: 'assistant', content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle societe souhaitez-vous ce document?\nChoisissez dans la liste.` }]);
+    setMessages([{ role: 'assistant', content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle societe?\nChoisissez dans la liste.` }]);
   };
 
   const chooseCompany = (company: Company) => {
@@ -494,7 +194,7 @@ export default function JuridiquePage() {
     setStep(0);
     setMessages(prev => [...prev,
       { role: 'user', content: `✅ ${company.raisonSociale}` },
-      { role: 'assistant', content: `✅ Societe: ${company.raisonSociale}\nIF: ${company.if_fiscal} | RC: ${company.rc} | ${company.ville}\n\n${fieldLabels[selectedDoc!.fields[0]]}?` }
+      { role: 'assistant', content: `✅ ${company.raisonSociale}\nIF: ${company.if_fiscal} | RC: ${company.rc}\n\n${fieldLabels[selectedDoc!.fields[0]]}?` }
     ]);
   };
 
@@ -514,7 +214,7 @@ export default function JuridiquePage() {
       }, 300);
     } else {
       setLoading(true);
-      setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation du document juridique...' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation du document...' }]);
       await generateDoc(newData);
       setLoading(false);
     }
@@ -523,47 +223,236 @@ export default function JuridiquePage() {
   const generateDoc = async (data: Record<string, string>) => {
     try {
       const company = selectedCompany!;
+      const base = getBaseInfo(company, data);
       const isStatuts = selectedDoc!.id === 'statuts_sarl' || selectedDoc!.id === 'statuts_sarl_au';
 
+      let content = '';
+
       if (isStatuts) {
-        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation partie 1 (Titres I-IV)...' }]);
-        
-        const prompt1 = getPrompt(selectedDoc!.id, selectedDoc!.name, company, data) + '\n\nIMPORTANT: Genere UNIQUEMENT les TITRE PREMIER, TITRE II, TITRE III et TITRE IV (Articles 1 a 19). Arrete-toi apres Article 19.';
-        
-        const res1 = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'consultant', message: prompt1 }),
-        });
-        const data1 = await res1.json();
-        const part1 = data1.response;
+        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation partie 1/2 (Titres I-IV)...' }]);
 
-        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation partie 2 (Titres V-VII)...' }]);
+        const p1 = await callAI(`Tu es expert juridique marocain. Genere EXACTEMENT les Titres I a IV des statuts SARL.
+${base}
+FORMAT EXACT (copier ce modele):
+En-tete: "${company.raisonSociale} - SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [CAPITAL EN LETTRES] ([CHIFFRES]) DIRHAMS - SIEGE SOCIAL: [ADRESSE] - STATUTS"
+"LES SOUSSIGNES:" [identite complete chaque associe: nom, nationalite, date naissance, ville, CIN, adresse]
+"A etabli ainsi qu'il suit les statuts..."
 
-        const prompt2 = getPrompt(selectedDoc!.id, selectedDoc!.name, company, data) + '\n\nIMPORTANT: Genere UNIQUEMENT les TITRE V, TITRE VI et TITRE VII (Articles 20 a 30) + signatures finales "LES ASSOCIES". Commence directement par TITRE V.';
-        
-        const res2 = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'consultant', message: prompt2 }),
-        });
-        const data2 = await res2.json();
-        const part2 = data2.response;
+TITRE PREMIER - FORMATION-DENOMINATION-OBJET-SIEGE-DUREE
+Article 1: Formation - reference Dahir 1-97-49 du 13 fevrier 1997 loi 5-96 et Dahir 1-06-21 du 14 fevrier 2006 loi 21-05 - 3 lignes max
+Article 2: Denomination - mentions obligatoires sur actes - 3 lignes max
+Article 3: Objet social - liste activites avec tirets - 5 lignes max
+Article 4: Siege social - adresse + possibilite transfert AGE - 2 lignes max
+Article 5: Duree - 99 ans + dissolution anticipee - 2 lignes max
 
-        setDocContent(part1 + '\n\n' + part2);
+TITRE II - APPORTS-CAPITAL-PARTS SOCIALES
+Article 6: Apports - montants par associe en chiffres et lettres
+Article 7: Capital - total, nombre parts 100 DH chacune, repartition par associe avec numerotation
+Article 8: Augmentation/reduction capital - 3 lignes max
+Article 9: Parts sociales - 2 lignes max
+Article 10: Cession des parts - libre entre associes, agrement tiers, droit preemption - 4 lignes max
+Article 11: Transmission succession - libre, mandataire 3 mois - 2 lignes max
+
+TITRE III - GERANCE
+Article 12: Gerance - "[NOM], CIN [N°], nomme GERANT UNIQUE duree illimitee" + liste pouvoirs en 8 tirets
+Article 13: Signature sociale - 1 ligne
+Article 14: Remuneration gerance - 1 ligne
+
+TITRE IV - DECISIONS COLLECTIVES
+Article 15: Droit de vote - 2 lignes
+Article 16: Assemblee annuelle - dans 3 mois apres cloture, quorum 75% - 2 lignes
+Article 17: Quorum - majorite voix et moitie capital - 2 lignes
+Article 18: AGE modifications - unanimite - 1 ligne
+Article 19: Registre resolutions - PV signes - 1 ligne
+
+ARRETE-TOI APRES ARTICLE 19. Ne continue pas.`);
+
+        content += p1;
+
+        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation partie 2/2 (Titres V-VII)...' }]);
+
+        const p2 = await callAI(`Tu es expert juridique marocain. Genere EXACTEMENT les Titres V, VI et VII des statuts SARL pour ${company.raisonSociale}.
+${base}
+COMMENCE DIRECTEMENT PAR TITRE V (pas d'en-tete):
+
+TITRE V - EXERCICE SOCIAL-COMPTES-RESULTATS
+Article 20: Annee sociale - 1er janvier au 31 decembre - 2 lignes max
+Article 21: Repartition benefices - proportionnellement aux parts - 2 lignes max
+Article 22: Comptes courants - avec accord gerance, interets taux bancaire - 3 lignes max
+
+TITRE VI - DISSOLUTION-LIQUIDATION
+Article 23: Deces associe - societe continue, heritiers dans 3 mois - 3 lignes max
+Article 24: Deces/demission/revocation gerant - remplacement par vote - 2 lignes max
+Article 25: Dissolution - expiration ou 3/4 capital - 2 lignes max
+Article 26: Liquidation - par gerant en fonction, remboursement passif puis repartition - 3 lignes max
+
+TITRE VII - DISPOSITIONS DIVERSES
+Article 27: Contestation - tribunaux competents ${company.ville} - 1 ligne
+Article 28: Publications - pouvoir porteur original - 1 ligne
+Article 29: Frais - a compte frais constitution - 1 ligne
+Article 30: Transformation-Fusion - decision unanime - 1 ligne
+
+"Les statuts seront deposes au Tribunal de commerce de ${company.ville}."
+
+"LES ASSOCIES"
+[noms associes sur deux colonnes]`);
+
+        content += '\n\n' + p2;
+
+      } else if (selectedDoc!.id === 'cession_parts') {
+        content = await callAI(`Expert juridique marocain. Genere CESSION DE PARTS SOCIALES - exactement 2 pages.
+${base}
+STRUCTURE EXACTE (modele officiel marocain):
+
+"${company.raisonSociale}
+SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [CAPITAL EN LETTRES] DIRHAMS
+SIEGE SOCIAL: ${company.adresse} ${company.ville}
+ICE: ${company.ice}   RC: ${company.rc}   IF: ${company.if_fiscal}"
+
+"CESSION DE PARTS SOCIALES"
+
+"ENTRE-LES SOUSSIGNES:"
+[NOM CEDANT], nationalite marocaine, demeurant a [ADRESSE CEDANT], titulaire CIN N° [CIN CEDANT]
+"D'UNE PART"
+[NOM CESSIONNAIRE], nationalite marocaine, demeurant a [ADRESSE CESSIONNAIRE], titulaire CIN N° [CIN CESSIONNAIRE]
+"D'AUTRE PART"
+
+"IL EST EXPRESSEMENT CONVENU ET ARRETE CE QUI SUIT:"
+Cession de [NOMBRE] ([EN LETTRES]) parts au cessionnaire.
+
+"ETANT ICI PRECISE:"
+- RC: ${company.rc} - Capital: [MONTANT] DH divise en [NOMBRE] parts de 100 DH integralement liberees
+
+"ORIGINE DE PROPRIETE:" parts appartenant au cedant pour les avoir acquises lors de la constitution.
+
+"SUBROGATION DANS LES DROITS DU CEDANT:" cessionnaire subroge dans tous droits et obligations.
+
+"PROPRIETE ET JOUISSANCE:" propriete et jouissance immediate, droit dividendes a compter de ce jour.
+
+"PRIX DE VENTE:" prix principal de [MONTANT EN LETTRES] ([CHIFFRES]) DIRHAMS, paye comptant, quittance definitive sans reserve.
+"DONT QUITTANCE"
+
+"NANTISSEMENT - SAISIES:" parts libres de tous nantissements, saisies ou autres droits.
+
+"FRAIS:" a charge exclusive du cessionnaire.
+
+"ELECTION DE DOMICILE:" demeures respectives et siege social ${company.adresse} ${company.ville}.
+
+"CLAUSE PARTICULIERE:" cessionnaire declare statuts valables et engage sa responsabilite.
+
+"FORMALITES - POUVOIRS:" tous pouvoirs au porteur original.
+
+"REQUISITION:" parties requierent chef service enregistrement d'enregistrer cet acte SSP.
+
+"FAIT A ${company.ville} EN SIX EXEMPLAIRES ET EN BONNE FOI LE [DATE EN TOUTES LETTRES]"
+
+"LE CEDANT"                    "LE CESSIONNAIRE"
+[NOM CEDANT]                   [NOM CESSIONNAIRE]`);
+
+      } else if (selectedDoc!.id === 'lettre_demission') {
+        content = await callAI(`Expert juridique marocain. Genere LETTRE DE DEMISSION GERANT - exactement 1 page.
+${base}
+STRUCTURE EXACTE:
+"${company.ville} le [DATE]"
+
+"[NOM GERANT], nationalite marocaine, demeurant a [ADRESSE], titulaire CIN N° [CIN]"
+"[NOM DESTINATAIRE], nationalite marocaine..."
+
+"OBJET: LETTRE DE DEMISSION"
+
+"Mr/Mme [DESTINATAIRE]"
+
+"J'ai l'honneur de vous faire part de ma decision de demissionner de mes fonctions de gerant de la societe ${company.raisonSociale} RC: ${company.rc}"
+"Conformement aux dispositions statutaires, cette demission prendra effet le [DATE EFFET]."
+"Je tiens a vous assurer que toutes les dispositions seront prises pour la convocation d'une decision generale aux fins de nomination d'un nouveau gerant."
+"Je vous prie d'agreer Mr/Mme [DESTINATAIRE], l'expression de mes sentiments distingues."
+
+"[NOM GERANT DEMISSIONNAIRE]"`);
+
+      } else if (selectedDoc!.id === 'contrat_bail') {
+        content = await callAI(`Expert juridique marocain. Genere CONTRAT DE BAIL COMMERCIAL - exactement 2 pages.
+${base}
+STRUCTURE EXACTE (modele officiel marocain):
+"CONTRAT DE BAIL"
+"Entre les soussignes:"
+"[BAILLEUR] de nationalite marocaine, titulaire CIN N° [CIN], demeurant a [ADRESSE], en qualite de proprietaire."
+"Et"
+"La societe ${company.raisonSociale}, siege ${company.adresse} ${company.ville}, representee par son gerant titulaire CIN N° [CIN GERANT]."
+"Ci-apres denomme le locataire"
+
+"IL A ETE CONVENU ET ARRETE CE QUI SUIT:"
+"1. Local: [ADRESSE LOCAL] - usage bureau/commercial"
+"Duree: [DUREE] a compter du [DATE], tacite reconduction, preavis 3 mois R/AR."
+"Conditions: 1- pas construction sans accord 2- activite compatible 3- pas sous-location sans accord"
+"Loyer et caution: [MONTANT] MAD/mois TTC, caution [CAUTION] MAD ([X] mois). Restituee au depart."
+"Clause resolutoire: non-paiement = resiliation 30 jours apres mise en demeure."
+"Frais: droits enregistrement a charge locataire."
+"Juridiction: tribunaux de ${company.ville}."
+"Election de domicile: lieux loues."
+"Pouvoirs: porteur exemplaire pour formalites."
+"Fait a ${company.ville} le [DATE] - Signatures legalises"
+"[BAILLEUR] / ${company.raisonSociale} represente par gerant"
+"Le bailleur / Le locataire"`);
+
+      } else if (selectedDoc!.id === 'contrat_domiciliation') {
+        content = await callAI(`Expert juridique marocain. Genere CONTRAT DE DOMICILIATION - exactement 2 pages.
+${base}
+STRUCTURE EXACTE (modele officiel avec article 93 CRCP):
+"Nous Soussignes, [DOMICILIATAIRE] SARL AU IF:[IF] RC:[RC] ICE:[ICE], declarant que ${company.raisonSociale} a domicilie son adresse fiscale dans nos locaux situes au [ADRESSE]."
+"Nous declarons avoir pris connaissance des dispositions article 93 CRCP sur la responsabilite fiscale du domiciliataire."
+
+"CONDITIONS GENERALES DE DOMICILIATION JURIDIQUE ET FISCAL"
+"[DOMICILIATAIRE] represente par [GERANT] CIN [CIN], et ${company.raisonSociale} represente par son gerant."
+
+"ARTICLE I - CADRE LEGAL" loi marocaine, COC, facilitation investissement.
+"ARTICLE II - OBJET" domiciliation siege, reception courrier, fax.
+"ARTICLE III - DUREE" [DEBUT] au [FIN], tacite reconduction, preavis 1 mois R/AR, obligation informer greffe et impots.
+"ARTICLE IV - OBLIGATIONS DU DOMICILIE" paiement honoraires, declaration changements, remise annuelle copies declarations fiscales TVA bilan CNSS.
+"ARTICLE V - RESILIATION" 30 jours mise en demeure: non-paiement, non-observation, non-depot declarations.
+"ARTICLE VI - ELECTION DE DOMICILE" adresses respectives.
+"ARTICLE VII - PROCURATION SPECIALE" gerant ${company.raisonSociale} donne procuration [DOMICILIATAIRE] pour reception notifications.
+Signatures: domiciliataire / gerant domicilie`);
+
+      } else if (selectedDoc!.id.startsWith('pv_') || selectedDoc!.id === 'transfert_siege' || selectedDoc!.id === 'changement_nom' || selectedDoc!.id === 'augmentation_capital' || selectedDoc!.id === 'nomination_gerant') {
+        content = await callAI(`Expert juridique marocain. Genere PV ASSEMBLEE GENERALE EXTRAORDINAIRE - exactement 1-2 pages.
+${base}
+STRUCTURE EXACTE (modele officiel marocain):
+"${company.raisonSociale}
+SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [CAPITAL] DIRHAMS
+SIEGE SOCIAL: ${company.adresse} ${company.ville}
+RC: ${company.rc}"
+
+"PROCES-VERBAL DE L'ASSEMBLEE GENERALE EXTRAORDINAIRE
+TENUE LE [DATE]"
+
+"Le [DATE], Les associes de la societe ${company.raisonSociale}, SARL au capital de [CAPITAL] DH, siege ${company.adresse} ${company.ville}, se sont reunis audit siege sur convocation du gerant conformement aux dispositions statutaires."
+
+"Premiere Resolution"
+[Decision detaillee avec ancien et nouveau texte si modification]
+"Cette resolution, mise au voix est adoptee a l'unanimite."
+
+"Deuxieme Resolution"
+"L'AGE decide d'adopter de nouveaux statuts en consequence."
+"Cette resolution, mise au voix est adoptee a l'unanimite."
+
+"Troisieme Resolution"
+"L'AGE confere tous pouvoirs au porteur d'un original du present PV pour accomplir les formalites prescrites par la loi."
+"Cette resolution, mise au voix est adoptee a l'unanimite."
+
+"L'ordre du jour etant epuise, la seance est levee."
+"De tout ce qui precede, il a ete dresse le present PV qui apres lecture a ete signe par les associes."
+
+[Signatures associes]`);
+
       } else {
-        const prompt = getPrompt(selectedDoc!.id, selectedDoc!.name, company, data);
-        const res = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'consultant', message: prompt }),
-        });
-        const responseData = await res.json();
-        setDocContent(responseData.response);
+        content = await callAI(`Expert juridique marocain. Genere: ${selectedDoc!.name}
+${base}
+Document conforme droit marocain. Titre officiel. Articles numerotes. Signatures. 2 pages max. Texte simple.`);
       }
 
+      setDocContent(content);
       setDocReady(true);
-      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document juridique genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\nConforme droit marocain.\n\n📥 Telechargez en PDF ou Word →` }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\n📥 PDF · Word · Partager →` }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
     }
@@ -579,13 +468,10 @@ export default function JuridiquePage() {
       if (y > 278) { doc.addPage(); y = 20; }
       const t = line.trim();
       if (!t) { y += 3; return; }
-      if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD') && !t.includes(':')) {
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 31, 61); y += 3;
-      } else if (t.startsWith('ARTICLE') || t.startsWith('Art.') || t.startsWith('TITRE')) {
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2;
-      } else {
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
-      }
+      if (t.startsWith('TITRE')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 31, 61); y += 4; }
+      else if (t.startsWith('ARTICLE') || t.startsWith('Art.')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2; }
+      else if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD') && !t.includes(':')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2; }
+      else { doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30); }
       doc.text(line, 15, y);
       y += 5.5;
     });
@@ -599,8 +485,8 @@ export default function JuridiquePage() {
       const t = line.trim();
       if (!t) return new Paragraph({ text: '' });
       if (t.startsWith('TITRE')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_1 });
-      if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_2 });
-      if (t.startsWith('ARTICLE') || t.startsWith('Art.')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_3 });
+      if (t.startsWith('ARTICLE')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_2 });
+      if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_3 });
       return new Paragraph({ children: [new TextRun({ text: t, size: 22 })] });
     });
     const wordDoc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
@@ -615,12 +501,8 @@ export default function JuridiquePage() {
 
   const shareDocument = async () => {
     const text = `${selectedDoc?.name}\n${selectedCompany?.raisonSociale}\n\n${docContent.substring(0, 500)}...`;
-    if (navigator.share) {
-      await navigator.share({ title: selectedDoc?.name, text });
-    } else {
-      await navigator.clipboard.writeText(text);
-      alert('Copie dans le presse-papier!');
-    }
+    if (navigator.share) await navigator.share({ title: selectedDoc?.name, text });
+    else { await navigator.clipboard.writeText(text); alert('Copie dans le presse-papier!'); }
   };
 
   return (
@@ -641,8 +523,7 @@ export default function JuridiquePage() {
             {categories.map(cat => (
               <button key={cat} onClick={() => setActiveCategory(cat)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all ${activeCategory === cat ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}>
-                <FileText size={12} />
-                {cat}
+                <FileText size={12} /> {cat}
                 <span className="ml-auto text-white/20">{docs.filter(d => d.category === cat).length}</span>
               </button>
             ))}
@@ -796,9 +677,7 @@ export default function JuridiquePage() {
                     {filteredCompanies.length === 0 && (
                       <div className="text-center py-8">
                         <p className="text-gray-400 text-sm">Aucune societe trouvee</p>
-                        <button onClick={() => router.push('/companies')} className="mt-2 text-xs text-blue-500 hover:underline">
-                          + Ajouter une societe
-                        </button>
+                        <button onClick={() => router.push('/companies')} className="mt-2 text-xs text-blue-500 hover:underline">+ Ajouter</button>
                       </div>
                     )}
                   </div>
