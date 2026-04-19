@@ -523,14 +523,45 @@ export default function JuridiquePage() {
   const generateDoc = async (data: Record<string, string>) => {
     try {
       const company = selectedCompany!;
-      const prompt = getPrompt(selectedDoc!.id, selectedDoc!.name, company, data);
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'consultant', message: prompt }),
-      });
-      const responseData = await res.json();
-      setDocContent(responseData.response);
+      const isStatuts = selectedDoc!.id === 'statuts_sarl' || selectedDoc!.id === 'statuts_sarl_au';
+
+      if (isStatuts) {
+        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation partie 1 (Titres I-IV)...' }]);
+        
+        const prompt1 = getPrompt(selectedDoc!.id, selectedDoc!.name, company, data) + '\n\nIMPORTANT: Genere UNIQUEMENT les TITRE PREMIER, TITRE II, TITRE III et TITRE IV (Articles 1 a 19). Arrete-toi apres Article 19.';
+        
+        const res1 = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'consultant', message: prompt1 }),
+        });
+        const data1 = await res1.json();
+        const part1 = data1.response;
+
+        setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation partie 2 (Titres V-VII)...' }]);
+
+        const prompt2 = getPrompt(selectedDoc!.id, selectedDoc!.name, company, data) + '\n\nIMPORTANT: Genere UNIQUEMENT les TITRE V, TITRE VI et TITRE VII (Articles 20 a 30) + signatures finales "LES ASSOCIES". Commence directement par TITRE V.';
+        
+        const res2 = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'consultant', message: prompt2 }),
+        });
+        const data2 = await res2.json();
+        const part2 = data2.response;
+
+        setDocContent(part1 + '\n\n' + part2);
+      } else {
+        const prompt = getPrompt(selectedDoc!.id, selectedDoc!.name, company, data);
+        const res = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'consultant', message: prompt }),
+        });
+        const responseData = await res.json();
+        setDocContent(responseData.response);
+      }
+
       setDocReady(true);
       setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document juridique genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\nConforme droit marocain.\n\n📥 Telechargez en PDF ou Word →` }]);
     } catch {
