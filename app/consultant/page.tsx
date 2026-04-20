@@ -28,11 +28,19 @@ export default function ConsultantPage() {
   const speak = (text: string) => {
     if (!voiceEnabled || typeof window === 'undefined') return;
     window.speechSynthesis.cancel();
-    const clean = text.replace(/[*#_`]/g, '').substring(0, 500);
+    const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 600);
     const utt = new SpeechSynthesisUtterance(clean);
+    
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v =>
+      v.lang === lang && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural'))
+    ) || voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+    
+    if (preferred) utt.voice = preferred;
     utt.lang = lang;
-    utt.rate = 0.9;
-    utt.pitch = 1;
+    utt.rate = 0.85;
+    utt.pitch = 1.05;
+    utt.volume = 1;
     utt.onstart = () => setIsSpeaking(true);
     utt.onend = () => setIsSpeaking(false);
     synthRef.current = utt;
@@ -92,7 +100,7 @@ export default function ConsultantPage() {
       const data = await res.json();
       const response = data.response;
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-      if (voiceEnabled) speak(response);
+      if (voiceEnabled) setTimeout(() => speak(response), 300);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
     }
