@@ -1,53 +1,110 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Brain, Send, User, Bot } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { ArrowLeft, Brain, Send, Mic, MicOff, Volume2, VolumeX, Bot, User } from 'lucide-react';
 
-type Message = {
-  role: 'user' | 'assistant';
-  content: string;
-};
-
-const suggestions = [
-  'Analyse mes données et prévis combien je vais payer en TVA le mois prochain',
-  'Quel est le taux de TVA applicable pour les services informatiques?',
-  'Comment calculer l\'IS pour une société avec 500 000 MAD de bénéfice?',
-  'Quelles sont les obligations CNSS pour un employé à 8000 MAD?',
-  'Optimise ma fiscalite pour reduire l\'IS legalement',
-  'Vérifie si mes écritures comptables sont correctes',
-];
+type Message = { role: 'user' | 'assistant'; content: string };
 
 export default function ConsultantPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Bonjour! Je suis votre conseiller fiscal IA spécialisé en droit marocain. Posez-moi vos questions sur la TVA, IS, IR, CNSS ou toute autre question fiscale. كنساعدك بالدارجة والفرنسية!' }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([{
+    role: 'assistant',
+    content: 'Salam! Ana consultant fiscal dyalek. Tqder tsewelni b darija, français aw arabi. Ash bghiti t3ref?'
+  }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [lang, setLang] = useState<'fr-FR' | 'ar-MA' | 'ar-SA'>('fr-FR');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const speak = (text: string) => {
+    if (!voiceEnabled || typeof window === 'undefined') return;
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/[*#_`]/g, '').substring(0, 500);
+    const utt = new SpeechSynthesisUtterance(clean);
+    utt.lang = lang;
+    utt.rate = 0.9;
+    utt.pitch = 1;
+    utt.onstart = () => setIsSpeaking(true);
+    utt.onend = () => setIsSpeaking(false);
+    synthRef.current = utt;
+    window.speechSynthesis.speak(utt);
+  };
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setIsSpeaking(false);
+  };
+
+  const startListening = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Chrome.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = lang;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const stopListening = () => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  };
 
   const sendMessage = async (text?: string) => {
-    const messageText = text || input;
-    if (!messageText.trim()) return;
-
-    const userMessage: Message = { role: 'user', content: messageText };
-    setMessages(prev => [...prev, userMessage]);
+    const msg = text || input;
+    if (!msg.trim() || loading) return;
+    const userMsg: Message = { role: 'user', content: msg };
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
     try {
-      const response = await fetch('/api/ai', {
+      const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText, type: 'consultant' }),
+        body: JSON.stringify({
+          type: 'consultant',
+          message: `${msg}\n\nReponds dans la meme langue que la question. Si c'est en darija marocaine, reponds en darija. Si français, reponds en français. Si arabe, reponds en arabe. Sois concis (max 3 paragraphes).`
+        }),
       });
-      const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Erreur de réponse' }]);
+      const data = await res.json();
+      const response = data.response;
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      if (voiceEnabled) speak(response);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur de connexion. Réessayez.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
     }
     setLoading(false);
   };
+
+  const suggestions = [
+    'TVA 20% kif katkhasem?',
+    'IS 2026 barème?',
+    'CNSS declaration comment?',
+    'IR salaire calcul',
+  ];
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -64,84 +121,159 @@ export default function ConsultantPage() {
             <Brain size={16} /> Consultant IA
           </button>
         </nav>
-        <div className="px-4 py-4 border-t border-white/10">
-          <p className="text-white/30 text-xs mb-3">Questions frequentes</p>
-          {suggestions.map((s, i) => (
-            <button key={i} onClick={() => sendMessage(s)} className="w-full text-left text-white/40 hover:text-white/80 text-xs py-2 border-b border-white/5 last:border-0 transition-colors">
-              {s.substring(0, 45)}...
+
+        <div className="px-4 py-4 border-t border-white/10 space-y-3">
+          <p className="text-white/30 text-xs font-medium">Langue vocale</p>
+          <div className="space-y-1">
+            {[
+              { code: 'fr-FR', label: '🇫🇷 Français' },
+              { code: 'ar-MA', label: '🇲🇦 Darija / عربية' },
+              { code: 'ar-SA', label: '🌍 Arabe classique' },
+            ].map(l => (
+              <button key={l.code} onClick={() => setLang(l.code as any)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all ${lang === l.code ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70'}`}>
+                {l.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <span className="text-white/30 text-xs">Reponse vocale</span>
+            <button onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); }}
+              className={`p-1.5 rounded-lg transition-all ${voiceEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/30'}`}>
+              {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
             </button>
-          ))}
+          </div>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
+        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
               <Brain size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">Consultant Fiscal IA</h1>
-              <p className="text-xs text-gray-400">Specialise en droit fiscal marocain · DGI · CNSS · AMO · Prevision fiscale</p>
+              <h1 className="font-bold text-gray-800">Consultant IA Vocal</h1>
+              <p className="text-xs text-gray-400">Darija · Français · العربية</p>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-green-600 font-medium">En ligne</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isSpeaking && (
+              <button onClick={stopSpeaking} className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-500 rounded-lg text-sm hover:bg-red-100">
+                <VolumeX size={16} /> Arreter
+              </button>
+            )}
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${isSpeaking ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+              <div className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+              {isSpeaking ? 'En train de parler...' : 'En attente'}
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {messages.length === 1 && (
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {suggestions.map((s, i) => (
+                <button key={i} onClick={() => sendMessage(s)}
+                  className="text-left p-3 bg-white rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm text-sm text-gray-600 transition-all">
+                  💬 {s}
+                </button>
+              ))}
+            </div>
+          )}
+
           {messages.map((m, i) => (
             <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.role === 'assistant' && (
-                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shrink-0 mt-1">
+                <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shrink-0 mt-1">
                   <Bot size={16} className="text-white" />
                 </div>
               )}
-              <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed prose prose-sm max-w-none ${
+              <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
                 m.role === 'user'
                   ? 'bg-[#1B2A4A] text-white rounded-tr-none'
                   : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'
               }`}>
-                <ReactMarkdown>{m.content}</ReactMarkdown>
+                {m.content}
+                {m.role === 'assistant' && voiceEnabled && (
+                  <button onClick={() => speak(m.content)} className="mt-2 flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-600">
+                    <Volume2 size={12} /> Rejouer
+                  </button>
+                )}
               </div>
               {m.role === 'user' && (
-                <div className="w-8 h-8 bg-[#1B2A4A] rounded-full flex items-center justify-center shrink-0 mt-1">
-                  <User size={16} className="text-white" />
+                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0 mt-1">
+                  <User size={16} className="text-gray-600" />
                 </div>
               )}
             </div>
           ))}
+
           {loading && (
             <div className="flex gap-3">
-              <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shrink-0">
                 <Bot size={16} className="text-white" />
               </div>
-              <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-100">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              <div className="bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex gap-1 items-center">
+                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{animationDelay:'0.15s'}}></div>
+                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{animationDelay:'0.3s'}}></div>
                 </div>
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
-        <div className="bg-white border-t border-gray-200 px-8 py-4">
-          <div className="flex gap-3">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && sendMessage()}
-              placeholder="Posez votre question fiscale en francais ou en darija..."
-              className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400"
-            />
-            <button onClick={() => sendMessage()} disabled={loading} className="px-4 py-3 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors disabled:opacity-50">
-              <Send size={18} />
+        <div className="bg-white border-t border-gray-200 px-6 py-4">
+          <div className="flex gap-3 items-end">
+            <div className="flex-1 relative">
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder={isListening ? '🎤 En train d\'ecouter...' : 'Posez votre question (Darija, Français, Arabe)...'}
+                rows={2}
+                className={`w-full px-4 py-3 text-sm border rounded-2xl focus:outline-none resize-none transition-all ${
+                  isListening ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-indigo-400'
+                }`}
+              />
+            </div>
+
+            <button
+              onClick={isListening ? stopListening : startListening}
+              className={`p-3 rounded-2xl transition-all shrink-0 ${
+                isListening
+                  ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-200'
+                  : 'bg-gray-100 text-gray-500 hover:bg-indigo-100 hover:text-indigo-600'
+              }`}
+              title={isListening ? 'Arreter' : 'Parler'}
+            >
+              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
+
+            <button
+              onClick={() => sendMessage()}
+              disabled={loading || !input.trim()}
+              className="p-3 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 disabled:opacity-50 shrink-0"
+            >
+              <Send size={20} />
             </button>
           </div>
+
+          {isListening && (
+            <div className="mt-2 flex items-center gap-2 text-red-500 text-xs">
+              <div className="flex gap-0.5">
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="w-1 bg-red-400 rounded-full animate-bounce"
+                    style={{height: `${8 + i * 3}px`, animationDelay: `${i * 0.1}s`}}></div>
+                ))}
+              </div>
+              Ecoute en cours... Parlez maintenant
+            </div>
+          )}
         </div>
       </main>
     </div>
