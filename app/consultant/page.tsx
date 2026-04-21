@@ -1,16 +1,15 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Brain, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Brain, Mic, MicOff, Volume2, VolumeX, StopCircle } from 'lucide-react';
 
 export default function ConsultantPage() {
   const router = useRouter();
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
-  const [status, setStatus] = useState('Appuyez sur le micro pour parler');
+  const [status, setStatus] = useState('اضغط للتحدث');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [lang, setLang] = useState<'fr-FR' | 'ar-MA' | 'ar-SA'>('fr-FR');
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
   const recognitionRef = useRef<any>(null);
@@ -21,12 +20,12 @@ export default function ConsultantPage() {
     try {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setIsSpeaking(true);
-      setStatus('En train de repondre...');
-      const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 500);
+      setStatus('كيجاوب...');
+      const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 600);
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clean, voice: 'nova' }),
+        body: JSON.stringify({ text: clean, voice: 'onyx' }),
       });
       if (!res.ok) throw new Error('TTS failed');
       const blob = await res.blob();
@@ -35,34 +34,46 @@ export default function ConsultantPage() {
       audioRef.current = audio;
       audio.onended = () => {
         setIsSpeaking(false);
-        setStatus('Appuyez sur le micro pour parler');
+        setStatus('اضغط للتحدث');
         URL.revokeObjectURL(url);
         audioRef.current = null;
       };
-      audio.onerror = () => { setIsSpeaking(false); setStatus('Appuyez sur le micro pour parler'); };
+      audio.onerror = () => { setIsSpeaking(false); setStatus('اضغط للتحدث'); };
       await audio.play();
     } catch {
       setIsSpeaking(false);
-      setStatus('Appuyez sur le micro pour parler');
+      setStatus('اضغط للتحدث');
     }
   };
 
   const stopSpeaking = () => {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setIsSpeaking(false);
-    setStatus('Appuyez sur le micro pour parler');
+    setStatus('اضغط للتحدث');
   };
 
   const askClaude = async (question: string) => {
     setIsThinking(true);
-    setStatus('En train de reflechir...');
+    setStatus('كيفكر...');
     try {
       const res = await fetch('/api/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'consultant',
-          message: `${question}\n\nReponds dans la meme langue que la question. Si darija marocaine reponds en darija. Si français reponds en français. Si arabe reponds en arabe. Sois tres concis, max 4 phrases.`
+          message: `أنت مستشار ضريبي ومحاسب مغربي خبير. المستخدم يتحدث معك بالدارجة المغربية أو الفرنسية أو العربية.
+
+السؤال: ${question}
+
+قواعد الإجابة:
+- جاوب بنفس اللغة اللي كلمك بيها المستخدم
+- إذا دارجة: جاوب بالدارجة المغربية الحقيقية مثل: "واخا، TVA ديالك كتحسبها هكذا..."
+- إذا فرنسية: جاوب بالفرنسية
+- إذا عربية فصحى: جاوب بالعربية
+- كن مباشر وعملي - مثل محاسب مغربي حقيقي
+- إذا الأمر يخص إنشاء وثيقة أو مهمة: اشرح خطوات تنفيذها
+- جواب قصير وواضح - 3 إلى 5 جمل فقط
+- استخدم أرقام وتواريخ حقيقية من القانون المغربي`
         }),
       });
       const data = await res.json();
@@ -71,7 +82,7 @@ export default function ConsultantPage() {
       await speak(data.response);
     } catch {
       setIsThinking(false);
-      setStatus('Erreur. Reessayez.');
+      setStatus('خطأ. حاول مرة أخرى');
     }
   };
 
@@ -79,20 +90,60 @@ export default function ConsultantPage() {
     if (typeof window === 'undefined') return;
     if (isSpeaking) stopSpeaking();
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) { alert('Utilisez Chrome.'); return; }
+    if (!SpeechRecognition) { alert('استخدم Chrome'); return; }
+    
     const recognition = new SpeechRecognition();
-    recognition.lang = lang;
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.onstart = () => { setIsListening(true); setStatus('Ecoute en cours...'); setTranscript(''); setResponse(''); };
-    recognition.onresult = (event: any) => {
-      const t = event.results[0][0].transcript;
-      setTranscript(t);
-      setIsListening(false);
-      askClaude(t);
+    recognition.lang = 'ar-MA';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    
+    let finalTranscript = '';
+    let silenceTimer: any = null;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setStatus('كيسمع... تكلم براحتك');
+      setTranscript('');
+      setResponse('');
+      finalTranscript = '';
     };
-    recognition.onerror = () => { setIsListening(false); setStatus('Erreur micro. Reessayez.'); };
-    recognition.onend = () => setIsListening(false);
+
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        } else {
+          interim = event.results[i][0].transcript;
+        }
+      }
+      setTranscript(finalTranscript || interim);
+      
+      // إيقاف تلقائي بعد توقف الكلام
+      if (silenceTimer) clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        if (finalTranscript.trim()) {
+          recognition.stop();
+        }
+      }, 2000);
+    };
+
+    recognition.onerror = (event: any) => {
+      if (event.error !== 'no-speech') {
+        setIsListening(false);
+        setStatus('مشكل في الميكرو');
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      if (finalTranscript.trim()) {
+        askClaude(finalTranscript.trim());
+      } else {
+        setStatus('اضغط للتحدث');
+      }
+    };
+
     recognitionRef.current = recognition;
     recognition.start();
   };
@@ -100,24 +151,10 @@ export default function ConsultantPage() {
   const stopListening = () => {
     recognitionRef.current?.stop();
     setIsListening(false);
-    setStatus('Appuyez sur le micro pour parler');
-  };
-
-  const getCircleColor = () => {
-    if (isListening) return 'bg-red-500';
-    if (isThinking) return 'bg-amber-500';
-    if (isSpeaking) return 'bg-green-500';
-    return 'bg-indigo-500';
-  };
-
-  const getCircleAnimation = () => {
-    if (isListening || isSpeaking) return 'animate-pulse';
-    if (isThinking) return 'animate-spin';
-    return '';
   };
 
   return (
-    <div className="flex h-screen bg-[#0F1F3D]">
+    <div className="flex h-screen bg-[#0A1628]">
       <aside className="w-56 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
           <p className="text-white font-bold text-base">Atlas OS</p>
@@ -133,92 +170,109 @@ export default function ConsultantPage() {
         </nav>
 
         <div className="px-4 py-4 border-t border-white/10 space-y-3">
-          <p className="text-white/30 text-xs font-medium">Langue</p>
-          <div className="space-y-1">
-            {[
-              { code: 'fr-FR', label: '🇫🇷 Français' },
-              { code: 'ar-MA', label: '🇲🇦 Darija' },
-              { code: 'ar-SA', label: '🌍 Arabe' },
-            ].map(l => (
-              <button key={l.code} onClick={() => setLang(l.code as any)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all ${lang === l.code ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70'}`}>
-                {l.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between px-1 pt-2">
-            <span className="text-white/30 text-xs">Son</span>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-white/30 text-xs">الصوت</span>
             <button onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); }}
               className={`p-1.5 rounded-lg transition-all ${voiceEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/30'}`}>
               {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
             </button>
           </div>
+          <div className="bg-white/5 rounded-xl p-3">
+            <p className="text-white/30 text-xs mb-2">كيفاش تستخدم</p>
+            <p className="text-white/50 text-xs leading-relaxed">اضغط على الدائرة وتكلم براحتك بالدارجة أو الفرنسية. المستشار غيجاوبك بصوت مباشرة.</p>
+          </div>
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col items-center justify-center gap-8 px-8">
+      <main className="flex-1 flex flex-col items-center justify-center gap-10 px-8" dir="rtl">
         <div className="text-center">
-          <h1 className="text-white font-bold text-2xl mb-1">Consultant IA</h1>
-          <p className="text-white/40 text-sm">Darija · Français · العربية</p>
+          <h1 className="text-white font-bold text-3xl mb-2">المستشار الذكي</h1>
+          <p className="text-white/40">تكلم معه بالدارجة · Français · العربية</p>
         </div>
 
+        {/* الدائرة الرئيسية */}
         <div className="relative flex items-center justify-center">
-          <div className={`absolute w-48 h-48 rounded-full opacity-20 ${getCircleColor()} ${isListening || isSpeaking ? 'animate-ping' : ''}`}></div>
-          <div className={`absolute w-36 h-36 rounded-full opacity-30 ${getCircleColor()} ${isListening || isSpeaking ? 'animate-pulse' : ''}`}></div>
+          {(isListening || isSpeaking) && (
+            <>
+              <div className={`absolute w-64 h-64 rounded-full opacity-10 animate-ping ${isListening ? 'bg-red-500' : 'bg-green-500'}`}></div>
+              <div className={`absolute w-52 h-52 rounded-full opacity-20 animate-pulse ${isListening ? 'bg-red-500' : 'bg-green-500'}`}></div>
+            </>
+          )}
+          {isThinking && (
+            <div className="absolute w-52 h-52 rounded-full border-4 border-amber-500/30 border-t-amber-500 animate-spin"></div>
+          )}
+          
           <button
             onClick={isListening ? stopListening : startListening}
             disabled={isThinking}
-            className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all shadow-2xl ${
-              isListening ? 'bg-red-500 shadow-red-500/50' :
-              isThinking ? 'bg-amber-500 shadow-amber-500/50 cursor-not-allowed' :
-              isSpeaking ? 'bg-green-500 shadow-green-500/50' :
-              'bg-indigo-500 hover:bg-indigo-400 shadow-indigo-500/50 hover:scale-105'
+            className={`relative w-40 h-40 rounded-full flex flex-col items-center justify-center gap-2 transition-all shadow-2xl ${
+              isListening ? 'bg-red-500 shadow-red-500/40 scale-110' :
+              isThinking ? 'bg-amber-500/80 shadow-amber-500/40 cursor-not-allowed' :
+              isSpeaking ? 'bg-green-500 shadow-green-500/40' :
+              'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/40 hover:scale-105 active:scale-95'
             }`}
           >
-            {isListening ? <MicOff size={40} className="text-white" /> :
-             isThinking ? <Brain size={40} className="text-white animate-pulse" /> :
-             isSpeaking ? <Volume2 size={40} className="text-white animate-pulse" /> :
-             <Mic size={40} className="text-white" />}
+            {isListening ? (
+              <>
+                <MicOff size={44} className="text-white" />
+                <span className="text-white/80 text-xs">اضغط للإيقاف</span>
+              </>
+            ) : isThinking ? (
+              <>
+                <Brain size={44} className="text-white animate-pulse" />
+                <span className="text-white/80 text-xs">كيفكر...</span>
+              </>
+            ) : isSpeaking ? (
+              <>
+                <Volume2 size={44} className="text-white animate-pulse" />
+                <span className="text-white/80 text-xs">كيتكلم</span>
+              </>
+            ) : (
+              <>
+                <Mic size={44} className="text-white" />
+                <span className="text-white/80 text-xs">اضغط للكلام</span>
+              </>
+            )}
           </button>
         </div>
 
-        <div className="text-center space-y-2">
-          <p className={`text-sm font-medium transition-all ${
+        {/* الحالة */}
+        <div className="text-center space-y-3 w-full max-w-lg">
+          <p className={`text-sm font-medium ${
             isListening ? 'text-red-400' :
             isThinking ? 'text-amber-400' :
             isSpeaking ? 'text-green-400' :
-            'text-white/50'
+            'text-white/30'
           }`}>{status}</p>
 
           {isListening && (
             <div className="flex justify-center gap-1">
-              {[1,2,3,4,5,4,3,2,1].map((h, i) => (
-                <div key={i} className="w-1 bg-red-400 rounded-full animate-bounce"
-                  style={{height: `${h * 4}px`, animationDelay: `${i * 0.08}s`}}></div>
+              {[2,4,6,8,6,10,6,8,4,2].map((h, i) => (
+                <div key={i} className="w-1.5 bg-red-400 rounded-full animate-bounce"
+                  style={{height: `${h * 3}px`, animationDelay: `${i * 0.08}s`}}></div>
               ))}
             </div>
           )}
 
           {transcript && (
-            <div className="mt-4 px-6 py-3 bg-white/5 rounded-2xl max-w-md">
-              <p className="text-white/40 text-xs mb-1">Vous:</p>
-              <p className="text-white/80 text-sm">{transcript}</p>
+            <div className="px-5 py-3 bg-white/5 rounded-2xl border border-white/10">
+              <p className="text-white/40 text-xs mb-1">قلت:</p>
+              <p className="text-white/80 text-sm leading-relaxed">{transcript}</p>
             </div>
           )}
 
           {response && !isThinking && (
-            <div className="mt-2 px-6 py-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl max-w-md">
-              <p className="text-indigo-300 text-xs mb-1">Consultant:</p>
+            <div className="px-5 py-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+              <p className="text-indigo-300 text-xs mb-2">المستشار:</p>
               <p className="text-white/80 text-sm leading-relaxed">{response}</p>
+              {isSpeaking && (
+                <button onClick={stopSpeaking} className="mt-3 flex items-center gap-2 text-xs text-red-400 hover:text-red-300">
+                  <StopCircle size={14} /> إيقاف الصوت
+                </button>
+              )}
             </div>
           )}
         </div>
-
-        {isSpeaking && (
-          <button onClick={stopSpeaking} className="px-4 py-2 bg-white/10 text-white/60 rounded-xl text-sm hover:bg-white/20 transition-all">
-            ⏹ Arreter
-          </button>
-        )}
       </main>
     </div>
   );
