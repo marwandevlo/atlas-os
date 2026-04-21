@@ -1,38 +1,27 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Brain, Send, Mic, MicOff, Volume2, VolumeX, Bot, User } from 'lucide-react';
-
-type Message = { role: 'user' | 'assistant'; content: string };
+import { ArrowLeft, Brain, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 
 export default function ConsultantPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([{
-    role: 'assistant',
-    content: 'Salam! Ana consultant fiscal dyalek. Tqder tsewelni b darija, français aw arabi. Ash bghiti t3ref?'
-  }]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [status, setStatus] = useState('Appuyez sur le micro pour parler');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [lang, setLang] = useState<'fr-FR' | 'ar-MA' | 'ar-SA'>('fr-FR');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [transcript, setTranscript] = useState('');
+  const [response, setResponse] = useState('');
   const recognitionRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const speak = async (text: string) => {
     if (!voiceEnabled) return;
     try {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setIsSpeaking(true);
+      setStatus('En train de repondre...');
       const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 500);
       const res = await fetch('/api/tts', {
         method: 'POST',
@@ -44,40 +33,65 @@ export default function ConsultantPage() {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
-      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); audioRef.current = null; };
-      audio.onerror = () => { setIsSpeaking(false); audioRef.current = null; };
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setStatus('Appuyez sur le micro pour parler');
+        URL.revokeObjectURL(url);
+        audioRef.current = null;
+      };
+      audio.onerror = () => { setIsSpeaking(false); setStatus('Appuyez sur le micro pour parler'); };
       await audio.play();
     } catch {
       setIsSpeaking(false);
+      setStatus('Appuyez sur le micro pour parler');
     }
   };
 
   const stopSpeaking = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setIsSpeaking(false);
+    setStatus('Appuyez sur le micro pour parler');
+  };
+
+  const askClaude = async (question: string) => {
+    setIsThinking(true);
+    setStatus('En train de reflechir...');
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'consultant',
+          message: `${question}\n\nReponds dans la meme langue que la question. Si darija marocaine reponds en darija. Si français reponds en français. Si arabe reponds en arabe. Sois tres concis, max 4 phrases.`
+        }),
+      });
+      const data = await res.json();
+      setResponse(data.response);
+      setIsThinking(false);
+      await speak(data.response);
+    } catch {
+      setIsThinking(false);
+      setStatus('Erreur. Reessayez.');
+    }
   };
 
   const startListening = () => {
     if (typeof window === 'undefined') return;
+    if (isSpeaking) stopSpeaking();
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Utilisez Chrome pour la reconnaissance vocale.');
-      return;
-    }
+    if (!SpeechRecognition) { alert('Utilisez Chrome.'); return; }
     const recognition = new SpeechRecognition();
     recognition.lang = lang;
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.onstart = () => setIsListening(true);
+    recognition.onstart = () => { setIsListening(true); setStatus('Ecoute en cours...'); setTranscript(''); setResponse(''); };
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInput(transcript);
+      const t = event.results[0][0].transcript;
+      setTranscript(t);
       setIsListening(false);
+      askClaude(t);
     };
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = () => { setIsListening(false); setStatus('Erreur micro. Reessayez.'); };
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
     recognition.start();
@@ -86,44 +100,25 @@ export default function ConsultantPage() {
   const stopListening = () => {
     recognitionRef.current?.stop();
     setIsListening(false);
+    setStatus('Appuyez sur le micro pour parler');
   };
 
-  const sendMessage = async (text?: string) => {
-    const msg = text || input;
-    if (!msg.trim() || loading) return;
-    setMessages(prev => [...prev, { role: 'user', content: msg }]);
-    setInput('');
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'consultant',
-          message: `${msg}\n\nReponds dans la meme langue que la question. Si darija marocaine reponds en darija. Si français reponds en français. Si arabe reponds en arabe. Sois concis (max 3 paragraphes).`
-        }),
-      });
-      const data = await res.json();
-      const response = data.response;
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
-      if (voiceEnabled) setTimeout(() => speak(response), 300);
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
-    }
-    setLoading(false);
+  const getCircleColor = () => {
+    if (isListening) return 'bg-red-500';
+    if (isThinking) return 'bg-amber-500';
+    if (isSpeaking) return 'bg-green-500';
+    return 'bg-indigo-500';
   };
 
-  const suggestions = [
-    'TVA 20% kif katkhasem?',
-    'IS 2026 barème?',
-    'CNSS declaration comment?',
-    'IR salaire calcul',
-  ];
+  const getCircleAnimation = () => {
+    if (isListening || isSpeaking) return 'animate-pulse';
+    if (isThinking) return 'animate-spin';
+    return '';
+  };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
+    <div className="flex h-screen bg-[#0F1F3D]">
+      <aside className="w-56 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
           <p className="text-white font-bold text-base">Atlas OS</p>
           <p className="text-white/40 text-xs">Enterprise</p>
@@ -133,17 +128,17 @@ export default function ConsultantPage() {
             <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Brain size={16} /> Consultant IA
+            <Brain size={16} /> Consultant Vocal
           </button>
         </nav>
 
         <div className="px-4 py-4 border-t border-white/10 space-y-3">
-          <p className="text-white/30 text-xs font-medium">Langue vocale</p>
+          <p className="text-white/30 text-xs font-medium">Langue</p>
           <div className="space-y-1">
             {[
               { code: 'fr-FR', label: '🇫🇷 Français' },
-              { code: 'ar-MA', label: '🇲🇦 Darija / عربية' },
-              { code: 'ar-SA', label: '🌍 Arabe classique' },
+              { code: 'ar-MA', label: '🇲🇦 Darija' },
+              { code: 'ar-SA', label: '🌍 Arabe' },
             ].map(l => (
               <button key={l.code} onClick={() => setLang(l.code as any)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all ${lang === l.code ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/70'}`}>
@@ -151,9 +146,8 @@ export default function ConsultantPage() {
               </button>
             ))}
           </div>
-
-          <div className="flex items-center justify-between px-1">
-            <span className="text-white/30 text-xs">Reponse vocale</span>
+          <div className="flex items-center justify-between px-1 pt-2">
+            <span className="text-white/30 text-xs">Son</span>
             <button onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); }}
               className={`p-1.5 rounded-lg transition-all ${voiceEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/30'}`}>
               {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
@@ -162,129 +156,69 @@ export default function ConsultantPage() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
-              <Brain size={20} className="text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-800">Consultant IA Vocal</h1>
-              <p className="text-xs text-gray-400">Darija · Français · العربية</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isSpeaking && (
-              <button onClick={stopSpeaking} className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-500 rounded-lg text-sm hover:bg-red-100">
-                <VolumeX size={16} /> Arreter
-              </button>
-            )}
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${isSpeaking ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
-              <div className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-              {isSpeaking ? 'En train de parler...' : 'En attente'}
-            </div>
-          </div>
-        </header>
+      <main className="flex-1 flex flex-col items-center justify-center gap-8 px-8">
+        <div className="text-center">
+          <h1 className="text-white font-bold text-2xl mb-1">Consultant IA</h1>
+          <p className="text-white/40 text-sm">Darija · Français · العربية</p>
+        </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messages.length === 1 && (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {suggestions.map((s, i) => (
-                <button key={i} onClick={() => sendMessage(s)}
-                  className="text-left p-3 bg-white rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm text-sm text-gray-600 transition-all">
-                  💬 {s}
-                </button>
+        <div className="relative flex items-center justify-center">
+          <div className={`absolute w-48 h-48 rounded-full opacity-20 ${getCircleColor()} ${isListening || isSpeaking ? 'animate-ping' : ''}`}></div>
+          <div className={`absolute w-36 h-36 rounded-full opacity-30 ${getCircleColor()} ${isListening || isSpeaking ? 'animate-pulse' : ''}`}></div>
+          <button
+            onClick={isListening ? stopListening : startListening}
+            disabled={isThinking}
+            className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all shadow-2xl ${
+              isListening ? 'bg-red-500 shadow-red-500/50' :
+              isThinking ? 'bg-amber-500 shadow-amber-500/50 cursor-not-allowed' :
+              isSpeaking ? 'bg-green-500 shadow-green-500/50' :
+              'bg-indigo-500 hover:bg-indigo-400 shadow-indigo-500/50 hover:scale-105'
+            }`}
+          >
+            {isListening ? <MicOff size={40} className="text-white" /> :
+             isThinking ? <Brain size={40} className="text-white animate-pulse" /> :
+             isSpeaking ? <Volume2 size={40} className="text-white animate-pulse" /> :
+             <Mic size={40} className="text-white" />}
+          </button>
+        </div>
+
+        <div className="text-center space-y-2">
+          <p className={`text-sm font-medium transition-all ${
+            isListening ? 'text-red-400' :
+            isThinking ? 'text-amber-400' :
+            isSpeaking ? 'text-green-400' :
+            'text-white/50'
+          }`}>{status}</p>
+
+          {isListening && (
+            <div className="flex justify-center gap-1">
+              {[1,2,3,4,5,4,3,2,1].map((h, i) => (
+                <div key={i} className="w-1 bg-red-400 rounded-full animate-bounce"
+                  style={{height: `${h * 4}px`, animationDelay: `${i * 0.08}s`}}></div>
               ))}
             </div>
           )}
 
-          {messages.map((m, i) => (
-            <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {m.role === 'assistant' && (
-                <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shrink-0 mt-1">
-                  <Bot size={16} className="text-white" />
-                </div>
-              )}
-              <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
-                m.role === 'user' ? 'bg-[#1B2A4A] text-white rounded-tr-none' : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'
-              }`}>
-                {m.content}
-                {m.role === 'assistant' && voiceEnabled && (
-                  <button onClick={() => speak(m.content)} className="mt-2 flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-600">
-                    <Volume2 size={12} /> Rejouer
-                  </button>
-                )}
-              </div>
-              {m.role === 'user' && (
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0 mt-1">
-                  <User size={16} className="text-gray-600" />
-                </div>
-              )}
-            </div>
-          ))}
-
-          {loading && (
-            <div className="flex gap-3">
-              <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shrink-0">
-                <Bot size={16} className="text-white" />
-              </div>
-              <div className="bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex gap-1 items-center">
-                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{animationDelay:'0.15s'}}></div>
-                  <div className="w-2 h-2 bg-indigo-300 rounded-full animate-bounce" style={{animationDelay:'0.3s'}}></div>
-                </div>
-              </div>
+          {transcript && (
+            <div className="mt-4 px-6 py-3 bg-white/5 rounded-2xl max-w-md">
+              <p className="text-white/40 text-xs mb-1">Vous:</p>
+              <p className="text-white/80 text-sm">{transcript}</p>
             </div>
           )}
-          <div ref={messagesEndRef} />
-        </div>
 
-        <div className="bg-white border-t border-gray-200 px-6 py-4">
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 relative">
-              <textarea
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder={isListening ? '🎤 En train d\'ecouter...' : 'Posez votre question (Darija, Français, Arabe)...'}
-                rows={2}
-                className={`w-full px-4 py-3 text-sm border rounded-2xl focus:outline-none resize-none transition-all ${
-                  isListening ? 'border-red-300 bg-red-50' : 'border-gray-200 focus:border-indigo-400'
-                }`}
-              />
-            </div>
-
-            <button
-              onClick={isListening ? stopListening : startListening}
-              className={`p-3 rounded-2xl transition-all shrink-0 ${
-                isListening ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-200' : 'bg-gray-100 text-gray-500 hover:bg-indigo-100 hover:text-indigo-600'
-              }`}
-            >
-              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-            </button>
-
-            <button
-              onClick={() => sendMessage()}
-              disabled={loading || !input.trim()}
-              className="p-3 bg-indigo-500 text-white rounded-2xl hover:bg-indigo-600 disabled:opacity-50 shrink-0"
-            >
-              <Send size={20} />
-            </button>
-          </div>
-
-          {isListening && (
-            <div className="mt-2 flex items-center gap-2 text-red-500 text-xs">
-              <div className="flex gap-0.5">
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} className="w-1 bg-red-400 rounded-full animate-bounce"
-                    style={{height: `${8 + i * 3}px`, animationDelay: `${i * 0.1}s`}}></div>
-                ))}
-              </div>
-              Ecoute en cours... Parlez maintenant
+          {response && !isThinking && (
+            <div className="mt-2 px-6 py-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl max-w-md">
+              <p className="text-indigo-300 text-xs mb-1">Consultant:</p>
+              <p className="text-white/80 text-sm leading-relaxed">{response}</p>
             </div>
           )}
         </div>
+
+        {isSpeaking && (
+          <button onClick={stopSpeaking} className="px-4 py-2 bg-white/10 text-white/60 rounded-xl text-sm hover:bg-white/20 transition-all">
+            ⏹ Arreter
+          </button>
+        )}
       </main>
     </div>
   );
