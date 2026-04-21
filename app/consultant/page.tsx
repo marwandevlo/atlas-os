@@ -15,10 +15,14 @@ export default function ConsultantPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   const speak = async (text: string) => {
     if (!voiceEnabled) return;
     try {
+      if (sourceRef.current) { sourceRef.current.stop(); sourceRef.current = null; }
+      if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       setIsSpeaking(true);
       setStatus('كيجاوب...');
@@ -26,21 +30,34 @@ export default function ConsultantPage() {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clean, voice: 'onyx' }),
+        body: JSON.stringify({ text: clean, voice: 'shimmer' }),
       });
       if (!res.ok) throw new Error('TTS failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => {
+      const arrayBuffer = await res.arrayBuffer();
+
+      // iOS + Android fix: AudioContext
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      audioContextRef.current = audioContext;
+
+      // iOS: resume if suspended
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const source = audioContext.createBufferSource();
+      sourceRef.current = source;
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+      source.onended = () => {
         setIsSpeaking(false);
         setStatus('اضغط للتحدث');
-        URL.revokeObjectURL(url);
-        audioRef.current = null;
+        sourceRef.current = null;
+        audioContext.close();
+        audioContextRef.current = null;
       };
-      audio.onerror = () => { setIsSpeaking(false); setStatus('اضغط للتحدث'); };
-      await audio.play();
+      source.start(0);
     } catch {
       setIsSpeaking(false);
       setStatus('اضغط للتحدث');
@@ -48,7 +65,11 @@ export default function ConsultantPage() {
   };
 
   const stopSpeaking = () => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    try {
+      if (sourceRef.current) { sourceRef.current.stop(); sourceRef.current = null; }
+      if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    } catch {}
     setIsSpeaking(false);
     setStatus('اضغط للتحدث');
   };
@@ -111,7 +132,10 @@ export default function ConsultantPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      // iOS: بعض الهواتف ما كيدعموش audio/webm
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (e) => {
@@ -120,7 +144,7 @@ export default function ConsultantPage() {
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         setIsListening(false);
         await transcribeAudio(audioBlob);
       };
