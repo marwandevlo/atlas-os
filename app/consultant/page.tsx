@@ -25,26 +25,31 @@ export default function ConsultantPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const speak = (text: string) => {
-    if (!voiceEnabled || typeof window === 'undefined') return;
+  const speak = async (text: string) => {
+    if (!voiceEnabled) return;
+    try {
+      setIsSpeaking(true);
+      const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 500);
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean, voice: 'nova' }),
+      });
+      if (!res.ok) throw new Error('TTS failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); };
+      audio.onerror = () => setIsSpeaking(false);
+      await audio.play();
+    } catch {
+      setIsSpeaking(false);
+    }
+  };
+
+  const stopSpeaking = () => {
     window.speechSynthesis.cancel();
-    const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 600);
-    const utt = new SpeechSynthesisUtterance(clean);
-    
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v =>
-      v.lang === lang && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural'))
-    ) || voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-    
-    if (preferred) utt.voice = preferred;
-    utt.lang = lang;
-    utt.rate = 0.85;
-    utt.pitch = 1.05;
-    utt.volume = 1;
-    utt.onstart = () => setIsSpeaking(true);
-    utt.onend = () => setIsSpeaking(false);
-    synthRef.current = utt;
-    window.speechSynthesis.speak(utt);
+    setIsSpeaking(false);
   };
 
   const stopSpeaking = () => {
