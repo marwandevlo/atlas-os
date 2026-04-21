@@ -472,7 +472,8 @@ Document conforme droit marocain. Titre officiel. Articles numerotes. Signatures
       else if (t.startsWith('ARTICLE') || t.startsWith('Art.')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2; }
       else if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD') && !t.includes(':')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2; }
       else { doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30); }
-      doc.text(line, 15, y);
+      const isHeader = y < 40;
+doc.text(line, isHeader ? 105 : 15, y, { align: isHeader ? 'center' : 'left' });
       y += 5.5;
     });
     doc.save(`${selectedDoc?.id}_${selectedCompany?.raisonSociale.replace(/ /g, '_')}.pdf`);
