@@ -150,6 +150,26 @@ Activite: ${company.activite}
 DONNEES: ${Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join(' | ')}
 REGLES: Texte simple uniquement. Pas de tableaux ASCII. Montants en chiffres ET lettres.`;
 
+const isCenteredLine = (t: string): boolean => {
+  if (!t || t.length < 2) return false;
+  if (t.startsWith('SOCIETE A RESPONSABILITE')) return true;
+  if (t.startsWith('SIEGE SOCIAL:')) return true;
+  if (t === 'STATUTS') return true;
+  if (t === 'CESSION DE PARTS SOCIALES') return true;
+  if (t.startsWith('CONTRAT DE')) return true;
+  if (t.startsWith('PROCES-VERBAL')) return true;
+  if (t.startsWith('LETTRE DE DEMISSION')) return true;
+  if (t.startsWith('ACCORD DE CONFIDENTIALITE')) return true;
+  if (t === 'LES ASSOCIES') return true;
+  if (t === "D'UNE PART") return true;
+  if (t === "D'AUTRE PART") return true;
+  if (t === 'DONT QUITTANCE') return true;
+  const isAllCaps = t === t.toUpperCase();
+  const noFiscal = !t.includes('MAD') && !t.includes(' IF') && !t.includes(' ICE') && !t.includes(' RC') && !t.includes('N°');
+  const noPrefix = !t.startsWith('ARTICLE') && !t.startsWith('TITRE') && !t.startsWith('IL ') && !t.startsWith('LE ') && !t.startsWith('LA ') && !t.startsWith('FAIT') && !t.startsWith('ENTRE') && !t.startsWith('PAR ');
+  return isAllCaps && noFiscal && noPrefix && t.length < 80;
+};
+
 export default function JuridiquePage() {
   const router = useRouter();
   const [selectedDoc, setSelectedDoc] = useState<Doc | null>(null);
@@ -468,26 +488,31 @@ Document conforme droit marocain. Titre officiel. Articles numerotes. Signatures
       if (y > 278) { doc.addPage(); y = 20; }
       const t = line.trim();
       if (!t) { y += 3; return; }
-      if (t.startsWith('TITRE')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 31, 61); y += 4; }
-      else if (t.startsWith('ARTICLE') || t.startsWith('Art.')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2; }
-      else if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD') && !t.includes(':')) { doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2; }
-      else { doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30); }
-      const isHeader = y < 40;
-doc.text(line, isHeader ? 105 : 15, y, { align: isHeader ? 'center' : 'left' });
+      const centered = isCenteredLine(t);
+      if (t.startsWith('TITRE')) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(15, 31, 61); y += 4;
+      } else if (t.startsWith('ARTICLE') || t.startsWith('Art.')) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2;
+      } else if (centered) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(15, 31, 61); y += 2;
+      } else {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
+      }
+      doc.text(line, centered ? 105 : 15, y, { align: centered ? 'center' : 'left' });
       y += 5.5;
     });
     doc.save(`${selectedDoc?.id}_${selectedCompany?.raisonSociale.replace(/ /g, '_')}.pdf`);
   };
 
   const downloadWord = async () => {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx');
     const clean = cleanText(docContent);
     const paragraphs = clean.split('\n').map(line => {
       const t = line.trim();
       if (!t) return new Paragraph({ text: '' });
-      if (t.startsWith('TITRE')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_1 });
+      if (t.startsWith('TITRE')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER });
       if (t.startsWith('ARTICLE')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_2 });
-      if (t.toUpperCase() === t && t.length > 5 && !t.includes('MAD')) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_3 });
+      if (isCenteredLine(t)) return new Paragraph({ text: t, heading: HeadingLevel.HEADING_3, alignment: AlignmentType.CENTER });
       return new Paragraph({ children: [new TextRun({ text: t, size: 22 })] });
     });
     const wordDoc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
