@@ -19,7 +19,7 @@ export default function ConsultantPage() {
   const [lang, setLang] = useState<'fr-FR' | 'ar-MA' | 'ar-SA'>('fr-FR');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
-  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,6 +28,10 @@ export default function ConsultantPage() {
   const speak = async (text: string) => {
     if (!voiceEnabled) return;
     try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       setIsSpeaking(true);
       const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 500);
       const res = await fetch('/api/tts', {
@@ -39,8 +43,9 @@ export default function ConsultantPage() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); };
-      audio.onerror = () => setIsSpeaking(false);
+      audioRef.current = audio;
+      audio.onended = () => { setIsSpeaking(false); URL.revokeObjectURL(url); audioRef.current = null; };
+      audio.onerror = () => { setIsSpeaking(false); audioRef.current = null; };
       await audio.play();
     } catch {
       setIsSpeaking(false);
@@ -48,12 +53,10 @@ export default function ConsultantPage() {
   };
 
   const stopSpeaking = () => {
-    window.speechSynthesis.cancel();
-    setIsSpeaking(false);
-  };
-
-  const stopSpeaking = () => {
-    window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     setIsSpeaking(false);
   };
 
@@ -61,7 +64,7 @@ export default function ConsultantPage() {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Votre navigateur ne supporte pas la reconnaissance vocale. Utilisez Chrome.');
+      alert('Utilisez Chrome pour la reconnaissance vocale.');
       return;
     }
     const recognition = new SpeechRecognition();
@@ -88,8 +91,7 @@ export default function ConsultantPage() {
   const sendMessage = async (text?: string) => {
     const msg = text || input;
     if (!msg.trim() || loading) return;
-    const userMsg: Message = { role: 'user', content: msg };
-    setMessages(prev => [...prev, userMsg]);
+    setMessages(prev => [...prev, { role: 'user', content: msg }]);
     setInput('');
     setLoading(true);
 
@@ -99,7 +101,7 @@ export default function ConsultantPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'consultant',
-          message: `${msg}\n\nReponds dans la meme langue que la question. Si c'est en darija marocaine, reponds en darija. Si français, reponds en français. Si arabe, reponds en arabe. Sois concis (max 3 paragraphes).`
+          message: `${msg}\n\nReponds dans la meme langue que la question. Si darija marocaine reponds en darija. Si français reponds en français. Si arabe reponds en arabe. Sois concis (max 3 paragraphes).`
         }),
       });
       const data = await res.json();
@@ -204,9 +206,7 @@ export default function ConsultantPage() {
                 </div>
               )}
               <div className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
-                m.role === 'user'
-                  ? 'bg-[#1B2A4A] text-white rounded-tr-none'
-                  : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'
+                m.role === 'user' ? 'bg-[#1B2A4A] text-white rounded-tr-none' : 'bg-white text-gray-700 shadow-sm border border-gray-100 rounded-tl-none'
               }`}>
                 {m.content}
                 {m.role === 'assistant' && voiceEnabled && (
@@ -258,11 +258,8 @@ export default function ConsultantPage() {
             <button
               onClick={isListening ? stopListening : startListening}
               className={`p-3 rounded-2xl transition-all shrink-0 ${
-                isListening
-                  ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-200'
-                  : 'bg-gray-100 text-gray-500 hover:bg-indigo-100 hover:text-indigo-600'
+                isListening ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-200' : 'bg-gray-100 text-gray-500 hover:bg-indigo-100 hover:text-indigo-600'
               }`}
-              title={isListening ? 'Arreter' : 'Parler'}
             >
               {isListening ? <MicOff size={20} /> : <Mic size={20} />}
             </button>
