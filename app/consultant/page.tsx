@@ -12,7 +12,8 @@ export default function ConsultantPage() {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
-  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const speak = async (text: string) => {
@@ -67,11 +68,10 @@ export default function ConsultantPage() {
 
 قواعد الإجابة:
 - جاوب بنفس اللغة اللي كلمك بيها المستخدم
-- إذا دارجة: جاوب بالدارجة المغربية الحقيقية مثل: "واخا، TVA ديالك كتحسبها هكذا..."
+- إذا دارجة: جاوب بالدارجة المغربية الحقيقية
 - إذا فرنسية: جاوب بالفرنسية
 - إذا عربية فصحى: جاوب بالعربية
 - كن مباشر وعملي - مثل محاسب مغربي حقيقي
-- إذا الأمر يخص إنشاء وثيقة أو مهمة: اشرح خطوات تنفيذها
 - جواب قصير وواضح - 3 إلى 5 جمل فقط
 - استخدم أرقام وتواريخ حقيقية من القانون المغربي`
         }),
@@ -86,70 +86,61 @@ export default function ConsultantPage() {
     }
   };
 
-  const startListening = () => {
-    if (typeof window === 'undefined') return;
-    if (isSpeaking) stopSpeaking();
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) { alert('استخدم Chrome'); return; }
-    
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'ar-MA';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    
-    let finalTranscript = '';
-    let silenceTimer: any = null;
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setStatus('كيحول الصوت لنص...');
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.webm');
+      const res = await fetch('/api/whisper', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Whisper failed');
+      const data = await res.json();
+      if (data.text && data.text.trim()) {
+        setTranscript(data.text);
+        await askClaude(data.text);
+      } else {
+        setStatus('ما سمعتك. حاول مرة أخرى');
+      }
+    } catch {
+      setStatus('خطأ في التحويل. حاول مرة أخرى');
+    }
+  };
 
-    recognition.onstart = () => {
+  const startListening = async () => {
+    if (isSpeaking) stopSpeaking();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setIsListening(false);
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
       setIsListening(true);
       setStatus('كيسمع... تكلم براحتك');
       setTranscript('');
       setResponse('');
-      finalTranscript = '';
-    };
-
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          interim = event.results[i][0].transcript;
-        }
-      }
-      setTranscript(finalTranscript || interim);
-      
-      // إيقاف تلقائي بعد توقف الكلام
-      if (silenceTimer) clearTimeout(silenceTimer);
-      silenceTimer = setTimeout(() => {
-        if (finalTranscript.trim()) {
-          recognition.stop();
-        }
-      }, 2000);
-    };
-
-    recognition.onerror = (event: any) => {
-      if (event.error !== 'no-speech') {
-        setIsListening(false);
-        setStatus('مشكل في الميكرو');
-      }
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-      if (finalTranscript.trim()) {
-        askClaude(finalTranscript.trim());
-      } else {
-        setStatus('اضغط للتحدث');
-      }
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+    } catch {
+      setStatus('مشكل في الميكرو - سمح للمتصفح');
+    }
   };
 
   const stopListening = () => {
-    recognitionRef.current?.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
     setIsListening(false);
   };
 
@@ -179,7 +170,9 @@ export default function ConsultantPage() {
           </div>
           <div className="bg-white/5 rounded-xl p-3">
             <p className="text-white/30 text-xs mb-2">كيفاش تستخدم</p>
-            <p className="text-white/50 text-xs leading-relaxed">اضغط على الدائرة وتكلم براحتك بالدارجة أو الفرنسية. المستشار غيجاوبك بصوت مباشرة.</p>
+            <p className="text-white/50 text-xs leading-relaxed">
+              اضغط على الدائرة وتكلم براحتك. اضغط مرة ثانية باش توقف. المستشار غيجاوبك بصوت مباشرة.
+            </p>
           </div>
         </div>
       </aside>
@@ -187,10 +180,9 @@ export default function ConsultantPage() {
       <main className="flex-1 flex flex-col items-center justify-center gap-10 px-8" dir="rtl">
         <div className="text-center">
           <h1 className="text-white font-bold text-3xl mb-2">المستشار الذكي</h1>
-          <p className="text-white/40">تكلم معه بالدارجة · Français · العربية</p>
+          <p className="text-white/40">تكلم بالدارجة · Français · العربية</p>
         </div>
 
-        {/* الدائرة الرئيسية */}
         <div className="relative flex items-center justify-center">
           {(isListening || isSpeaking) && (
             <>
@@ -201,7 +193,7 @@ export default function ConsultantPage() {
           {isThinking && (
             <div className="absolute w-52 h-52 rounded-full border-4 border-amber-500/30 border-t-amber-500 animate-spin"></div>
           )}
-          
+
           <button
             onClick={isListening ? stopListening : startListening}
             disabled={isThinking}
@@ -236,7 +228,6 @@ export default function ConsultantPage() {
           </button>
         </div>
 
-        {/* الحالة */}
         <div className="text-center space-y-3 w-full max-w-lg">
           <p className={`text-sm font-medium ${
             isListening ? 'text-red-400' :
