@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     const whisperForm = new FormData();
     whisperForm.append('file', audio, 'audio.webm');
     whisperForm.append('model', 'whisper-1');
+    whisperForm.append('prompt', 'المستخدم يتكلم بالدارجة المغربية أو الفرنسية أو العربية. مصطلحات محاسبية: TVA, IS, IR, CNSS, AMO, facture, bilan, comptabilité, شركة, ضريبة, فاتورة, محاسبة, راس المال');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -19,7 +20,12 @@ export async function POST(request: NextRequest) {
       body: whisperForm,
     });
 
-    if (!response.ok) throw new Error('Whisper error');
+    if (!response.ok) {
+      const err = await response.text();
+      console.error('Whisper error:', err);
+      throw new Error('Whisper error');
+    }
+    
     const data = await response.json();
     return NextResponse.json({ text: data.text });
   } catch (error) {
