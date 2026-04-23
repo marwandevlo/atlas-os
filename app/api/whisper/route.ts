@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
     const whisperForm = new FormData();
     whisperForm.append('file', audio, 'audio.webm');
     whisperForm.append('model', 'whisper-1');
-    whisperForm.append('prompt', 'المستخدم يتكلم بالدارجة المغربية أو الفرنسية أو العربية. مصطلحات محاسبية: TVA, IS, IR, CNSS, AMO, facture, bilan, comptabilité, شركة, ضريبة, فاتورة, محاسبة, راس المال');
+    whisperForm.append('language', 'ar');
+    whisperForm.append('prompt', 'المستخدم يتكلم بالدارجة المغربية. أمثلة: واش، كيفاش، بزاف، مزيان، دابا، خاصني، نتا، شحال، فلوس، شركة، TVA، IS، IR، CNSS، فاتورة، محاسبة، ضريبة، راس المال، بيلان، خسارة، ربح');
+    whisperForm.append('response_format', 'json');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
