@@ -30,7 +30,7 @@ export default function ConsultantPage() {
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clean, voice: 'shimmer' }),
+        body: JSON.stringify({ text: clean, voice: 'echo' }),
       });
       if (!res.ok) throw new Error('TTS failed');
       const arrayBuffer = await res.arrayBuffer();
@@ -76,16 +76,17 @@ export default function ConsultantPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'consultant',
-          message: `أنت مستشار ضريبي مغربي اسمك أطلس. شاطر وحماسي وبسيط.
+          message: `أنت مستشار ضريبي مغربي محترف اسمك أطلس. خبير في القانون الجبائي المغربي.
 
-السؤال (قد يكون بالدارجة أو العربية أو الفرنسية): ${question}
+السؤال: ${question}
 
-قواعد الجواب:
-- جاوب دايما بالدارجة المغربية — حتى إلا جاك السؤال بالعربية الفصحى
-- كلام خفيف ومرح مثل: "هاه! TVA سهلة، كنشرح ليك دابا..."
-- جملتين أو ثلاثة فقط — قصير وسريع
-- استخدم أرقام حقيقية من القانون المغربي
-- لا تبدأ بـ "أهلا" أو مقدمات — ابدأ مباشرة بالجواب`
+قواعد صارمة:
+- جاوب بالدارجة المغربية أو الفرنسية حسب لغة السؤال — ممنوع الإنجليزية
+- بالدارجة: "واه! TVA فالمغرب كتكون 20%، كنشرح ليك..."
+- بالفرنسية: réponse directe et professionnelle
+- جملتين أو ثلاثة فقط — مختصر ومفيد
+- أرقام حقيقية: TVA 20%/14%/10%/7%، IS 20%/31%، IR حسب الشطر
+- بلا مقدمات — ابدأ مباشرة`
         }),
       });
       const data = await res.json();

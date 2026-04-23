@@ -4,25 +4,21 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const audio = formData.get('audio') as Blob;
-    
     if (!audio) return NextResponse.json({ error: 'No audio' }, { status: 400 });
 
     const whisperForm = new FormData();
     whisperForm.append('file', audio, 'audio.webm');
     whisperForm.append('model', 'whisper-1');
-    whisperForm.append('prompt', 'Moroccan Darija mixed with French. Tax terms: TVA, IS, IR, CNSS, AMO, facture, bilan, comptabilité, déclaration, شركة, ضريبة, فاتورة, trimestre, mensuel, annuel');
+    whisperForm.append('prompt', 'دارجة مغربية مخلوطة بالفرنسية. مصطلحات: TVA، IS، IR، CNSS، AMO، facture، bilan، trimestre، déclaration، شركة، ضريبة، فاتورة، محاسبة، ربح، خسارة، راس المال');
     whisperForm.append('response_format', 'json');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
+      headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
       body: whisperForm,
     });
 
     if (!response.ok) throw new Error('Whisper error');
-    
     const data = await response.json();
     return NextResponse.json({ text: data.text });
   } catch (error) {
