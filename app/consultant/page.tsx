@@ -34,17 +34,10 @@ export default function ConsultantPage() {
       });
       if (!res.ok) throw new Error('TTS failed');
       const arrayBuffer = await res.arrayBuffer();
-
-      // iOS + Android fix: AudioContext
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       const audioContext = new AudioContextClass();
       audioContextRef.current = audioContext;
-
-      // iOS: resume if suspended
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-
+      if (audioContext.state === 'suspended') await audioContext.resume();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const source = audioContext.createBufferSource();
       sourceRef.current = source;
@@ -83,16 +76,16 @@ export default function ConsultantPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'consultant',
-          message: `أنت مستشار ضريبي مغربي شاطر وحماسي! اسمك أطلس. تحب تساعد وتشرح بطريقة بسيطة ومفرحة.
+          message: `أنت مستشار ضريبي مغربي اسمك أطلس. شاطر وحماسي وبسيط.
 
-السؤال: ${question}
+السؤال (قد يكون بالدارجة أو العربية أو الفرنسية): ${question}
 
-قواعد:
-- جاوب بنفس لغة السؤال — دارجة، فرنسية، أو عربية
-- بالدارجة: كلام خفيف وحماسي مثل "هاه! TVA سهلة، كنا نشرح ليك دابا..."
-- قصير وسريع — جملتين أو ثلاثة فقط
-- ابدأ مباشرة بالجواب بدون مقدمات
-- استخدم أرقام حقيقية من القانون المغربي`
+قواعد الجواب:
+- جاوب دايما بالدارجة المغربية — حتى إلا جاك السؤال بالعربية الفصحى
+- كلام خفيف ومرح مثل: "هاه! TVA سهلة، كنشرح ليك دابا..."
+- جملتين أو ثلاثة فقط — قصير وسريع
+- استخدم أرقام حقيقية من القانون المغربي
+- لا تبدأ بـ "أهلا" أو مقدمات — ابدأ مباشرة بالجواب`
         }),
       });
       const data = await res.json();
@@ -132,23 +125,18 @@ export default function ConsultantPage() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
-
-      // iOS: بعض الهواتف ما كيدعموش audio/webm
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
       const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
-
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
-
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         setIsListening(false);
         await transcribeAudio(audioBlob);
       };
-
       mediaRecorder.start();
       setIsListening(true);
       setStatus('كيسمع... تكلم براحتك');
@@ -181,7 +169,6 @@ export default function ConsultantPage() {
             <Brain size={16} /> Consultant Vocal
           </button>
         </nav>
-
         <div className="px-4 py-4 border-t border-white/10 space-y-3">
           <div className="flex items-center justify-between px-1">
             <span className="text-white/30 text-xs">الصوت</span>
@@ -215,7 +202,6 @@ export default function ConsultantPage() {
           {isThinking && (
             <div className="absolute w-52 h-52 rounded-full border-4 border-amber-500/30 border-t-amber-500 animate-spin"></div>
           )}
-
           <button
             onClick={isListening ? stopListening : startListening}
             disabled={isThinking}
