@@ -58,7 +58,7 @@ Réponds UNIQUEMENT avec le JSON valide, sans texte supplémentaire.`;
     }
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-4-5',
       max_tokens: 8000,
       system: systemPrompt,
       messages,
