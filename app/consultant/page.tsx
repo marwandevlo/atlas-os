@@ -1,163 +1,865 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Brain, Mic, MicOff, Volume2, VolumeX, StopCircle } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Scale, Search, Building2, RefreshCw, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
 
-export default function ConsultantPage() {
-  const router = useRouter();
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isThinking, setIsThinking] = useState(false);
-  const [status, setStatus] = useState('اضغط للتحدث');
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [transcript, setTranscript] = useState('');
-  const [response, setResponse] = useState('');
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+type Company = {
+  id: number; raisonSociale: string; formeJuridique: string; if_fiscal: string;
+  ice: string; rc: string; cnss: string; adresse: string; ville: string;
+  telephone: string; email: string; activite: string; regimeTVA: string; actif: boolean;
+};
 
-  const speak = async (text: string) => {
-    if (!voiceEnabled) return;
+type GeneratedDoc = {
+  id: string; name: string; content: string; status: 'pending' | 'generating' | 'done' | 'error';
+};
+
+type FormData = {
+  associes: string; capital: string; activite: string; gerant: string; cin_gerant: string;
+  adresse_gerant: string; date_naissance_gerant: string; date: string;
+};
+
+const cleanText = (text: string) => text
+  .replace(/\*\*/g, '').replace(/#{1,3} /g, '').replace(/```[\s\S]*?```/g, '')
+  .replace(/`/g, '').replace(/%[A-Z]/g, '').replace(/\[.*?\]/g, '')
+  .replace(/&nbsp;/g, ' ').replace(/<[^>]*>/g, '').replace(/\|/g, ' ').trim();
+
+const callAI = async (message: string) => {
+  const res = await fetch('/api/ai', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'consultant', message }),
+  });
+  const data = await res.json();
+  return data.response as string;
+};
+
+const isCenteredLine = (t: string): boolean => {
+  if (!t || t.length < 2) return false;
+  if (t.startsWith('SOCIETE A RESPONSABILITE')) return true;
+  if (t.startsWith('SIEGE SOCIAL:')) return true;
+  if (t === 'STATUTS') return true;
+  if (t === 'CESSION DE PARTS SOCIALES') return true;
+  if (t.startsWith('CONTRAT DE')) return true;
+  if (t.startsWith('PROCES-VERBAL')) return true;
+  if (t.startsWith('DECISION EXTRAORDINAIRE')) return true;
+  if (t === 'LES ASSOCIES') return true;
+  if (t === "D'UNE PART") return true;
+  if (t === "D'AUTRE PART") return true;
+  if (t === 'DONT QUITTANCE') return true;
+  const isAllCaps = t === t.toUpperCase();
+  const noFiscal = !t.includes('MAD') && !t.includes(' IF') && !t.includes(' ICE') && !t.includes(' RC') && !t.includes('N°');
+  const noPrefix = !t.startsWith('ARTICLE') && !t.startsWith('TITRE') && !t.startsWith('IL ') && !t.startsWith('LE ') && !t.startsWith('LA ') && !t.startsWith('FAIT') && !t.startsWith('ENTRE') && !t.startsWith('PAR ');
+  return isAllCaps && noFiscal && noPrefix && t.length < 80;
+};
+
+// ========== WORD GENERATORS ==========
+
+const generateWordDoc = async (content: string, filename: string) => {
+  const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } = await import('docx');
+  const clean = cleanText(content);
+  const paragraphs = clean.split('\n').map(line => {
+    const t = line.trim();
+    if (!t) return new Paragraph({ text: '', spacing: { after: 80 } });
+    const centered = isCenteredLine(t);
+    if (t.startsWith('TITRE')) return new Paragraph({
+      heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: t, bold: true, size: 22, color: '0F1F3D' })],
+      spacing: { before: 240, after: 120 }
+    });
+    if (t.startsWith('ARTICLE')) return new Paragraph({
+      children: [new TextRun({ text: t, bold: true, size: 20, color: '0F1F3D' })],
+      spacing: { before: 160, after: 80 }
+    });
+    if (centered) return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: t, bold: true, size: 20 })],
+      spacing: { before: 120, after: 120 }
+    });
+    return new Paragraph({
+      children: [new TextRun({ text: t, size: 18 })],
+      spacing: { after: 80 }
+    });
+  });
+  const doc = new Document({
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } }, children: paragraphs }]
+  });
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};
+
+const generateDepotLegalWord = async (company: Company, formData: FormData, gerant: string) => {
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+    AlignmentType, BorderStyle, WidthType, ShadingType } = await import('docx');
+
+  const border = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
+  const borders = { top: border, bottom: border, left: border, right: border };
+  const noBorders = { top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } };
+
+  const bold = (text: string, size = 20) => new TextRun({ text, bold: true, size, font: 'Arial' });
+  const normal = (text: string, size = 18) => new TextRun({ text, size, font: 'Arial' });
+  const center = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
+  const left = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
+
+  const children = [
+    // Header
+    center([bold('ROYAUME DU MAROC        MINISTRE DE LA JUSTICE', 20)]),
+    center([bold(`TRIBUNAL DE PREMIERE INSTANCE DE ${company.ville.toUpperCase()}`, 18)]),
+    new Paragraph({ spacing: { after: 40 } }),
+    center([bold(`RC N° : ${company.rc}`, 22)]),
+    new Paragraph({ spacing: { after: 40 } }),
+    center([bold('REGISTRE DE COMMERCE', 24)]),
+    center([bold('Dépôt légal', 22)]),
+    new Paragraph({ spacing: { after: 160 } }),
+
+    // Table 1: Rappel identification
+    new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: [2000, 7026],
+      rows: [
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 9026, type: WidthType.DXA }, columnSpan: 2,
+            shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('RAPPEL D\'IDENTIFICATION AVANT MODIFICATION')] })]
+          })
+        ]}),
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 2000, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [
+              left([normal('Société')]),
+              left([normal('Forme juridique')]),
+              left([normal('Siège social')]),
+              left([normal('Capital')]),
+            ]
+          }),
+          new TableCell({ borders, width: { size: 7026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [
+              left([normal(': ' + company.raisonSociale)]),
+              left([normal(': ' + company.formeJuridique)]),
+              left([normal(': ' + company.adresse + ' ' + company.ville)]),
+              left([normal(': ' + formData.capital + ' DHS')]),
+            ]
+          }),
+        ]}),
+      ]
+    }),
+    new Paragraph({ spacing: { after: 120 } }),
+
+    // Personnes autorisees
+    left([bold('Liste des personnes autorisées à administrer, gérer ou signer pour la société :')]),
+    new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: [4513, 4513],
+      rows: [
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 4513, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('NOM & PRENOM')] })]
+          }),
+          new TableCell({ borders, width: { size: 4513, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('NOM & PRENOM')] })]
+          }),
+        ]}),
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 4513, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [
+              left([normal(`1. Mr. ${gerant}`)]),
+              left([normal('2. ………………………………………')]),
+              left([normal('3. ………………………………………')]),
+            ]
+          }),
+          new TableCell({ borders, width: { size: 4513, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [
+              left([normal('1. ………………………………………')]),
+              left([normal('2. ………………………………………')]),
+              left([normal('3. ………………………………………')]),
+            ]
+          }),
+        ]}),
+      ]
+    }),
+    new Paragraph({ spacing: { after: 120 } }),
+
+    // Objet
+    left([bold('Objet :'), normal('        CONSTITUTION DE SOCIETE')]),
+    new Paragraph({ spacing: { after: 80 } }),
+
+    // Decisions de modification
+    new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: [9026],
+      rows: [
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 9026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('DECISIONS DE MODIFICATION')] })]
+          })
+        ]}),
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 9026, type: WidthType.DXA }, margins: { top: 100, bottom: 100, left: 120, right: 120 },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [normal('CONSTITUTION DE SOCIETE')] })]
+          })
+        ]}),
+      ]
+    }),
+    new Paragraph({ spacing: { after: 120 } }),
+
+    // Pieces jointes
+    left([bold('Pièces jointes : (*)')]),
+    new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: [2500, 1500, 1500, 1500, 2026],
+      rows: [
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 2500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 }, shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('Type / forme')] })] }),
+          new TableCell({ borders, width: { size: 1500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 }, shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('Original')] })] }),
+          new TableCell({ borders, width: { size: 1500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 }, shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('Copie')] })] }),
+          new TableCell({ borders, width: { size: 1500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 }, shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('Exped')] })] }),
+          new TableCell({ borders, width: { size: 2026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 }, shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold("Date de l'original")] })] }),
+        ]}),
+        ...['Statuts', 'PV', 'RC', 'ACT'].map(type => new TableRow({ children: [
+          new TableCell({ borders, width: { size: 2500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ children: [normal(type)] })] }),
+          new TableCell({ borders, width: { size: 1500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ children: [normal('')] })] }),
+          new TableCell({ borders, width: { size: 1500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ children: [normal('')] })] }),
+          new TableCell({ borders, width: { size: 1500, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ children: [normal('')] })] }),
+          new TableCell({ borders, width: { size: 2026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ children: [normal('│_│_│ │_│_│ │_│_│_│_│')] })] }),
+        ]})),
+      ]
+    }),
+    new Paragraph({ spacing: { after: 120 } }),
+
+    // Deposant
+    left([normal('Déposant : Nom & Prénoms : '), normal(gerant)]),
+    new Paragraph({ spacing: { after: 160 } }),
+
+    // Signature
+    left([normal(`Le secrétaire-Greffier en chef du Tribunal de Première Instance de ${company.ville}, certifie que les pièces susvisées ont été déposées à ce secrétariat-greffe sous le N° : ………………`)]),
+    new Paragraph({ spacing: { after: 80 } }),
+    left([normal(`${company.ville} le ${formData.date}`)]),
+    new Paragraph({ spacing: { after: 80 } }),
+    center([bold('Le secrétaire-greffier')]),
+  ];
+
+  const doc = new Document({
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } }, children }]
+  });
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `depot_legal_${company.raisonSociale.replace(/ /g, '_')}.docx`; a.click();
+  URL.revokeObjectURL(url);
+};
+
+const generateRCWord = async (company: Company, formData: FormData) => {
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+    AlignmentType, BorderStyle, WidthType, ShadingType } = await import('docx');
+
+  const border = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
+  const borders = { top: border, bottom: border, left: border, right: border };
+  const bold = (text: string, size = 18) => new TextRun({ text, bold: true, size, font: 'Arial' });
+  const normal = (text: string, size = 17) => new TextRun({ text, size, font: 'Arial' });
+  const center = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
+  const left = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
+
+  const children = [
+    // Header
+    new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('ROYAUME DU MAROC', 20), normal('         '), bold('MINISTERE DE LA JUSTICE', 20)], spacing: { after: 40 } }),
+    center([bold(`TRIBUNAL DE COMMERCE DE ${company.ville.toUpperCase()}`, 18)]),
+    new Paragraph({ spacing: { after: 40 } }),
+    center([bold('REGISTRE DU COMMERCE - DECLARATION D\'IMMATRICULATION', 20)]),
+    center([normal('(Articles 45-46 du code de commerce)')]),
+    center([bold('SOCIETES COMMERCIALES', 18)]),
+    new Paragraph({ spacing: { after: 160 } }),
+
+    // Cadre greffier
+    new Table({
+      width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
+      rows: [
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 9026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('Cadre réservé au greffier')] })]
+          })
+        ]}),
+        new TableRow({ children: [
+          new TableCell({ borders, width: { size: 9026, type: WidthType.DXA }, margins: { top: 80, bottom: 120, left: 120, right: 120 },
+            children: [
+              left([normal('N° d\'immatriculation : ……………………     Raison sociale : '), bold(company.raisonSociale)]),
+              left([normal('Actes et pièces déposés le ……………………… sous n° ……………………')]),
+              left([normal('Déclaration déposée le ………………………… sous n° au registre chronologique.')]),
+            ]
+          })
+        ]}),
+      ]
+    }),
+    new Paragraph({ spacing: { after: 160 } }),
+
+    center([bold('DECLARATION D\'IMMATRICULATION AU REGISTRE DU COMMERCE', 20)]),
+    center([normal('Modèle n° 2')]),
+    new Paragraph({ spacing: { after: 120 } }),
+
+    // Info societe
+    new Table({
+      width: { size: 9026, type: WidthType.DXA }, columnWidths: [3000, 6026],
+      rows: [
+        [['Raison sociale ou dénomination', company.raisonSociale],
+         ['Sigle', ''],
+         ['Date certificat négatif', formData.date],
+         ['Objet', formData.activite],
+         ['Forme juridique', company.formeJuridique],
+         ['Capital social', formData.capital + ' DH'],
+         ['Siège social', company.adresse + ' ' + company.ville],
+         ['Durée', '99 ans'],
+         ['Date commencement exploitation', formData.date],
+         ['Nom et prénom du gérant', formData.gerant],
+         ['CIN du gérant', formData.cin_gerant],
+         ['Adresse personnelle du gérant', formData.adresse_gerant],
+         ['ICE', company.ice],
+         ['IF', company.if_fiscal],
+         ['CNSS', company.cnss],
+        ].map(([label, value]) => new TableRow({ children: [
+          new TableCell({ borders, width: { size: 3000, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            shading: { fill: 'F0F0F0', type: ShadingType.CLEAR },
+            children: [new Paragraph({ children: [bold(label as string, 17)] })] }),
+          new TableCell({ borders, width: { size: 6026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
+            children: [new Paragraph({ children: [normal(value as string)] })] }),
+        ]}))
+      ].flat()
+    }),
+    new Paragraph({ spacing: { after: 120 } }),
+
+    // Pieces
+    left([bold('Pièces produites :', 18)]),
+    left([normal('- Statuts : original + 2 copies')]),
+    left([normal('- PV Constitution : original + 2 copies')]),
+    left([normal('- CIN gérant : copie certifiée conforme')]),
+    left([normal('- Certificat négatif')]),
+    left([normal('- Contrat bail ou domiciliation')]),
+    new Paragraph({ spacing: { after: 160 } }),
+
+    // Signature
+    left([normal(`Le soussigné ${formData.gerant}, gérant, certifie l'exactitude des indications portées sur la présente déclaration.`)]),
+    new Paragraph({ spacing: { after: 80 } }),
+    left([normal(`Fait en triple exemplaire à ${company.ville} le ${formData.date}`)]),
+    new Paragraph({ spacing: { after: 160 } }),
+
+    new Paragraph({
+      children: [new TextRun({ text: 'Signature et cachet :', bold: true, size: 18, font: 'Arial' })],
+      alignment: AlignmentType.RIGHT
+    }),
+  ];
+
+  const doc = new Document({
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } }, children }]
+  });
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `RC_${company.raisonSociale.replace(/ /g, '_')}.docx`; a.click();
+  URL.revokeObjectURL(url);
+};
+
+// ==================== CREATION FORM ====================
+function CreationForm({ companies }: { companies: Company[] }) {
+  const [step, setStep] = useState<'select' | 'form' | 'generating' | 'done'>('select');
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [search, setSearch] = useState('');
+  const [formData, setFormData] = useState<FormData>({
+    associes: '', capital: '', activite: '', gerant: '', cin_gerant: '',
+    adresse_gerant: '', date_naissance_gerant: '', date: new Date().toLocaleDateString('fr-FR'),
+  });
+  const [generatedDocs, setGeneratedDocs] = useState<GeneratedDoc[]>([]);
+
+  const filtered = companies.filter(c => c.raisonSociale.toLowerCase().includes(search.toLowerCase()));
+  const docsToGenerate = [
+    { id: 'statuts', name: 'Statuts SARL' },
+    { id: 'pv_constitution', name: 'PV Constitution' },
+    { id: 'domiciliation', name: 'Contrat Domiciliation' },
+    { id: 'depot_legal', name: 'Dépôt Légal RC' },
+    { id: 'rc_declaration', name: 'Déclaration RC (Modèle 2)' },
+  ];
+
+  const generateAll = async () => {
+    if (!selectedCompany) return;
+    setStep('generating');
+    const docs: GeneratedDoc[] = docsToGenerate.map(d => ({ ...d, content: '', status: 'pending' as const }));
+    setGeneratedDocs(docs);
+    const c = selectedCompany;
+    const f = formData;
+    const base = `SOCIETE: ${c.raisonSociale} | SARL | Capital: ${f.capital} DH
+IF: ${c.if_fiscal} | ICE: ${c.ice} | RC: ${c.rc} | CNSS: ${c.cnss}
+Adresse siege: ${c.adresse} ${c.ville} | Tel: ${c.telephone}
+Associes: ${f.associes} | Activite: ${f.activite}
+Gerant: ${f.gerant} | CIN: ${f.cin_gerant} | Adresse: ${f.adresse_gerant} | Naissance: ${f.date_naissance_gerant}
+Date acte: ${f.date}`;
+
+    // STATUTS
+    setGeneratedDocs(prev => prev.map(d => d.id === 'statuts' ? { ...d, status: 'generating' as const } : d));
     try {
-      if (sourceRef.current) { sourceRef.current.stop(); sourceRef.current = null; }
-      if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-      setIsSpeaking(true);
-      setStatus('كيجاوب...');
-      const clean = text.replace(/[*#_`]/g, '').replace(/\n/g, ' ').substring(0, 600);
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: clean, voice: 'echo' }),
-      });
-      if (!res.ok) throw new Error('TTS failed');
-      const arrayBuffer = await res.arrayBuffer();
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      const audioContext = new AudioContextClass();
-      audioContextRef.current = audioContext;
-      if (audioContext.state === 'suspended') await audioContext.resume();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      const source = audioContext.createBufferSource();
-      sourceRef.current = source;
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      source.onended = () => {
-        setIsSpeaking(false);
-        setStatus('اضغط للتحدث');
-        sourceRef.current = null;
-        audioContext.close();
-        audioContextRef.current = null;
-      };
-      source.start(0);
-    } catch {
-      setIsSpeaking(false);
-      setStatus('اضغط للتحدث');
+      const p1 = await callAI(`Expert juridique marocain. Genere Titres I-IV statuts SARL.
+${base}
+EN-TETE: "${c.raisonSociale}" / "SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [EN LETTRES] ([CHIFFRES]) DIRHAMS" / "SIEGE SOCIAL: ${c.adresse} ${c.ville}" / "ICE: ${c.ice}   IF: ${c.if_fiscal}" / "STATUTS"
+LES SOUSSIGNES: [chaque associe: NOM, nationalite marocaine, ne le [DATE] a [VILLE], demeurant [ADRESSE], CIN [N]]
+"A etabli ainsi qu'il suit les statuts..."
+TITRE PREMIER: Art.1 Formation (Dahir 1-97-49/loi 5-96 et Dahir 1-06-21/loi 21-05) - Art.2 Denomination ("${c.raisonSociale}" SARL + mentions ICE RC capital) - Art.3 Objet (${f.activite} en tirets) - Art.4 Siege (${c.adresse} ${c.ville}) - Art.5 Duree (99 ans)
+TITRE II: Art.6 Apports - Art.7 Capital (${f.capital} DH en parts 100 DH avec repartition et numerotation) - Art.8 Augmentation/reduction - Art.9 Parts sociales - Art.10 Cession (libre entre associes, agrement tiers) - Art.11 Transmission
+TITRE III: Art.12 Gerance (${f.gerant} CIN ${f.cin_gerant} gerant unique duree illimitee + 8 pouvoirs) - Art.13 Signature - Art.14 Remuneration
+TITRE IV: Art.15 Vote - Art.16 AGO (3 mois, quorum 75%) - Art.17 Quorum - Art.18 AGE (unanimite) - Art.19 Registre
+STOP apres article 19.`);
+      const p2 = await callAI(`Expert juridique marocain. Genere Titres V-VII statuts SARL pour ${c.raisonSociale}.
+${base}
+TITRE V: Art.20 Exercice (1jan-31dec) - Art.21 Benefices (proportionnel parts) - Art.22 Comptes courants
+TITRE VI: Art.23 Deces associe - Art.24 Deces/demission gerant - Art.25 Dissolution - Art.26 Liquidation
+TITRE VII: Art.27 Contestation (tribunaux ${c.ville}) - Art.28 Publications - Art.29 Frais - Art.30 Transformation
+"Les presents statuts seront deposes au Tribunal de Commerce de ${c.ville}."
+"Fait a ${c.ville} le ${f.date}" / "LES ASSOCIES" / [signatures]`);
+      setGeneratedDocs(prev => prev.map(d => d.id === 'statuts' ? { ...d, content: p1 + '\n\n' + p2, status: 'done' as const } : d));
+    } catch { setGeneratedDocs(prev => prev.map(d => d.id === 'statuts' ? { ...d, status: 'error' as const } : d)); }
+
+    // PV CONSTITUTION
+    setGeneratedDocs(prev => prev.map(d => d.id === 'pv_constitution' ? { ...d, status: 'generating' as const } : d));
+    try {
+      const pv = await callAI(`Expert juridique marocain. Genere PV ASSEMBLEE GENERALE CONSTITUTIVE pour ${c.raisonSociale}.
+${base}
+EN-TETE: "${c.raisonSociale}" / "SARL AU CAPITAL DE [EN LETTRES] DIRHAMS" / "SIEGE: ${c.adresse} ${c.ville}" / "RC: ${c.rc}"
+"PROCES-VERBAL DE L'ASSEMBLEE GENERALE CONSTITUTIVE TENUE LE ${f.date}"
+"L'an [EN LETTRES], le [DATE EN LETTRES] a [HEURE], les associes se sont reunis..."
+PREMIERE RESOLUTION: ADOPTION DES STATUTS - unanimite
+DEUXIEME RESOLUTION: NOMINATION GERANT - ${f.gerant} CIN ${f.cin_gerant} duree illimitee - unanimite
+TROISIEME RESOLUTION: POUVOIRS - porteur original pour immatriculation RC et publications - unanimite
+"Fait a ${c.ville} le ${f.date}" / signatures associes`);
+      setGeneratedDocs(prev => prev.map(d => d.id === 'pv_constitution' ? { ...d, content: pv, status: 'done' as const } : d));
+    } catch { setGeneratedDocs(prev => prev.map(d => d.id === 'pv_constitution' ? { ...d, status: 'error' as const } : d)); }
+
+    // DOMICILIATION
+    setGeneratedDocs(prev => prev.map(d => d.id === 'domiciliation' ? { ...d, status: 'generating' as const } : d));
+    try {
+      const dom = await callAI(`Expert juridique marocain. Genere CONTRAT DE DOMICILIATION pour ${c.raisonSociale} selon modele article 93 CRCP.
+${base}
+"CONTRAT DE DOMICILIATION"
+"Nous Soussignes, [DOMICILIATAIRE] SARL AU, declarant que ${c.raisonSociale} a domicilie son adresse fiscale dans nos locaux situes au ${c.adresse} ${c.ville}"
+"Nous declarons avoir pris connaissance des dispositions article 93 CRCP..."
+"CONDITIONS GENERALES DE DOMICILIATION JURIDIQUE ET FISCAL"
+"[DOMICILIATAIRE] represente par [GERANT] CIN [N], et ${c.raisonSociale} represente par ${f.gerant} CIN ${f.cin_gerant} demeurant ${f.adresse_gerant}."
+ARTICLE I CADRE LEGAL - ARTICLE II OBJET - ARTICLE III DUREE (1 an tacite reconduction preavis 1 mois) - ARTICLE IV OBLIGATIONS - ARTICLE V RESILIATION - ARTICLE VI ELECTION DOMICILE - ARTICLE VII PROCURATION
+"Fait a ${c.ville} le ${f.date}" / signatures`);
+      setGeneratedDocs(prev => prev.map(d => d.id === 'domiciliation' ? { ...d, content: dom, status: 'done' as const } : d));
+    } catch { setGeneratedDocs(prev => prev.map(d => d.id === 'domiciliation' ? { ...d, status: 'error' as const } : d)); }
+
+    // DEPOT LEGAL - generated as Word directly
+    setGeneratedDocs(prev => prev.map(d => d.id === 'depot_legal' ? { ...d, status: 'done' as const, content: 'WORD_TABLE' } : d));
+
+    // RC DECLARATION - generated as Word directly
+    setGeneratedDocs(prev => prev.map(d => d.id === 'rc_declaration' ? { ...d, status: 'done' as const, content: 'WORD_TABLE' } : d));
+
+    setStep('done');
+  };
+
+  const handleDownload = async (doc: GeneratedDoc) => {
+    if (!selectedCompany) return;
+    if (doc.id === 'depot_legal') {
+      await generateDepotLegalWord(selectedCompany, formData, formData.gerant);
+    } else if (doc.id === 'rc_declaration') {
+      await generateRCWord(selectedCompany, formData);
+    } else {
+      await generateWordDoc(doc.content, `${doc.id}_${selectedCompany.raisonSociale.replace(/ /g, '_')}.docx`);
     }
   };
 
-  const stopSpeaking = () => {
-    try {
-      if (sourceRef.current) { sourceRef.current.stop(); sourceRef.current = null; }
-      if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    } catch {}
-    setIsSpeaking(false);
-    setStatus('اضغط للتحدث');
-  };
-
-  const askClaude = async (question: string) => {
-    setIsThinking(true);
-    setStatus('كيفكر...');
-    try {
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'consultant',
-          message: `أنت مستشار ضريبي مغربي محترف اسمك أطلس. خبير في القانون الجبائي المغربي.
-
-السؤال: ${question}
-
-قواعد صارمة:
-- جاوب بالدارجة المغربية أو الفرنسية حسب لغة السؤال — ممنوع الإنجليزية
-- بالدارجة: "واه! TVA فالمغرب كتكون 20%، كنشرح ليك..."
-- بالفرنسية: réponse directe et professionnelle
-- جملتين أو ثلاثة فقط — مختصر ومفيد
-- أرقام حقيقية: TVA 20%/14%/10%/7%، IS 20%/31%، IR حسب الشطر
-- بلا مقدمات — ابدأ مباشرة`
-        }),
-      });
-      const data = await res.json();
-      setResponse(data.response);
-      setIsThinking(false);
-      await speak(data.response);
-    } catch {
-      setIsThinking(false);
-      setStatus('خطأ. حاول مرة أخرى');
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    setStatus('كيحول الصوت لنص...');
-    try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.webm');
-      const res = await fetch('/api/whisper', {
-        method: 'POST',
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Whisper failed');
-      const data = await res.json();
-      if (data.text && data.text.trim()) {
-        setTranscript(data.text);
-        await askClaude(data.text);
-      } else {
-        setStatus('ما سمعتك. حاول مرة أخرى');
+  const downloadAll = async () => {
+    for (const doc of generatedDocs) {
+      if (doc.status === 'done') {
+        await handleDownload(doc);
+        await new Promise(r => setTimeout(r, 600));
       }
-    } catch {
-      setStatus('خطأ في التحويل. حاول مرة أخرى');
     }
   };
 
-  const startListening = async () => {
-    if (isSpeaking) stopSpeaking();
+  if (step === 'select') return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-white">
+        <h2 className="font-bold text-gray-800">Dossier de Création</h2>
+        <p className="text-xs text-gray-400 mt-0.5">Sélectionnez la société à constituer</p>
+      </div>
+      <div className="px-4 py-3 border-b border-gray-100">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {filtered.map(c => (
+          <button key={c.id} onClick={() => { setSelectedCompany(c); setStep('form'); }}
+            className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-[#1B2A4A] rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">{c.raisonSociale.charAt(0)}</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-800 text-sm truncate">{c.raisonSociale}</p>
+                <p className="text-xs text-gray-400">{c.ville} · {c.formeJuridique}</p>
+              </div>
+              <ChevronRight size={14} className="text-gray-300" />
+            </div>
+          </button>
+        ))}
+        {filtered.length === 0 && <div className="text-center py-8 text-gray-400 text-sm">Aucune société trouvée</div>}
+      </div>
+    </div>
+  );
+
+  if (step === 'form') return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center gap-3">
+        <button onClick={() => setStep('select')} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={16} /></button>
+        <div>
+          <h2 className="font-bold text-gray-800">{selectedCompany?.raisonSociale}</h2>
+          <p className="text-xs text-gray-400">Données de constitution</p>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+          <p className="text-xs text-blue-600 font-medium mb-2">Documents Word générés automatiquement</p>
+          <div className="flex flex-wrap gap-2">
+            {docsToGenerate.map(d => (
+              <span key={d.id} className="text-xs bg-white border border-blue-200 text-blue-700 px-2 py-1 rounded-lg">{d.name}</span>
+            ))}
+          </div>
+        </div>
+        {[
+          { key: 'associes', label: 'Associés (nom, date naissance, ville, CIN, adresse, nb parts)', placeholder: 'Ex: Mohammed Alami né 01/01/1980 à Casa CIN AB123456 demeurant 10 Rue... - 50 parts', multi: true },
+          { key: 'capital', label: 'Capital social (MAD)', placeholder: 'Ex: 100000' },
+          { key: 'activite', label: 'Objet social / Activités', placeholder: 'Ex: Commerce général, conseil en gestion...' },
+          { key: 'gerant', label: 'Nom complet du gérant', placeholder: 'Ex: Mohammed Alami' },
+          { key: 'cin_gerant', label: 'CIN du gérant', placeholder: 'Ex: AB123456' },
+          { key: 'adresse_gerant', label: 'Adresse personnelle du gérant', placeholder: 'Ex: 10 Rue Hassan II Casablanca' },
+          { key: 'date_naissance_gerant', label: 'Date et lieu de naissance du gérant', placeholder: 'Ex: 01/01/1980 à Casablanca' },
+          { key: 'date', label: "Date de l'acte", placeholder: 'JJ/MM/AAAA' },
+        ].map(field => (
+          <div key={field.key}>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">{field.label}</label>
+            {field.multi ? (
+              <textarea value={formData[field.key as keyof FormData]} onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder={field.placeholder} rows={3} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 resize-none" />
+            ) : (
+              <input value={formData[field.key as keyof FormData]} onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder={field.placeholder} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" />
+            )}
+          </div>
+        ))}
+        <button onClick={generateAll} className="w-full py-3 bg-[#1B2A4A] text-white rounded-xl font-semibold text-sm hover:bg-[#243660] transition-all flex items-center justify-center gap-2">
+          <FileText size={16} /> Générer le dossier complet
+        </button>
+      </div>
+    </div>
+  );
+
+  if (step === 'generating' || step === 'done') return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div>
+          <h2 className="font-bold text-gray-800">{selectedCompany?.raisonSociale}</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{step === 'done' ? '✅ Dossier complet — 5 documents Word' : '⏳ Génération en cours...'}</p>
+        </div>
+        {step === 'done' && (
+          <button onClick={() => { setStep('select'); setGeneratedDocs([]); }} className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs hover:bg-gray-200">
+            <RefreshCw size={12} /> Nouveau
+          </button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto p-6 space-y-3">
+        {generatedDocs.map(doc => (
+          <div key={doc.id} className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-xl shadow-sm">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${doc.status === 'done' ? 'bg-green-100' : doc.status === 'generating' ? 'bg-amber-100' : doc.status === 'error' ? 'bg-red-100' : 'bg-gray-100'}`}>
+              {doc.status === 'done' ? <CheckCircle size={16} className="text-green-600" /> :
+               doc.status === 'generating' ? <Loader2 size={16} className="text-amber-600 animate-spin" /> :
+               <FileText size={16} className={doc.status === 'error' ? 'text-red-400' : 'text-gray-300'} />}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">{doc.name}</p>
+              <p className={`text-xs ${doc.status === 'done' ? 'text-green-500' : doc.status === 'generating' ? 'text-amber-500' : doc.status === 'error' ? 'text-red-400' : 'text-gray-300'}`}>
+                {doc.status === 'done' ? 'Word ✓' : doc.status === 'generating' ? 'En cours...' : doc.status === 'error' ? 'Erreur' : 'En attente'}
+              </p>
+            </div>
+            {doc.status === 'done' && (
+              <button onClick={() => handleDownload(doc)} className="flex items-center gap-1 p-2 bg-[#1B2A4A] text-white rounded-lg hover:bg-[#243660] text-xs">
+                <Download size={14} /> .docx
+              </button>
+            )}
+          </div>
+        ))}
+        {step === 'done' && (
+          <button onClick={downloadAll} className="w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-all flex items-center justify-center gap-2 mt-2">
+            <Download size={16} /> Télécharger tout le dossier (5 Word)
+          </button>
+        )}
+      </div>
+    </div>
+  );
+  return null;
+}
+
+// ==================== MODIFICATIONS FORM ====================
+type ModType = 'cession' | 'transfert' | 'dissolution' | 'augmentation' | null;
+
+function ModificationsForm({ companies }: { companies: Company[] }) {
+  const [modType, setModType] = useState<ModType>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [search, setSearch] = useState('');
+  const [step, setStep] = useState<'select_type' | 'select_company' | 'form' | 'generating' | 'done'>('select_type');
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [generatedContent, setGeneratedContent] = useState('');
+  const filtered = companies.filter(c => c.raisonSociale.toLowerCase().includes(search.toLowerCase()));
+
+  const modTypes = [
+    { id: 'cession', label: 'Cession de Parts', icon: '🔄', desc: 'Transfert de parts entre associés' },
+    { id: 'transfert', label: 'Transfert Siège Social', icon: '📍', desc: 'Changement adresse siège' },
+    { id: 'dissolution', label: 'Dissolution & Liquidation', icon: '🔚', desc: 'Fermeture de la société' },
+    { id: 'augmentation', label: 'Augmentation Capital', icon: '📈', desc: 'Augmentation du capital social' },
+  ];
+
+  const formFields: Record<string, { key: string; label: string; placeholder: string }[]> = {
+    cession: [
+      { key: 'cedant', label: 'Nom complet du cédant', placeholder: 'Mohammed Alami' },
+      { key: 'date_naissance_cedant', label: 'Date de naissance cédant', placeholder: '17/02/1980' },
+      { key: 'adresse_cedant', label: 'Adresse cédant', placeholder: 'Rue Hassan II Casablanca' },
+      { key: 'cin_cedant', label: 'CIN cédant', placeholder: 'AB123456' },
+      { key: 'cessionnaire', label: 'Nom complet du cessionnaire', placeholder: 'Ahmed Benali' },
+      { key: 'date_naissance_cessionnaire', label: 'Date de naissance cessionnaire', placeholder: '29/07/2000' },
+      { key: 'adresse_cessionnaire', label: 'Adresse cessionnaire', placeholder: 'Douar Charkaoua Settat' },
+      { key: 'cin_cessionnaire', label: 'CIN cessionnaire', placeholder: 'CD789012' },
+      { key: 'nombre_parts', label: 'Nombre de parts (chiffres + lettres)', placeholder: '100 (CENT)' },
+      { key: 'prix', label: 'Prix cession MAD (chiffres + lettres)', placeholder: '10000 (DIX MILLE)' },
+      { key: 'date', label: 'Date', placeholder: 'JJ/MM/AAAA' },
+    ],
+    transfert: [
+      { key: 'ancien_siege', label: 'Ancien siège social', placeholder: 'Ancienne adresse complète' },
+      { key: 'nouveau_siege', label: 'Nouveau siège social', placeholder: 'Nouvelle adresse complète' },
+      { key: 'gerant', label: 'Nom du gérant', placeholder: 'Mohammed Alami' },
+      { key: 'date', label: 'Date AGE', placeholder: 'JJ/MM/AAAA' },
+    ],
+    dissolution: [
+      { key: 'motif', label: 'Motif de dissolution', placeholder: 'Cessation activité, accord unanime...' },
+      { key: 'liquidateur', label: 'Nom du liquidateur', placeholder: 'Mohammed Alami' },
+      { key: 'cin_liquidateur', label: 'CIN liquidateur', placeholder: 'AB123456' },
+      { key: 'adresse_liquidateur', label: 'Adresse liquidateur', placeholder: 'Rue Hassan II Casablanca' },
+      { key: 'date', label: 'Date AGE', placeholder: 'JJ/MM/AAAA' },
+    ],
+    augmentation: [
+      { key: 'capital_actuel', label: 'Capital actuel (MAD)', placeholder: '100000' },
+      { key: 'capital_nouveau', label: 'Nouveau capital (MAD)', placeholder: '200000' },
+      { key: 'modalites', label: 'Modalités', placeholder: 'Apport en numéraire, incorporation réserves...' },
+      { key: 'gerant', label: 'Nom du gérant', placeholder: 'Mohammed Alami' },
+      { key: 'date', label: 'Date AGE', placeholder: 'JJ/MM/AAAA' },
+    ],
+  };
+
+  const generateDoc = async () => {
+    if (!selectedCompany || !modType) return;
+    setStep('generating');
+    const c = selectedCompany;
+    const f = formData;
+    const header = `"${c.raisonSociale}" / "SOCIETE A RESPONSABILITE LIMITEE AU CAPITAL DE [CAPITAL EN LETTRES] DIRHAMS" / "SIEGE SOCIAL: ${c.adresse} ${c.ville}" / "RC: ${c.rc}   ICE: ${c.ice}   IF: ${c.if_fiscal}"`;
+
+    const prompts: Record<string, string> = {
+      cession: `Expert juridique marocain. Genere CESSION DE PARTS SOCIALES officielle (6 exemplaires).
+SOCIETE: ${c.raisonSociale} | RC: ${c.rc} | ICE: ${c.ice} | IF: ${c.if_fiscal} | Adresse: ${c.adresse} ${c.ville}
+EN-TETE: ${header}
+"CESSION DE PARTS SOCIALES"
+"ENTRE-LES SOUSSIGNES:"
+"${f.cedant} de nationalite marocaine, nee ${f.date_naissance_cedant}, demeurant a ${f.adresse_cedant}, CIN N° ${f.cin_cedant}."
+"D'UNE PART"
+"${f.cessionnaire}, de nationalite marocaine, nee ${f.date_naissance_cessionnaire}, demeurant ${f.adresse_cessionnaire}, CIN N° ${f.cin_cessionnaire}."
+"D'AUTRE PART"
+"IL EST EXPRESSEMENT CONVENU ET ARRETE CE QUI SUIT:"
+"Cession de ${f.nombre_parts} parts."
+"ETANT ICI PRECISE: RC ${c.rc} - capital divise en parts 100 DH liberees"
+"ORIGINE DE PROPRIETE: parts acquises lors de la constitution"
+"SUBROGATION: cessionnaire subroge dans tous droits"
+"PROPRIETE ET JOUISSANCE: immediate + dividendes"
+"PRIX DE VENTE: ${f.prix} DIRHAMS paye comptant."
+"DONT QUITTANCE"
+"NANTISSEMENT-SAISIES: parts libres"
+"FRAIS: a charge cessionnaire"
+"ELECTION DOMICILE: ${c.adresse} ${c.ville}"
+"CLAUSE PARTICULIERE: cessionnaire accepte statuts"
+"FORMALITES-POUVOIRS: porteur original"
+"FAIT A ${c.ville} EN SIX EXEMPLAIRES LE ${f.date}"
+"LE CEDANT                    LE CESSIONNAIRE"
+"${f.cedant}                    ${f.cessionnaire}"`,
+
+      transfert: `Expert juridique marocain. Genere DECISION EXTRAORDINAIRE TRANSFERT SIEGE SOCIAL.
+SOCIETE: ${c.raisonSociale} | RC: ${c.rc} | ICE: ${c.ice} | IF: ${c.if_fiscal}
+EN-TETE: ${header.replace(c.adresse + ' ' + c.ville, f.ancien_siege)}
+"DECISION EXTRAORDINAIRE DU GERANT EN DATE DU ${f.date}"
+"${f.gerant}, Gerant de ${c.raisonSociale}..."
+"ORDRE DU JOUR: Transfert siege - Modification statuts - Questions diverses"
+"PREMIERE RESOLUTION: Transfert de ${f.ancien_siege} a ${f.nouveau_siege}. ADOPTEE A L'UNANIMITE"
+"DEUXIEME RESOLUTION: ARTICLE 4 SIEGE SOCIAL: Le siege est fixe a ${f.nouveau_siege}. ADOPTEE A L'UNANIMITE"
+"TROISIEME RESOLUTION: POUVOIRS porteur original. ADOPTEE A L'UNANIMITE"
+"Fait a ${c.ville} le ${f.date}" / "Le Gerant: ${f.gerant}"`,
+
+      dissolution: `Expert juridique marocain. Genere PV AGE DISSOLUTION ET LIQUIDATION.
+SOCIETE: ${c.raisonSociale} | RC: ${c.rc} | ICE: ${c.ice} | IF: ${c.if_fiscal} | Adresse: ${c.adresse} ${c.ville}
+EN-TETE: ${header}
+"PV AGE DISSOLUTION ET MISE EN LIQUIDATION - ${f.date}"
+"PREMIERE RESOLUTION: DISSOLUTION - motif: ${f.motif}. ADOPTEE A L'UNANIMITE"
+"DEUXIEME RESOLUTION: LIQUIDATEUR: ${f.liquidateur} CIN ${f.cin_liquidateur} ${f.adresse_liquidateur}. ADOPTEE A L'UNANIMITE"
+"TROISIEME RESOLUTION: POUVOIRS porteur original publication et radiation. ADOPTEE A L'UNANIMITE"
+"Fait a ${c.ville} le ${f.date}" / signatures`,
+
+      augmentation: `Expert juridique marocain. Genere PV AGE AUGMENTATION CAPITAL.
+SOCIETE: ${c.raisonSociale} | RC: ${c.rc} | ICE: ${c.ice} | IF: ${c.if_fiscal} | Adresse: ${c.adresse} ${c.ville}
+EN-TETE: ${header}
+"PV AGE AUGMENTATION DU CAPITAL - ${f.date}"
+"PREMIERE RESOLUTION: Augmentation de ${f.capital_actuel} a ${f.capital_nouveau} DH par ${f.modalites}. ADOPTEE A L'UNANIMITE"
+"DEUXIEME RESOLUTION: ARTICLE 7 nouveau capital ${f.capital_nouveau} DH. ADOPTEE A L'UNANIMITE"
+"TROISIEME RESOLUTION: POUVOIRS porteur original. ADOPTEE A L'UNANIMITE"
+"Fait a ${c.ville} le ${f.date}" / "Le Gerant: ${f.gerant}"`,
+    };
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunksRef.current = [];
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        setIsListening(false);
-        await transcribeAudio(audioBlob);
-      };
-      mediaRecorder.start();
-      setIsListening(true);
-      setStatus('كيسمع... تكلم براحتك');
-      setTranscript('');
-      setResponse('');
-    } catch {
-      setStatus('مشكل في الميكرو - سمح للمتصفح');
-    }
+      const content = await callAI(prompts[modType]);
+      setGeneratedContent(content);
+      setStep('done');
+    } catch { setStep('form'); }
   };
 
-  const stopListening = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-    setIsListening(false);
+  const downloadModWord = async () => {
+    if (!selectedCompany) return;
+    await generateWordDoc(generatedContent, `${modType}_${selectedCompany.raisonSociale.replace(/ /g, '_')}.docx`);
   };
+
+  if (step === 'select_type') return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-white">
+        <h2 className="font-bold text-gray-800">Modifications Société</h2>
+        <p className="text-xs text-gray-400 mt-0.5">Choisissez le type de modification</p>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {modTypes.map(m => (
+          <button key={m.id} onClick={() => { setModType(m.id as ModType); setStep('select_company'); }}
+            className="w-full text-left p-4 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all bg-white">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{m.icon}</span>
+              <div><p className="font-semibold text-gray-800 text-sm">{m.label}</p><p className="text-xs text-gray-400">{m.desc}</p></div>
+              <ChevronRight size={14} className="text-gray-300 ml-auto" />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (step === 'select_company') return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center gap-3">
+        <button onClick={() => setStep('select_type')} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={16} /></button>
+        <div><h2 className="font-bold text-gray-800">{modTypes.find(m => m.id === modType)?.label}</h2><p className="text-xs text-gray-400">Sélectionnez la société</p></div>
+      </div>
+      <div className="px-4 py-3 border-b border-gray-100">
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {filtered.map(c => (
+          <button key={c.id} onClick={() => { setSelectedCompany(c); setStep('form'); }}
+            className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-[#1B2A4A] rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">{c.raisonSociale.charAt(0)}</div>
+              <div className="flex-1 min-w-0"><p className="font-semibold text-gray-800 text-sm truncate">{c.raisonSociale}</p><p className="text-xs text-gray-400">{c.ville} · {c.formeJuridique}</p></div>
+              <ChevronRight size={14} className="text-gray-300" />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (step === 'form') return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center gap-3">
+        <button onClick={() => setStep('select_company')} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={16} /></button>
+        <div><h2 className="font-bold text-gray-800">{selectedCompany?.raisonSociale}</h2><p className="text-xs text-gray-400">{modTypes.find(m => m.id === modType)?.label}</p></div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {(formFields[modType!] || []).map(field => (
+          <div key={field.key}>
+            <label className="text-xs font-semibold text-gray-600 mb-1 block">{field.label}</label>
+            <input value={formData[field.key] || ''} onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+              placeholder={field.placeholder} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400" />
+          </div>
+        ))}
+        <button onClick={generateDoc} className="w-full py-3 bg-[#1B2A4A] text-white rounded-xl font-semibold text-sm hover:bg-[#243660] transition-all flex items-center justify-center gap-2">
+          <FileText size={16} /> Générer le document
+        </button>
+      </div>
+    </div>
+  );
+
+  if (step === 'generating') return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 size={40} className="text-[#1B2A4A] animate-spin mx-auto mb-4" />
+        <p className="text-gray-600 font-medium">Génération en cours...</p>
+        <p className="text-gray-400 text-sm mt-1">{selectedCompany?.raisonSociale}</p>
+      </div>
+    </div>
+  );
+
+  if (step === 'done') return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center justify-between">
+        <div>
+          <h2 className="font-bold text-gray-800">✅ Document généré</h2>
+          <p className="text-xs text-gray-400">{selectedCompany?.raisonSociale} · {modTypes.find(m => m.id === modType)?.label}</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={downloadModWord} className="flex items-center gap-1 px-3 py-2 bg-[#1B2A4A] text-white rounded-lg text-xs hover:bg-[#243660]">
+            <Download size={13} /> Word
+          </button>
+          <button onClick={() => { setStep('select_type'); setModType(null); setFormData({}); setGeneratedContent(''); }}
+            className="flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs hover:bg-gray-200">
+            <RefreshCw size={13} /> Nouveau
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap font-mono">
+          {cleanText(generatedContent)}
+        </div>
+      </div>
+    </div>
+  );
+  return null;
+}
+
+// ==================== MAIN PAGE ====================
+export default function JuridiquePage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'creation' | 'modifications'>('creation');
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('atlas_companies');
+    if (saved) setCompanies(JSON.parse(saved));
+  }, []);
 
   return (
-    <div className="flex h-screen bg-[#0A1628]">
-      <aside className="w-56 bg-[#1B2A4A] flex flex-col shrink-0">
+    <div className="flex h-screen bg-gray-50">
+      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
           <p className="text-white font-bold text-base">Atlas OS</p>
           <p className="text-white/40 text-xs">Enterprise</p>
@@ -167,112 +869,28 @@ export default function ConsultantPage() {
             <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Brain size={16} /> Consultant Vocal
+            <Scale size={16} /> Juridique
           </button>
-        </nav>
-        <div className="px-4 py-4 border-t border-white/10 space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-white/30 text-xs">الصوت</span>
-            <button onClick={() => { setVoiceEnabled(!voiceEnabled); stopSpeaking(); }}
-              className={`p-1.5 rounded-lg transition-all ${voiceEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/30'}`}>
-              {voiceEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
+          <div className="mt-4 space-y-1">
+            <button onClick={() => setActiveTab('creation')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === 'creation' ? 'bg-amber-500/20 text-amber-400' : 'text-white/40 hover:text-white/70'}`}>
+              <Building2 size={14} /> Création
+            </button>
+            <button onClick={() => setActiveTab('modifications')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === 'modifications' ? 'bg-amber-500/20 text-amber-400' : 'text-white/40 hover:text-white/70'}`}>
+              <RefreshCw size={14} /> Modifications
             </button>
           </div>
-          <div className="bg-white/5 rounded-xl p-3">
-            <p className="text-white/30 text-xs mb-2">كيفاش تستخدم</p>
-            <p className="text-white/50 text-xs leading-relaxed">
-              اضغط على الدائرة وتكلم براحتك. اضغط مرة ثانية باش توقف. المستشار غيجاوبك بصوت مباشرة.
-            </p>
+        </nav>
+        <div className="px-4 py-3 border-t border-white/10">
+          <div className="bg-white/5 rounded-lg p-2">
+            <p className="text-white/30 text-xs">Mode automatique</p>
+            <p className="text-white/50 text-xs mt-0.5">Remplissez une fois → 5 docs Word</p>
           </div>
         </div>
       </aside>
-
-      <main className="flex-1 flex flex-col items-center justify-center gap-10 px-8" dir="rtl">
-        <div className="text-center">
-          <h1 className="text-white font-bold text-3xl mb-2">المستشار الذكي</h1>
-          <p className="text-white/40">تكلم بالدارجة · Français · العربية</p>
-        </div>
-
-        <div className="relative flex items-center justify-center">
-          {(isListening || isSpeaking) && (
-            <>
-              <div className={`absolute w-64 h-64 rounded-full opacity-10 animate-ping ${isListening ? 'bg-red-500' : 'bg-green-500'}`}></div>
-              <div className={`absolute w-52 h-52 rounded-full opacity-20 animate-pulse ${isListening ? 'bg-red-500' : 'bg-green-500'}`}></div>
-            </>
-          )}
-          {isThinking && (
-            <div className="absolute w-52 h-52 rounded-full border-4 border-amber-500/30 border-t-amber-500 animate-spin"></div>
-          )}
-          <button
-            onClick={isListening ? stopListening : startListening}
-            disabled={isThinking}
-            className={`relative w-40 h-40 rounded-full flex flex-col items-center justify-center gap-2 transition-all shadow-2xl ${
-              isListening ? 'bg-red-500 shadow-red-500/40 scale-110' :
-              isThinking ? 'bg-amber-500/80 shadow-amber-500/40 cursor-not-allowed' :
-              isSpeaking ? 'bg-green-500 shadow-green-500/40' :
-              'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/40 hover:scale-105 active:scale-95'
-            }`}
-          >
-            {isListening ? (
-              <>
-                <MicOff size={44} className="text-white" />
-                <span className="text-white/80 text-xs">اضغط للإيقاف</span>
-              </>
-            ) : isThinking ? (
-              <>
-                <Brain size={44} className="text-white animate-pulse" />
-                <span className="text-white/80 text-xs">كيفكر...</span>
-              </>
-            ) : isSpeaking ? (
-              <>
-                <Volume2 size={44} className="text-white animate-pulse" />
-                <span className="text-white/80 text-xs">كيتكلم</span>
-              </>
-            ) : (
-              <>
-                <Mic size={44} className="text-white" />
-                <span className="text-white/80 text-xs">اضغط للكلام</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="text-center space-y-3 w-full max-w-lg">
-          <p className={`text-sm font-medium ${
-            isListening ? 'text-red-400' :
-            isThinking ? 'text-amber-400' :
-            isSpeaking ? 'text-green-400' :
-            'text-white/30'
-          }`}>{status}</p>
-
-          {isListening && (
-            <div className="flex justify-center gap-1">
-              {[2,4,6,8,6,10,6,8,4,2].map((h, i) => (
-                <div key={i} className="w-1.5 bg-red-400 rounded-full animate-bounce"
-                  style={{height: `${h * 3}px`, animationDelay: `${i * 0.08}s`}}></div>
-              ))}
-            </div>
-          )}
-
-          {transcript && (
-            <div className="px-5 py-3 bg-white/5 rounded-2xl border border-white/10">
-              <p className="text-white/40 text-xs mb-1">قلت:</p>
-              <p className="text-white/80 text-sm leading-relaxed">{transcript}</p>
-            </div>
-          )}
-
-          {response && !isThinking && (
-            <div className="px-5 py-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
-              <p className="text-indigo-300 text-xs mb-2">المستشار:</p>
-              <p className="text-white/80 text-sm leading-relaxed">{response}</p>
-              {isSpeaking && (
-                <button onClick={stopSpeaking} className="mt-3 flex items-center gap-2 text-xs text-red-400 hover:text-red-300">
-                  <StopCircle size={14} /> إيقاف الصوت
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+      <main className="flex-1 flex overflow-hidden">
+        {activeTab === 'creation' ? <CreationForm companies={companies} /> : <ModificationsForm companies={companies} />}
       </main>
     </div>
   );
