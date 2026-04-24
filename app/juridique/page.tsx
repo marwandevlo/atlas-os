@@ -299,16 +299,16 @@ const generateRCWord = async (company: Company, formData: FormData) => {
           margins: { top: 80, bottom: 80, left: 120, right: 120 },
           children: [
             pc([b('NOTA', 16)]), pc([b('* * *', 12)]),
-            p([n("La présente déclaration doit être rédigée en triple exemplaire, de façon très lisible, dactylographiée et signée par le requérant ou par son Mandataire muni d'une procuration qui est conservée par le greffier.", 12)]),
+            p([n("La présente déclaration doit être rédigée en triple exemplaire, de façon très lisible, dactylographiée et signée par le requérant ou par son Mandataire muni d une procuration qui est conservée par le greffier.", 12)]),
             p([n('La déclaration doit être accompagnée des pièces justificatives exigées.', 12)]),
             p([n("Nul assujetti ou société commerciale ne peut être immatriculé à titre principal dans plusieurs registres locaux ou dans un même registre local Sous plusieurs numéros (Art.39 du code de commerce)", 12)]),
-            p([n("Toute indication inexacte donnée de mauvaise foi en vue de l'immatriculation ou de l'inscription au registre du commerce est punie d'un Emprisonnement d'un mois à un an et d'une amende de 1.000 à 50.000 dirhams ou de l'une de ces deux peines seulement (Art.64 du code de commerce).", 12)]),
-            p([n("L'immatriculation d'une société ne peut être requise que par les gérants ou par les membres des organes d'administration, de direction ou de gestion, (article 38-2ème alinéa du code de commerce)", 12)]),
+            p([n("Toute indication inexacte donnée de mauvaise foi en vue de l immatriculation ou de l inscription au registre du commerce est punie d'un Emprisonnement d un mois à un an et d une amende de 1.000 à 50.000 dirhams ou de l une de ces deux peines seulement (Art.64 du code de commerce).", 12)]),
+            p([n("L'immatriculation d une societe ne peut être requise que par les gérants ou par les membres des organes d administration, de direction ou de gestion, (article 38-2ème alinéa du code de commerce)", 12)]),
           ]
         })]})]}
       ),
       new Paragraph({ spacing: { after: 80 } }),
-      p([n("N° d'immatriculation ................  Raison sociale ou dénomination ....................", 12)]),
+      p([n("N° d immatriculation ................  Raison sociale ou dénomination ....................", 12)]),
       new Paragraph({ spacing: { after: 40 } }),
       new Table({
         width: { size: 5000, type: WidthType.DXA }, columnWidths: [5000],
@@ -317,7 +317,7 @@ const generateRCWord = async (company: Company, formData: FormData) => {
           new TableRow({ children: [new TableCell({ borders, width: { size: 5000, type: WidthType.DXA }, margins: { top: 60, bottom: 80, left: 120, right: 120 }, children: [
             p([n('Actes et pièces déposés le .............. h .............. sous n° ..............', 12)]),
             p([n('Déclaration déposée le .............. sous n° .............. au registre chronologique.', 12)]),
-            p([n("La conformité de la déclaration ci-dessus avec les pièces justificatives produites en application des règlements a été vérifiée par le secrétaire-greffier soussigné qui a procédé en conséquence à l'immatriculation demandée, laquelle a reçu le numéro .............. au registre analytique", 12)]),
+            p([n("La conformité de la déclaration ci-dessus avec les pièces justificatives produites en application des règlements a été vérifiée par le secrétaire-greffier soussigné qui a procédé en conséquence à l immatriculation demandée, laquelle a reçu le numéro .............. au registre analytique", 12)]),
             new Paragraph({ spacing: { after: 40 } }),
             pc([b('Le secrétaire-greffier', 14)]),
           ]})]}),
@@ -339,7 +339,7 @@ const generateRCWord = async (company: Company, formData: FormData) => {
     width: { size: 5513, type: WidthType.DXA },
     margins: { top: 80, bottom: 80, left: 120, right: 120 },
     children: [
-      pc([b("Déclaration d'immatriculation au registre du commerce", 16)]),
+      pc([b("Déclaration d immatriculation au registre du commerce", 16)]),
       new Paragraph({ alignment: AlignmentType.RIGHT, children: [b('Modèle 2', 14)], spacing: { after: 80 } }),
       p([n('1) Raison sociale ou dénomination '), b(company.raisonSociale, 14), n('  Enseigne ................................')], AlignmentType.LEFT, { after: 30 }),
       p([n('Sigle .....  Date du certificat négatif '), n(formData.date, 14)], AlignmentType.LEFT, { after: 30 }),
@@ -353,7 +353,7 @@ const generateRCWord = async (company: Company, formData: FormData) => {
       p([n('8) Durée de la personne morale '), n('99 ans', 14), n('  Date de commencement d exploitation '), n(formData.date, 14)], AlignmentType.LEFT, { after: 30 }),
       p([n('9) Numéro et date du dépôt des actes et pièces de la société .................................')], AlignmentType.LEFT, { after: 30 }),
       p([n("10) Brevets d'invention déposés le .............. n° de délivrance ......  Marques de fabrique, de commerce ou de service déposés le .............. sous n° ..............")], AlignmentType.LEFT, { after: 30 }),
-      p([n("11) Nom, prénoms, date, lieu de naissance, domicile, n°CIN(1) a) des associés autres que les actionnaires b) des personnes autorisées à administrer, gérer et signer pour la société c)des gérants, membres des organes d'administration de direction ou de gestion ou des directeurs, s'il s'agit d'une personne morale: raison sociale ou dénomination, forme juridique, siège social, objet, numéro du registre du commerce et références du représentant permanent.")], AlignmentType.LEFT, { after: 80 }),
+      p([n("11) Nom, prénoms, date, lieu de naissance, domicile, n CIN(1) a) des associés autres que les actionnaires b) des personnes autorisées à administrer, gérer et signer pour la société c)des gérants, membres des organes d administration de direction ou de gestion ou des directeurs, s'il s'agit d'une personne morale: raison sociale ou dénomination, forme juridique, siège social, objet, numéro du registre du commerce et références du représentant permanent.")], AlignmentType.LEFT, { after: 80 }),
       pc([b('PERSONNES PHYSIQUES', 14)]),
       new Table({
         width: { size: 5000, type: WidthType.DXA },
@@ -386,18 +386,17 @@ const generateRCWord = async (company: Company, formData: FormData) => {
         ]
       }),
       new Paragraph({ spacing: { after: 40 } }),
-      p([n("(1) pour les étrangers résidents au Maroc n° de la carte d'immatriculation, pour les non résidents n° du passeport ou autre pièce d'identité, en indiquant la date et le lieu de délivrance.", 11)]),
+      p([n("(1) pour les étrangers résidents au Maroc n° de la carte d immatriculation, pour les non résidents n° du passeport ou autre pièce d identite, en indiquant la date et le lieu de délivrance.", 11)]),
       new Paragraph({ spacing: { after: 60 } }),
       p([n('Le soussigné '), n(formData.gerant, 14), n(' adresse personnelle '), n(formData.adresse_gerant || '', 14)]),
-      p([n('Qualité '), b('GERANT ET ASSOCIE UNIQUE', 14), n(" certifie l'exactitude des indications portées sur la présente déclaration d'immatriculation.")]),
+      p([n('Qualité '), b('GERANT ET ASSOCIE UNIQUE', 14), n(" certifie l exactitude des indications portées sur la présente déclaration d immatriculation.")]),
       new Paragraph({ spacing: { after: 60 } }),
       p([n('Pièces produites .................................')]),
       new Paragraph({ spacing: { after: 40 } }),
       new Table({
         width: { size: 5000, type: WidthType.DXA }, columnWidths: [2500, 2500],
         rows: [new TableRow({ children: [
-          new TableCell({ borders: noBorders, width: { size: 2500, type: WidthType.DXA }, children: [p([n('Cadre réservé à la légalisation de
-Signature')])] }),
+          new TableCell({ borders: noBorders, width: { size: 2500, type: WidthType.DXA }, children: [p([n('Cadre réservé à la légalisation de Signature')])] }),
           new TableCell({ borders: noBorders, width: { size: 2500, type: WidthType.DXA }, children: [
             pc([n('Fait en triple exemplaire')]),
             pc([n('.............. le ............')]),
