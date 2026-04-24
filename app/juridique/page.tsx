@@ -98,8 +98,8 @@ const generateDepotLegalWord = async (company: Company, formData: FormData, gera
 
   const bold = (text: string, size = 20) => new TextRun({ text, bold: true, size, font: 'Arial' });
   const normal = (text: string, size = 18) => new TextRun({ text, size, font: 'Arial' });
-  const center = (children: any[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
-  const left = (children: any[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
+  const center = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
+  const left = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
 
   const children = [
     // Header
@@ -262,112 +262,173 @@ const generateDepotLegalWord = async (company: Company, formData: FormData, gera
 
 const generateRCWord = async (company: Company, formData: FormData) => {
   const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    AlignmentType, BorderStyle, WidthType, ShadingType } = await import('docx');
+    AlignmentType, BorderStyle, WidthType, ShadingType, PageOrientation } = await import('docx');
 
   const border = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
   const borders = { top: border, bottom: border, left: border, right: border };
-  const bold = (text: string, size = 18) => new TextRun({ text, bold: true, size, font: 'Arial' });
-  const normal = (text: string, size = 17) => new TextRun({ text, size, font: 'Arial' });
-  const center = (children: any[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
-  const left = (children: any[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+  const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
 
-  const children = [
-    // Header
-    new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('ROYAUME DU MAROC', 20), normal('         '), bold('MINISTERE DE LA JUSTICE', 20)], spacing: { after: 40 } }),
-    center([bold(`TRIBUNAL DE COMMERCE DE ${company.ville.toUpperCase()}`, 18)]),
-    new Paragraph({ spacing: { after: 40 } }),
-    center([bold('REGISTRE DU COMMERCE - DECLARATION D\'IMMATRICULATION', 20)]),
-    center([normal('(Articles 45-46 du code de commerce)')]),
-    center([bold('SOCIETES COMMERCIALES', 18)]),
-    new Paragraph({ spacing: { after: 160 } }),
+  const b = (text: string, size = 16) => new TextRun({ text, bold: true, size, font: 'Arial' });
+  const n = (text: string, size = 14) => new TextRun({ text, size, font: 'Arial' });
+  const p = (children: any[], align = AlignmentType.LEFT, spacing = { after: 40 }) =>
+    new Paragraph({ alignment: align, children, spacing });
+  const pc = (children: any[], spacing = { after: 40 }) =>
+    new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
 
-    // Cadre greffier
-    new Table({
-      width: { size: 9026, type: WidthType.DXA }, columnWidths: [9026],
-      rows: [
-        new TableRow({ children: [
-          new TableCell({ borders, width: { size: 9026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
-            shading: { fill: 'D0D0D0', type: ShadingType.CLEAR },
-            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [bold('Cadre réservé au greffier')] })]
-          })
-        ]}),
-        new TableRow({ children: [
-          new TableCell({ borders, width: { size: 9026, type: WidthType.DXA }, margins: { top: 80, bottom: 120, left: 120, right: 120 },
-            children: [
-              left([normal('N° d\'immatriculation : ……………………     Raison sociale : '), bold(company.raisonSociale)]),
-              left([normal('Actes et pièces déposés le ……………………… sous n° ……………………')]),
-              left([normal('Déclaration déposée le ………………………… sous n° au registre chronologique.')]),
-            ]
-          })
-        ]}),
-      ]
-    }),
-    new Paragraph({ spacing: { after: 160 } }),
+  const leftCell = new TableCell({
+    borders,
+    width: { size: 5513, type: WidthType.DXA },
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    children: [
+      pc([b('ROYAUME DU MAROC', 16)]),
+      pc([b('MINISTERE DE LA JUSTICE', 16)]),
+      pc([b(`TRIBUNAL DE ${company.ville.toUpperCase()}`, 14)]),
+      new Paragraph({ spacing: { after: 40 } }),
+      pc([b('REGISTRE DE COMMERCE', 16)]),
+      pc([b("DECLARATION D'IMMATRICULATION", 14)]),
+      pc([n('(Articles 45 et 46 du code de commerce)', 12)]),
+      pc([b('* * *', 12)]),
+      pc([b('SOCIETES COMMERCIALES', 14)]),
+      pc([n('(Article 37 du code de commerce)', 12)]),
+      new Paragraph({ spacing: { after: 80 } }),
+      new Table({
+        width: { size: 5000, type: WidthType.DXA }, columnWidths: [5000],
+        rows: [new TableRow({ children: [new TableCell({
+          borders, width: { size: 5000, type: WidthType.DXA },
+          margins: { top: 80, bottom: 80, left: 120, right: 120 },
+          children: [
+            pc([b('NOTA', 16)]), pc([b('* * *', 12)]),
+            p([n("La présente déclaration doit être rédigée en triple exemplaire, de façon très lisible, dactylographiée et signée par le requérant ou par son Mandataire muni d'une procuration qui est conservée par le greffier.", 12)]),
+            p([n('La déclaration doit être accompagnée des pièces justificatives exigées.', 12)]),
+            p([n("Nul assujetti ou société commerciale ne peut être immatriculé à titre principal dans plusieurs registres locaux ou dans un même registre local Sous plusieurs numéros (Art.39 du code de commerce)", 12)]),
+            p([n("Toute indication inexacte donnée de mauvaise foi en vue de l'immatriculation ou de l'inscription au registre du commerce est punie d'un Emprisonnement d'un mois à un an et d'une amende de 1.000 à 50.000 dirhams ou de l'une de ces deux peines seulement (Art.64 du code de commerce).", 12)]),
+            p([n("L'immatriculation d'une société ne peut être requise que par les gérants ou par les membres des organes d'administration, de direction ou de gestion, (article 38-2ème alinéa du code de commerce)", 12)]),
+          ]
+        })]})]}
+      ),
+      new Paragraph({ spacing: { after: 80 } }),
+      p([n("N° d'immatriculation ................  Raison sociale ou dénomination ....................", 12)]),
+      new Paragraph({ spacing: { after: 40 } }),
+      new Table({
+        width: { size: 5000, type: WidthType.DXA }, columnWidths: [5000],
+        rows: [
+          new TableRow({ children: [new TableCell({ borders, width: { size: 5000, type: WidthType.DXA }, shading: { fill: 'D0D0D0', type: ShadingType.CLEAR }, margins: { top: 60, bottom: 60, left: 120, right: 120 }, children: [pc([b('Cadre réservé au greffier', 14)])] })]}),
+          new TableRow({ children: [new TableCell({ borders, width: { size: 5000, type: WidthType.DXA }, margins: { top: 60, bottom: 80, left: 120, right: 120 }, children: [
+            p([n('Actes et pièces déposés le .............. h .............. sous n° ..............', 12)]),
+            p([n('Déclaration déposée le .............. sous n° .............. au registre chronologique.', 12)]),
+            p([n("La conformité de la déclaration ci-dessus avec les pièces justificatives produites en application des règlements a été vérifiée par le secrétaire-greffier soussigné qui a procédé en conséquence à l'immatriculation demandée, laquelle a reçu le numéro .............. au registre analytique", 12)]),
+            new Paragraph({ spacing: { after: 40 } }),
+            pc([b('Le secrétaire-greffier', 14)]),
+          ]})]}),
+        ]
+      }),
+      new Paragraph({ spacing: { after: 80 } }),
+      new Table({
+        width: { size: 5000, type: WidthType.DXA }, columnWidths: [5000],
+        rows: [
+          new TableRow({ children: [new TableCell({ borders, width: { size: 5000, type: WidthType.DXA }, shading: { fill: 'D0D0D0', type: ShadingType.CLEAR }, margins: { top: 60, bottom: 60, left: 120, right: 120 }, children: [pc([b('Cadre réservé au registre central', 14)])] })]}),
+          new TableRow({ children: [new TableCell({ borders, width: { size: 5000, type: WidthType.DXA }, margins: { top: 60, bottom: 120, left: 120, right: 120 }, children: [new Paragraph({ spacing: { after: 160 } })] })]}),
+        ]
+      }),
+    ]
+  });
 
-    center([bold('DECLARATION D\'IMMATRICULATION AU REGISTRE DU COMMERCE', 20)]),
-    center([normal('Modèle n° 2')]),
-    new Paragraph({ spacing: { after: 120 } }),
+  const rightCell = new TableCell({
+    borders,
+    width: { size: 5513, type: WidthType.DXA },
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    children: [
+      pc([b("Déclaration d'immatriculation au registre du commerce", 16)]),
+      new Paragraph({ alignment: AlignmentType.RIGHT, children: [b('Modèle 2', 14)], spacing: { after: 80 } }),
+      p([n('1) Raison sociale ou dénomination '), b(company.raisonSociale, 14), n('  Enseigne ................................')], AlignmentType.LEFT, { after: 30 }),
+      p([n('Sigle .....  Date du certificat négatif '), n(formData.date, 14)], AlignmentType.LEFT, { after: 30 }),
+      p([n('2) Objet (sommaire) '), n(formData.activite, 14)], AlignmentType.LEFT, { after: 30 }),
+      p([n('3) Activité effectivement exercée '), n(formData.activite, 14), n('  Patente n° ................................')], AlignmentType.LEFT, { after: 30 }),
+      p([n('4) Siège social '), n(company.adresse + ' ' + company.ville, 14), n('  RC n° '), n(company.rc, 14)], AlignmentType.LEFT, { after: 30 }),
+      p([n('5) Succursale (au Maroc) ..............................')], AlignmentType.LEFT, { after: 30 }),
+      p([n("(A l'étranger (Ville, département et pays) ..............................")], AlignmentType.LEFT, { after: 30 }),
+      p([n('6) Forme juridique de la société '), n(company.formeJuridique, 14)], AlignmentType.LEFT, { after: 30 }),
+      p([n('7) Capital, montant '), n(formData.capital + ' DH', 14), n('  si capital variable, montant minimum ..............')], AlignmentType.LEFT, { after: 30 }),
+      p([n('8) Durée de la personne morale '), n('99 ans', 14), n('  Date de commencement d'exploitation '), n(formData.date, 14)], AlignmentType.LEFT, { after: 30 }),
+      p([n('9) Numéro et date du dépôt des actes et pièces de la société .................................')], AlignmentType.LEFT, { after: 30 }),
+      p([n("10) Brevets d'invention déposés le .............. n° de délivrance ......  Marques de fabrique, de commerce ou de service déposés le .............. sous n° ..............")], AlignmentType.LEFT, { after: 30 }),
+      p([n("11) Nom, prénoms, date, lieu de naissance, domicile, n°CIN(1) a) des associés autres que les actionnaires b) des personnes autorisées à administrer, gérer et signer pour la société c)des gérants, membres des organes d'administration de direction ou de gestion ou des directeurs, s'il s'agit d'une personne morale: raison sociale ou dénomination, forme juridique, siège social, objet, numéro du registre du commerce et références du représentant permanent.")], AlignmentType.LEFT, { after: 80 }),
+      pc([b('PERSONNES PHYSIQUES', 14)]),
+      new Table({
+        width: { size: 5000, type: WidthType.DXA },
+        columnWidths: [1000, 1000, 750, 750, 750, 750],
+        rows: [
+          new TableRow({ children: [
+            new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [pc([b('Nom et Prénoms', 12)])] }),
+            new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [pc([b('date et lieu de naissance', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [pc([b('Nationalité', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [pc([b('Qualité', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [pc([b('Domicile', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [pc([b('CIN(1)', 12)])] }),
+          ]}),
+          new TableRow({ children: [
+            new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [p([n(formData.gerant, 12)])] }),
+            new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [p([n(formData.date_naissance_gerant || '', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [p([n('Marocaine', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [p([n('Gérant', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [p([n(formData.adresse_gerant || '', 12)])] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 }, children: [p([n(formData.cin_gerant, 12)])] }),
+          ]}),
+          new TableRow({ children: [
+            new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [new Paragraph({ spacing: { after: 40 } })] }),
+            new TableCell({ borders, width: { size: 1000, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [new Paragraph({ spacing: { after: 40 } })] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [new Paragraph({ spacing: { after: 40 } })] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [new Paragraph({ spacing: { after: 40 } })] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [new Paragraph({ spacing: { after: 40 } })] }),
+            new TableCell({ borders, width: { size: 750, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [new Paragraph({ spacing: { after: 40 } })] }),
+          ]}),
+        ]
+      }),
+      new Paragraph({ spacing: { after: 40 } }),
+      p([n("(1) pour les étrangers résidents au Maroc n° de la carte d'immatriculation, pour les non résidents n° du passeport ou autre pièce d'identité, en indiquant la date et le lieu de délivrance.", 11)]),
+      new Paragraph({ spacing: { after: 60 } }),
+      p([n('Le soussigné '), n(formData.gerant, 14), n(' adresse personnelle '), n(formData.adresse_gerant || '', 14)]),
+      p([n('Qualité '), b('GERANT ET ASSOCIE UNIQUE', 14), n(" certifie l'exactitude des indications portées sur la présente déclaration d'immatriculation.")]),
+      new Paragraph({ spacing: { after: 60 } }),
+      p([n('Pièces produites .................................')]),
+      new Paragraph({ spacing: { after: 40 } }),
+      new Table({
+        width: { size: 5000, type: WidthType.DXA }, columnWidths: [2500, 2500],
+        rows: [new TableRow({ children: [
+          new TableCell({ borders: noBorders, width: { size: 2500, type: WidthType.DXA }, children: [p([n('Cadre réservé à la légalisation de
+Signature')])] }),
+          new TableCell({ borders: noBorders, width: { size: 2500, type: WidthType.DXA }, children: [
+            pc([n('Fait en triple exemplaire')]),
+            pc([n('.............. le ............')]),
+            new Paragraph({ spacing: { after: 60 } }),
+            pc([b('Le déclarant', 14)]),
+          ]}),
+        ]})]
+      }),
+    ]
+  });
 
-    // Info societe
-    new Table({
-      width: { size: 9026, type: WidthType.DXA }, columnWidths: [3000, 6026],
-      rows: [
-        [['Raison sociale ou dénomination', company.raisonSociale],
-         ['Sigle', ''],
-         ['Date certificat négatif', formData.date],
-         ['Objet', formData.activite],
-         ['Forme juridique', company.formeJuridique],
-         ['Capital social', formData.capital + ' DH'],
-         ['Siège social', company.adresse + ' ' + company.ville],
-         ['Durée', '99 ans'],
-         ['Date commencement exploitation', formData.date],
-         ['Nom et prénom du gérant', formData.gerant],
-         ['CIN du gérant', formData.cin_gerant],
-         ['Adresse personnelle du gérant', formData.adresse_gerant],
-         ['ICE', company.ice],
-         ['IF', company.if_fiscal],
-         ['CNSS', company.cnss],
-        ].map(([label, value]) => new TableRow({ children: [
-          new TableCell({ borders, width: { size: 3000, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
-            shading: { fill: 'F0F0F0', type: ShadingType.CLEAR },
-            children: [new Paragraph({ children: [bold(label as string, 17)] })] }),
-          new TableCell({ borders, width: { size: 6026, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 120, right: 120 },
-            children: [new Paragraph({ children: [normal(value as string)] })] }),
-        ]}))
-      ].flat()
-    }),
-    new Paragraph({ spacing: { after: 120 } }),
-
-    // Pieces
-    left([bold('Pièces produites :', 18)]),
-    left([normal('- Statuts : original + 2 copies')]),
-    left([normal('- PV Constitution : original + 2 copies')]),
-    left([normal('- CIN gérant : copie certifiée conforme')]),
-    left([normal('- Certificat négatif')]),
-    left([normal('- Contrat bail ou domiciliation')]),
-    new Paragraph({ spacing: { after: 160 } }),
-
-    // Signature
-    left([normal(`Le soussigné ${formData.gerant}, gérant, certifie l'exactitude des indications portées sur la présente déclaration.`)]),
-    new Paragraph({ spacing: { after: 80 } }),
-    left([normal(`Fait en triple exemplaire à ${company.ville} le ${formData.date}`)]),
-    new Paragraph({ spacing: { after: 160 } }),
-
-    new Paragraph({
-      children: [new TextRun({ text: 'Signature et cachet :', bold: true, size: 18, font: 'Arial' })],
-      alignment: AlignmentType.RIGHT
-    }),
-  ];
+  const mainTable = new Table({
+    width: { size: 11026, type: WidthType.DXA },
+    columnWidths: [5513, 5513],
+    rows: [new TableRow({ children: [leftCell, rightCell] })]
+  });
 
   const doc = new Document({
-    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } }, children }]
+    sections: [{
+      properties: { page: { size: { width: 16838, height: 11906, orientation: PageOrientation.LANDSCAPE }, margin: { top: 567, right: 567, bottom: 567, left: 567 } } },
+      children: [mainTable]
+    }]
   });
+
   const blob = await Packer.toBlob(doc);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `RC_${company.raisonSociale.replace(/ /g, '_')}.docx`; a.click();
   URL.revokeObjectURL(url);
 };
+
 
 // ==================== CREATION FORM ====================
 function CreationForm({ companies }: { companies: Company[] }) {
