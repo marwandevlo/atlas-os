@@ -168,7 +168,7 @@ export default function TVAPage() {
                 <p className="text-sm text-green-600">Rendez-vous sur SIMPL-TVA pour deposer votre declaration</p>
               </div>
               <button
-                onClick={() => window.open('https://simpl.tax.gov.ma', '_blank')}
+                onClick={() => window.open('https://www.tax.gov.ma', '_blank')}
                 className="ml-auto px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center gap-2"
               >
                 <Globe size={14} /> Ouvrir SIMPL-TVA
@@ -268,7 +268,7 @@ export default function TVAPage() {
               <button onClick={generateXML} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">
                 <FileCode size={14} /> Generer XML DGI
               </button>
-              <button onClick={() => window.open('https://simpl.tax.gov.ma', '_blank')} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors">
+              <button onClick={() => window.open('https://www.tax.gov.ma', '_blank')} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors">
                 <Globe size={14} /> Deposer sur SIMPL-TVA
               </button>
               <button onClick={() => setDeclared(true)} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-colors ${declared ? 'bg-green-500 text-white' : 'bg-[#1B2A4A] text-white hover:bg-[#243660]'}`}>

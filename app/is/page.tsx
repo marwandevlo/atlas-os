@@ -119,7 +119,7 @@ export default function ISPage() {
               <button onClick={generateXML} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">
                 <FileCode size={16} /> XML DGI
               </button>
-              <button onClick={() => window.open('https://simpl.tax.gov.ma', '_blank')} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors">
+              <button onClick={() => window.open('https://www.tax.gov.ma', '_blank')} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors">
                 <Globe size={16} /> SIMPL-IS
               </button>
             </div>
@@ -135,7 +135,7 @@ export default function ISPage() {
                 <p className="font-semibold text-green-700">Fichier XML IS genere!</p>
                 <p className="text-sm text-green-600">Deposez sur SIMPL-IS de la DGI</p>
               </div>
-              <button onClick={() => window.open('https://simpl.tax.gov.ma', '_blank')} className="ml-auto px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center gap-2">
+              <button onClick={() => window.open('https://www.tax.gov.ma', '_blank')} className="ml-auto px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center gap-2">
                 <Globe size={14} /> Ouvrir SIMPL-IS
               </button>
             </div>
@@ -240,7 +240,7 @@ export default function ISPage() {
                   <button onClick={generateXML} className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">
                     <FileCode size={14} /> Generer declaration XML
                   </button>
-                  <button onClick={() => window.open('https://simpl.tax.gov.ma', '_blank')} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors">
+                  <button onClick={() => window.open('https://www.tax.gov.ma', '_blank')} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors">
                     <Globe size={14} /> Deposer sur SIMPL-IS
                   </button>
                   <button onClick={() => setDeclared(true)} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-colors ${declared ? 'bg-green-500 text-white' : 'bg-[#1B2A4A] text-white hover:bg-[#243660]'}`}>
