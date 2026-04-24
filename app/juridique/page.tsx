@@ -98,8 +98,8 @@ const generateDepotLegalWord = async (company: Company, formData: FormData, gera
 
   const bold = (text: string, size = 20) => new TextRun({ text, bold: true, size, font: 'Arial' });
   const normal = (text: string, size = 18) => new TextRun({ text, size, font: 'Arial' });
-  const center = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
-  const left = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
+  const center = (children: any[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
+  const left = (children: any[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
 
   const children = [
     // Header
@@ -268,8 +268,8 @@ const generateRCWord = async (company: Company, formData: FormData) => {
   const borders = { top: border, bottom: border, left: border, right: border };
   const bold = (text: string, size = 18) => new TextRun({ text, bold: true, size, font: 'Arial' });
   const normal = (text: string, size = 17) => new TextRun({ text, size, font: 'Arial' });
-  const center = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
-  const left = (children: TextRun[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
+  const center = (children: any[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
+  const left = (children: any[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
 
   const children = [
     // Header
