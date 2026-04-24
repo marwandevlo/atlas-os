@@ -350,7 +350,7 @@ const generateRCWord = async (company: Company, formData: FormData) => {
       p([n("(A l'étranger (Ville, département et pays) ..............................")], AlignmentType.LEFT, { after: 30 }),
       p([n('6) Forme juridique de la société '), n(company.formeJuridique, 14)], AlignmentType.LEFT, { after: 30 }),
       p([n('7) Capital, montant '), n(formData.capital + ' DH', 14), n('  si capital variable, montant minimum ..............')], AlignmentType.LEFT, { after: 30 }),
-      p([n('8) Durée de la personne morale '), n('99 ans', 14), n('  Date de commencement d'exploitation '), n(formData.date, 14)], AlignmentType.LEFT, { after: 30 }),
+      p([n('8) Durée de la personne morale '), n('99 ans', 14), n('  Date de commencement d exploitation '), n(formData.date, 14)], AlignmentType.LEFT, { after: 30 }),
       p([n('9) Numéro et date du dépôt des actes et pièces de la société .................................')], AlignmentType.LEFT, { after: 30 }),
       p([n("10) Brevets d'invention déposés le .............. n° de délivrance ......  Marques de fabrique, de commerce ou de service déposés le .............. sous n° ..............")], AlignmentType.LEFT, { after: 30 }),
       p([n("11) Nom, prénoms, date, lieu de naissance, domicile, n°CIN(1) a) des associés autres que les actionnaires b) des personnes autorisées à administrer, gérer et signer pour la société c)des gérants, membres des organes d'administration de direction ou de gestion ou des directeurs, s'il s'agit d'une personne morale: raison sociale ou dénomination, forme juridique, siège social, objet, numéro du registre du commerce et références du représentant permanent.")], AlignmentType.LEFT, { after: 80 }),
