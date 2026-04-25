@@ -426,8 +426,6 @@ const generateRCWord = async (company: Company, formData: FormData) => {
   ];
 
   // Use 2 sections - page 1 left, page 2 right - both in landscape
-  
-
   const doc = new Document({
     sections: [
       {
