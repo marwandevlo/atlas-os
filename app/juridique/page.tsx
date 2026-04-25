@@ -428,8 +428,8 @@ const generateRCWord = async (company: Company, formData: FormData) => {
   // Combine both pages side by side in landscape
   const { PageOrientation } = await import('docx');
   const combinedTable = new Table({
-    width: { size: 15120, type: WidthType.DXA },
-    columnWidths: [7560, 7560],
+    width: { size: 15704, type: WidthType.DXA },
+    columnWidths: [7852, 7852],
     rows: [new TableRow({ children: [
       new TableCell({ borders: noBorders, width: { size: 7560, type: WidthType.DXA }, margins: { top: 200, bottom: 200, left: 200, right: 200 }, children: page1Children }),
       new TableCell({ borders: { left: border, top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } }, width: { size: 7560, type: WidthType.DXA }, margins: { top: 200, bottom: 200, left: 200, right: 200 }, children: page2Children }),
