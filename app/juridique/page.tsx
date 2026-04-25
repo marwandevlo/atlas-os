@@ -425,22 +425,30 @@ const generateRCWord = async (company: Company, formData: FormData) => {
     }),
   ];
 
-  // Combine both pages side by side in landscape
+  // Use 2 sections - page 1 left, page 2 right - both in landscape
   const { PageOrientation } = await import('docx');
-  const combinedTable = new Table({
-    width: { size: 15704, type: WidthType.DXA },
-    columnWidths: [7852, 7852],
-    rows: [new TableRow({ children: [
-      new TableCell({ borders: noBorders, width: { size: 7560, type: WidthType.DXA }, margins: { top: 200, bottom: 200, left: 200, right: 200 }, children: page1Children }),
-      new TableCell({ borders: { left: border, top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } }, width: { size: 7560, type: WidthType.DXA }, margins: { top: 200, bottom: 200, left: 200, right: 200 }, children: page2Children }),
-    ]})]
-  });
 
   const doc = new Document({
-    sections: [{
-      properties: { page: { size: { width: 16838, height: 11906, orientation: PageOrientation.LANDSCAPE }, margin: { top: 567, right: 567, bottom: 567, left: 567 } } },
-      children: [combinedTable]
-    }]
+    sections: [
+      {
+        properties: {
+          page: {
+            size: { width: 16838, height: 11906, orientation: PageOrientation.LANDSCAPE },
+            margin: { top: 567, right: 567, bottom: 567, left: 567 }
+          }
+        },
+        children: page1Children
+      },
+      {
+        properties: {
+          page: {
+            size: { width: 16838, height: 11906, orientation: PageOrientation.LANDSCAPE },
+            margin: { top: 567, right: 567, bottom: 567, left: 567 }
+          }
+        },
+        children: page2Children
+      }
+    ]
   });
 
   const blob = await Packer.toBlob(doc);
