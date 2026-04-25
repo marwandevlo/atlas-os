@@ -262,7 +262,7 @@ const generateDepotLegalWord = async (company: Company, formData: FormData, gera
 
 const generateRCWord = async (company: Company, formData: FormData) => {
   const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    AlignmentType, BorderStyle, WidthType, ShadingType, PageBreak } = await import('docx');
+    AlignmentType, BorderStyle, WidthType, ShadingType, PageBreak, PageOrientation } = await import('docx');
 
   const border = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
   const borders = { top: border, bottom: border, left: border, right: border };
