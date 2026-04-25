@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, Building2, TrendingUp, Users, DollarSign, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, TrendingUp, DollarSign } from 'lucide-react';
 
 type Message = { role: 'user' | 'assistant'; content: string; };
 
@@ -54,10 +54,8 @@ export default function EtudeProjetPage() {
     setData(newData);
     setMessages(prev => [...prev, userMsg]);
     setInput('');
-
     const nextStep = step + 1;
     setStep(nextStep);
-
     if (nextStep < questions.length) {
       setTimeout(() => {
         setMessages(prev => [...prev, { role: 'assistant', content: questions[nextStep].q }]);
@@ -107,12 +105,12 @@ PORTEUR DU PROJET:
 - CIN: ${projectData.cin}
 - Expérience: ${projectData.experience}
 
-ENTREPRISE (si existante):
-- Raison sociale: ${companyData.raisonSociale || 'À créer'}
-- IF: ${companyData.if_fiscal || 'À obtenir'}
-- ICE: ${companyData.ice || 'À obtenir'}
-- RC: ${companyData.rc || 'À obtenir'}
-- CNSS: ${companyData.cnss || 'À obtenir'}
+ENTREPRISE:
+- Raison sociale: ${companyData.raisonSociale || 'A creer'}
+- IF: ${companyData.if_fiscal || 'A obtenir'}
+- ICE: ${companyData.ice || 'A obtenir'}
+- RC: ${companyData.rc || 'A obtenir'}
+- CNSS: ${companyData.cnss || 'A obtenir'}
 - Adresse: ${companyData.adresse || ''} ${companyData.ville || ''}
 
 PROJET:
@@ -123,71 +121,35 @@ PROJET:
 - Description: ${projectData.description}
 - Financement: ${projectData.financement}
 
-ANALYSE FINANCIÈRE:
+ANALYSE FINANCIERE:
 - Capital: ${capital.toLocaleString()} MAD
-- CA mensuel visé: ${ca.toLocaleString()} MAD | Annuel: ${(ca*12).toLocaleString()} MAD
+- CA mensuel: ${ca.toLocaleString()} MAD | Annuel: ${(ca*12).toLocaleString()} MAD
 - Loyer: ${loyer.toLocaleString()} MAD/mois
-- Salaires (${employes} emp × 4500): ${totalSalaires.toLocaleString()} MAD
+- Salaires (${employes} emp x 4500): ${totalSalaires.toLocaleString()} MAD
 - CNSS patronal: ${cnssPatronal.toFixed(0)} MAD | AMO: ${amoPatronal.toFixed(0)} MAD
 - Autres charges: ${charges.toLocaleString()} MAD
 - TOTAL CHARGES: ${totalCharges.toLocaleString()} MAD/mois
-- RÉSULTAT NET: ${resultatMensuel.toLocaleString()} MAD/mois | ${resultatAnnuel.toLocaleString()} MAD/an
+- RESULTAT NET: ${resultatMensuel.toLocaleString()} MAD/mois | ${resultatAnnuel.toLocaleString()} MAD/an
 - TVA mensuelle: ${tva.toLocaleString()} MAD
-- IS annuel estimé: ${is.toLocaleString()} MAD
-- Seuil rentabilité: ${totalCharges.toLocaleString()} MAD/mois
-- Délai retour: ${payback} mois
-- Taux rentabilité: ${rentabilite}%
+- IS annuel: ${is.toLocaleString()} MAD
+- Payback: ${payback} mois
+- Rentabilite: ${rentabilite}%
 - Score: ${score}
 
-GÉNÈRE L'ÉTUDE AVEC CES SECTIONS:
+Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois tres precis avec des donnees reelles du marche marocain. Le document doit convaincre une banque.
 
-══════════════════════════════════════════
-ÉTUDE DE FAISABILITÉ — ${projectData.nom_projet.toUpperCase()}
-Préparée par Atlas OS Enterprise
-Date: ${new Date().toLocaleDateString('fr-MA')}
-Confidentiel — Usage bancaire et administratif
-══════════════════════════════════════════
-
-1. RÉSUMÉ EXÉCUTIF
-[Synthèse projet, opportunité, montant financement demandé, viabilité]
-
-2. PRÉSENTATION DU PORTEUR DE PROJET
-[${projectData.nom_gerant}, CIN: ${projectData.cin}, expérience, compétences, motivations]
-
-3. DESCRIPTION DU PROJET
-[Concept détaillé, produits/services, valeur ajoutée, avantage concurrentiel, zone de chalandise ${projectData.ville}]
-
-4. ANALYSE DU MARCHÉ MAROCAIN — ${projectData.secteur}
-[Taille marché, tendances 2024-2026, concurrence locale à ${projectData.ville}, part de marché visée, clientèle cible]
-
-5. FORME JURIDIQUE ET CADRE LÉGAL
-[Analyse ${projectData.forme_juridique}, étapes création, documents tribunal commerce, coûts et délais, obligations fiscales et sociales]
-
-6. PLAN FINANCIER PRÉVISIONNEL 3 ANS
-Année 1: CA ${(ca*12).toLocaleString()} MAD | Charges ${(totalCharges*12).toLocaleString()} MAD | Résultat ${(resultatAnnuel).toLocaleString()} MAD
-Année 2: [+20% croissance estimée]
-Année 3: [+15% croissance estimée]
-[Tableau détaillé investissements, BFR, flux trésorerie]
-
-7. ANALYSE FISCALE ET SOCIALE COMPLÈTE
-[TVA ${tva.toLocaleString()} MAD/mois, IS ${is.toLocaleString()} MAD/an, CNSS ${cnssPatronal.toFixed(0)} MAD/mois, déclarations DGI, avantages fiscaux applicables au secteur]
-
-8. BESOINS EN FINANCEMENT ET SOLUTIONS DÉTAILLÉES
-[Montant: ${capital.toLocaleString()} MAD, options ${projectData.financement}, conditions Intelaka/banques marocaines, garanties, tableau amortissement]
-
+1. RESUME EXECUTIF
+2. PRESENTATION DU PORTEUR DE PROJET (details biographiques, competences, motivations)
+3. DESCRIPTION DU PROJET (concept, produits/services, valeur ajoutee, avantage concurrentiel)
+4. ANALYSE DU MARCHE MAROCAIN - ${projectData.secteur} (taille, tendances, concurrence a ${projectData.ville})
+5. FORME JURIDIQUE ET CADRE LEGAL (analyse ${projectData.forme_juridique}, etapes, couts)
+6. PLAN FINANCIER PREVISIONNEL 3 ANS (tableaux detailles)
+7. ANALYSE FISCALE ET SOCIALE COMPLETE (TVA, IS, CNSS, declarations)
+8. BESOINS EN FINANCEMENT (${capital.toLocaleString()} MAD, options ${projectData.financement})
 9. ANALYSE SWOT
-Forces | Faiblesses | Opportunités | Menaces
-
-10. INDICATEURS CLÉS DE PERFORMANCE (KPIs)
-[Seuil rentabilité: ${totalCharges.toLocaleString()} MAD, Payback: ${payback} mois, ROI: ${rentabilite}%, score: ${score}]
-
-11. PLAN D'ACTION — CALENDRIER DE LANCEMENT
-[Mois 1-3: création, Mois 4-6: démarrage, Année 1: objectifs]
-
-12. CONCLUSION ET RECOMMANDATION D'EXPERT
-[Avis professionnel, recommandations prioritaires, conditions de succès]
-
-Sois très précis avec des données réelles du marché marocain. Le document doit convaincre une banque.`
+10. INDICATEURS CLES DE PERFORMANCE (seuil rentabilite, payback, ROI)
+11. PLAN D'ACTION - CALENDRIER
+12. CONCLUSION ET RECOMMANDATION D'EXPERT`
         }),
       });
       const responseData = await response.json();
@@ -195,7 +157,7 @@ Sois très précis avec des données réelles du marché marocain. Le document d
       setEtudeReady(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `🎉 Votre étude de faisabilité est prête!\n\n${score}\n\n📊 Indicateurs clés:\n• CA visé: ${ca.toLocaleString()} MAD/mois\n• Charges: ${totalCharges.toLocaleString()} MAD/mois\n• Résultat net: ${resultatMensuel.toLocaleString()} MAD/mois\n• Rentabilité: ${rentabilite}%\n• Payback: ${payback} mois\n\n✅ Document prêt pour:\n• Demande de prêt bancaire\n• Programme Intelaka\n• Présentation investisseurs\n\n📄 Téléchargez votre PDF professionnel →`
+        content: `🎉 Votre étude de faisabilité est prête!\n\n${score}\n\n📊 Indicateurs clés:\n• CA visé: ${ca.toLocaleString()} MAD/mois\n• Charges: ${totalCharges.toLocaleString()} MAD/mois\n• Résultat net: ${resultatMensuel.toLocaleString()} MAD/mois\n• Rentabilité: ${rentabilite}%\n• Payback: ${payback} mois\n\n✅ Document prêt pour banque / Intelaka / investisseurs\n\n📄 Téléchargez votre PDF professionnel →`
       }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Réessayez.' }]);
@@ -206,185 +168,408 @@ Sois très précis avec des données réelles du marché marocain. Le document d
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF();
+    const W = 210; const H = 297;
 
-    // PAGE 1 — Couverture
-    doc.setFillColor(15, 31, 61);
-    doc.rect(0, 0, 210, 297, 'F');
-    doc.setFillColor(251, 191, 36);
-    doc.rect(0, 0, 8, 297, 'F');
-    
-    doc.setTextColor(251, 191, 36);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ATLAS OS ENTERPRISE', 20, 35);
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(32);
-    doc.text('ÉTUDE DE', 20, 80);
-    doc.text('FAISABILITÉ', 20, 100);
-    
-    doc.setFillColor(251, 191, 36);
-    doc.rect(20, 108, 120, 2, 'F');
-    
-    doc.setFontSize(20);
-    doc.setTextColor(251, 191, 36);
-    doc.text(data.nom_projet || 'Mon Projet', 20, 125);
-    
-    doc.setFontSize(11);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`Secteur: ${data.secteur || ''}`, 20, 145);
-    doc.text(`Forme juridique: ${data.forme_juridique || ''}`, 20, 157);
-    doc.text(`Ville: ${data.ville || ''}`, 20, 169);
-    doc.text(`Porteur: ${data.nom_gerant || ''}`, 20, 181);
-    doc.text(`CIN: ${data.cin || ''}`, 20, 193);
+    const navy: [number,number,number] = [15, 31, 61];
+    const gold: [number,number,number] = [251, 191, 36];
+    const white: [number,number,number] = [255, 255, 255];
+    const green: [number,number,number] = [21, 128, 61];
+    const red: [number,number,number] = [185, 28, 28];
+    const gray: [number,number,number] = [100, 100, 100];
+    const lightgray: [number,number,number] = [245, 247, 250];
+    const blue: [number,number,number] = [37, 99, 235];
 
+    const addHeader = (title: string, subtitle = '') => {
+      doc.setFillColor(...navy); doc.rect(0, 0, W, 22, 'F');
+      doc.setFillColor(...gold); doc.rect(0, 0, 6, H, 'F');
+      doc.setTextColor(...white); doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      doc.text(title, 14, 14);
+      if (subtitle) { doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.text(subtitle, 14, 20); }
+      doc.setFillColor(...gold); doc.rect(0, 22, W, 1, 'F');
+    };
+
+    const addFooter = (pageNum: number, total: number) => {
+      doc.setFillColor(...navy); doc.rect(0, 287, W, 10, 'F');
+      doc.setTextColor(...white); doc.setFontSize(7);
+      doc.text(`Atlas OS Enterprise · ${data.nom_projet || 'Etude de Faisabilite'} · Confidentiel`, 14, 293);
+      doc.text(`${pageNum} / ${total}`, W - 14, 293, { align: 'right' });
+    };
+
+    const drawBarChart = (x: number, y: number, w: number, h: number, values: number[], labels: string[], colors: [number,number,number][], title: string) => {
+      doc.setTextColor(...navy); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.text(title, x, y - 2);
+      const max = Math.max(...values, 1);
+      const barW = (w - (values.length - 1) * 4) / values.length;
+      values.forEach((val, i) => {
+        const barH = (val / max) * h;
+        const bx = x + i * (barW + 4);
+        const by = y + h - barH;
+        doc.setFillColor(...colors[i]); doc.rect(bx, by, barW, barH, 'F');
+        doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...gray);
+        doc.text(labels[i], bx + barW/2, y + h + 5, { align: 'center' });
+        if (val > 0) doc.text(val.toLocaleString(), bx + barW/2, by - 1, { align: 'center' });
+      });
+      doc.setDrawColor(...navy); doc.setLineWidth(0.3);
+      doc.line(x, y, x, y + h); doc.line(x, y + h, x + w, y + h);
+    };
+
+    const TOTAL_PAGES = 7;
+
+    // ══ PAGE 1 — COUVERTURE ══
+    doc.setFillColor(...navy); doc.rect(0, 0, W, H, 'F');
+    doc.setFillColor(...gold); doc.rect(0, 0, 8, H, 'F');
+    doc.setFillColor(25, 45, 80); doc.rect(8, 0, W-8, H, 'F');
+
+    doc.setFillColor(...gold); doc.roundedRect(20, 20, 55, 14, 3, 3, 'F');
+    doc.setTextColor(...navy); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.text('ATLAS OS ENTERPRISE', 47, 29, { align: 'center' });
+
+    doc.setFillColor(...gold); doc.rect(20, 44, 170, 1.5, 'F');
+
+    doc.setTextColor(...white); doc.setFontSize(38); doc.setFont('helvetica', 'bold');
+    doc.text('ETUDE DE', 20, 75); doc.text('FAISABILITE', 20, 97);
+    doc.setFillColor(...gold); doc.rect(20, 103, 110, 2, 'F');
+
+    doc.setFontSize(20); doc.setTextColor(...gold);
+    doc.text(data.nom_projet || 'Mon Projet', 20, 118);
+
+    const infos = [
+      { label: 'SECTEUR', value: data.secteur || '' },
+      { label: 'FORME JURIDIQUE', value: data.forme_juridique || '' },
+      { label: 'VILLE', value: data.ville || '' },
+      { label: 'CAPITAL', value: `${(parseFloat(data.capital||'0')).toLocaleString()} MAD` },
+    ];
+    infos.forEach((info, i) => {
+      const ix = 20 + (i % 2) * 90; const iy = 132 + Math.floor(i / 2) * 22;
+      doc.setFillColor(35, 55, 95); doc.roundedRect(ix, iy, 82, 18, 2, 2, 'F');
+      doc.setTextColor(...gold); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+      doc.text(info.label, ix + 4, iy + 7);
+      doc.setTextColor(...white); doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+      doc.text(info.value, ix + 4, iy + 14);
+    });
+
+    const scoreColor: [number,number,number] = financials.resultatMensuel > financials.ca * 0.25 ? [21,128,61] : financials.resultatMensuel > 0 ? [217,119,6] : [185,28,28];
+    const scoreText = financials.resultatMensuel > financials.ca * 0.25 ? 'EXCELLENT' : financials.resultatMensuel > 0 ? 'BON' : 'RISQUE';
+    doc.setFillColor(...scoreColor); doc.roundedRect(20, 182, 65, 20, 3, 3, 'F');
+    doc.setTextColor(...white); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+    doc.text('SCORE VIABILITE', 52, 191, { align: 'center' });
+    doc.setFontSize(12); doc.text(scoreText, 52, 199, { align: 'center' });
+
+    doc.setFillColor(30, 50, 90); doc.roundedRect(20, 212, 170, 48, 3, 3, 'F');
+    doc.setTextColor(...gold); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.text('PORTEUR DE PROJET', 25, 222);
+    doc.setTextColor(...white); doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+    doc.text(data.nom_gerant || '', 25, 232);
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    doc.text(`CIN: ${data.cin || ''}`, 25, 240);
+    doc.text(`Experience: ${(data.experience || '').substring(0, 60)}`, 25, 248);
     if (companyData.raisonSociale) {
-      doc.setFillColor(255, 255, 255, 0.1);
-      doc.rect(20, 205, 170, 35, 'F');
-      doc.setTextColor(251, 191, 36);
-      doc.setFontSize(9);
-      doc.text('SOCIÉTÉ', 25, 215);
-      doc.setTextColor(255, 255, 255);
-      doc.text(companyData.raisonSociale, 25, 224);
-      if (companyData.if_fiscal) doc.text(`IF: ${companyData.if_fiscal}  |  ICE: ${companyData.ice || ''}  |  RC: ${companyData.rc || ''}`, 25, 233);
+      doc.setTextColor(...gold); doc.setFontSize(8);
+      doc.text(`Societe: ${companyData.raisonSociale}`, 25, 256);
     }
 
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255, 0.5);
-    doc.text(`Préparée le ${new Date().toLocaleDateString('fr-MA')} par Atlas OS Enterprise`, 20, 265);
-    doc.text('Document confidentiel — Usage bancaire et administratif', 20, 274);
+    doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+    doc.text(`Preparee le ${new Date().toLocaleDateString('fr-MA')} par Atlas OS Enterprise`, 20, 275);
+    doc.text('Document confidentiel — Usage bancaire, investisseurs, Intelaka, Hassan II', 20, 281);
 
-    // PAGE 2 — Tableau de bord financier
-    doc.addPage();
-    doc.setFillColor(15, 31, 61);
-    doc.rect(0, 0, 210, 20, 'F');
-    doc.setFillColor(251, 191, 36);
-    doc.rect(0, 0, 8, 297, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('TABLEAU DE BORD FINANCIER', 20, 13);
+    // ══ PAGE 2 — PORTEUR DE PROJET ══
+    doc.addPage(); addHeader('PORTEUR DE PROJET', 'Presentation detaillee du gerant et porteur de projet');
+    let y = 32;
 
-    // KPI Cards
+    doc.setFillColor(230, 235, 245); doc.roundedRect(152, y, 42, 52, 3, 3, 'F');
+    doc.setDrawColor(...navy); doc.setLineWidth(0.5); doc.roundedRect(152, y, 42, 52, 3, 3, 'S');
+    doc.setTextColor(...navy); doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+    doc.text('PHOTO', 173, y+24, { align: 'center' });
+    doc.text('IDENTITE', 173, y+30, { align: 'center' });
+
+    doc.setFillColor(...lightgray); doc.roundedRect(14, y, 132, 52, 3, 3, 'F');
+    doc.setTextColor(...navy); doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+    doc.text(data.nom_gerant || '', 20, y+13);
+    doc.setFillColor(...gold); doc.rect(20, y+15, 70, 1, 'F');
+    const idFields = [['CIN', data.cin||''], ['Ville', data.ville||''], ['Financement', data.financement||'']];
+    idFields.forEach((f, i) => {
+      doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(...gray);
+      doc.text(f[0], 20, y+23+i*10);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(...navy); doc.setFontSize(9);
+      doc.text(f[1].substring(0,40), 45, y+23+i*10);
+    });
+    y += 60;
+
+    doc.setFillColor(...navy); doc.roundedRect(14, y, W-28, 8, 2, 2, 'F');
+    doc.setTextColor(...white); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.text('EXPERIENCE ET COMPETENCES', 20, y+5.5);
+    y += 10;
+    doc.setFillColor(...lightgray); doc.roundedRect(14, y, W-28, 38, 2, 2, 'F');
+    doc.setTextColor(...navy); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    const expLines = doc.splitTextToSize(data.experience || '', W-38);
+    expLines.slice(0, 6).forEach((line: string, i: number) => { doc.text('> ' + line, 20, y+8+i*5.5); });
+    y += 46;
+
+    doc.setFillColor(...navy); doc.roundedRect(14, y, W-28, 8, 2, 2, 'F');
+    doc.setTextColor(...white); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.text('DESCRIPTION DU PROJET ET AVANTAGE CONCURRENTIEL', 20, y+5.5);
+    y += 10;
+    doc.setFillColor(...lightgray); doc.roundedRect(14, y, W-28, 42, 2, 2, 'F');
+    doc.setTextColor(...navy); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+    const descLines = doc.splitTextToSize(data.description || '', W-38);
+    descLines.slice(0, 7).forEach((line: string, i: number) => { doc.text('> ' + line, 20, y+8+i*5.5); });
+    y += 50;
+
+    doc.setFillColor(...navy); doc.roundedRect(14, y, W-28, 8, 2, 2, 'F');
+    doc.setTextColor(...white); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.text('FORME JURIDIQUE — ' + (data.forme_juridique || ''), 20, y+5.5);
+    y += 10;
+    const formeDetails: Record<string, string[]> = {
+      'Auto-entrepreneur': ['Inscription en ligne — simple et rapide', 'Plafond CA: 500 000 MAD (services)', 'IR liberatoire: 1% (ventes) / 2% (services)', 'Pas de TVA en dessous des seuils', 'Ideal pour demarrage solo'],
+      'SARL AU': ['Capital minimum: 1 MAD', 'Associe unique, responsabilite limitee', 'IS: 10% jusqu a 300 000 MAD de benefice', 'TVA selon regime (mensuel/trimestriel)', 'Registre commerce obligatoire'],
+      'SARL': ['Plusieurs associes (2 minimum)', 'Capital minimum: 1 MAD', 'Decisions collectives en AGE/AGO', 'IS selon bareme progressif', 'Ideal pour s associer'],
+      'SA': ['Capital minimum: 300 000 MAD', 'Ideal pour levee de fonds', 'Conseil d administration obligatoire', 'Commissaire aux comptes requis', 'Acces facilite aux marches publics'],
+    };
+    const formeKey = Object.keys(formeDetails).find(k => (data.forme_juridique||'').includes(k)) || 'SARL AU';
+    const details = formeDetails[formeKey];
+    doc.setFillColor(...lightgray); doc.roundedRect(14, y, W-28, 32, 2, 2, 'F');
+    details.forEach((d, i) => {
+      doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...navy);
+      doc.text('✓  ' + d, 20, y+8+i*5);
+    });
+
+    addFooter(2, TOTAL_PAGES);
+
+    // ══ PAGE 3 — TABLEAU DE BORD FINANCIER ══
+    doc.addPage(); addHeader('TABLEAU DE BORD FINANCIER', 'Indicateurs cles de performance et analyse de rentabilite');
+    y = 30;
+
     const kpis = [
-      { label: 'CA MENSUEL VISÉ', value: `${financials.ca?.toLocaleString()} MAD`, color: [37, 99, 235] },
-      { label: 'RÉSULTAT NET/MOIS', value: `${financials.resultatMensuel?.toLocaleString()} MAD`, color: financials.resultatMensuel > 0 ? [21, 128, 61] : [185, 28, 28] },
-      { label: 'RENTABILITÉ', value: `${financials.rentabilite}%`, color: [124, 58, 237] },
-      { label: 'PAYBACK', value: `${financials.payback} mois`, color: [217, 119, 6] },
+      { label: 'CA MENSUEL VISE', value: `${(financials.ca||0).toLocaleString()} MAD`, sub: `Annuel: ${((financials.ca||0)*12).toLocaleString()} MAD`, color: blue },
+      { label: 'RESULTAT NET/MOIS', value: `${(financials.resultatMensuel||0).toLocaleString()} MAD`, sub: `Annuel: ${(financials.resultatAnnuel||0).toLocaleString()} MAD`, color: (financials.resultatMensuel||0) > 0 ? green : red },
+      { label: 'RENTABILITE', value: `${financials.rentabilite||0}%`, sub: 'Taux de marge nette', color: [124, 58, 237] as [number,number,number] },
+      { label: 'DELAI RETOUR', value: `${financials.payback||0} mois`, sub: 'Payback period', color: [217, 119, 6] as [number,number,number] },
     ];
 
     kpis.forEach((kpi, i) => {
-      const x = 15 + (i % 2) * 95;
-      const y = 30 + Math.floor(i / 2) * 35;
-      doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-      doc.rect(x, y, 88, 28, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(kpi.label, x + 5, y + 10);
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text(kpi.value, x + 5, y + 22);
+      const kx = 14 + (i % 2) * 96; const ky = y + Math.floor(i / 2) * 32;
+      doc.setFillColor(...kpi.color); doc.roundedRect(kx, ky, 88, 26, 3, 3, 'F');
+      doc.setTextColor(...white); doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+      doc.text(kpi.label, kx+5, ky+8);
+      doc.setFontSize(13); doc.text(kpi.value, kx+5, ky+18);
+      doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.text(kpi.sub, kx+5, ky+24);
     });
 
-    // Charges breakdown table
+    y += 72;
+
+    drawBarChart(14, y, 85, 40,
+      [financials.loyer||0, financials.totalSalaires||0, financials.cnssPatronal||0, financials.charges||0],
+      ['Loyer', 'Salaires', 'CNSS', 'Autres'],
+      [[37,99,235], [21,128,61], [217,119,6], [124,58,237]],
+      'REPARTITION DES CHARGES (MAD/mois)'
+    );
+
+    drawBarChart(112, y, 84, 40,
+      [(financials.ca||0)*12, (financials.ca||0)*12*1.2, (financials.ca||0)*12*1.2*1.15],
+      ['Annee 1', 'Annee 2', 'Annee 3'],
+      [[37,99,235], [21,128,61], [251,191,36]],
+      'PREVISION CA 3 ANS (MAD)'
+    );
+
+    y += 58;
+
     autoTable(doc, {
-      startY: 105,
-      head: [['POSTE DE CHARGES', 'MENSUEL (MAD)', 'ANNUEL (MAD)', '%']],
+      startY: y,
+      head: [['POSTE DE CHARGES', 'MENSUEL (MAD)', 'ANNUEL (MAD)', '% DU TOTAL']],
       body: [
-        ['Loyer', financials.loyer?.toLocaleString(), (financials.loyer * 12)?.toLocaleString(), `${((financials.loyer / financials.totalCharges) * 100).toFixed(1)}%`],
-        ['Salaires bruts', financials.totalSalaires?.toLocaleString(), (financials.totalSalaires * 12)?.toLocaleString(), `${((financials.totalSalaires / financials.totalCharges) * 100).toFixed(1)}%`],
-        ['CNSS patronal (21.26%)', financials.cnssPatronal?.toFixed(0), (financials.cnssPatronal * 12)?.toFixed(0), `${((financials.cnssPatronal / financials.totalCharges) * 100).toFixed(1)}%`],
-        ['AMO patronal (2.03%)', financials.amoPatronal?.toFixed(0), (financials.amoPatronal * 12)?.toFixed(0), `${((financials.amoPatronal / financials.totalCharges) * 100).toFixed(1)}%`],
-        ['Autres charges', financials.charges?.toLocaleString(), (financials.charges * 12)?.toLocaleString(), `${((financials.charges / financials.totalCharges) * 100).toFixed(1)}%`],
-        ['TOTAL CHARGES', financials.totalCharges?.toLocaleString(), (financials.totalCharges * 12)?.toLocaleString(), '100%'],
+        ['Loyer', (financials.loyer||0).toLocaleString(), ((financials.loyer||0)*12).toLocaleString(), `${financials.totalCharges ? (((financials.loyer||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['Salaires bruts', (financials.totalSalaires||0).toLocaleString(), ((financials.totalSalaires||0)*12).toLocaleString(), `${financials.totalCharges ? (((financials.totalSalaires||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['CNSS patronal (21.26%)', (financials.cnssPatronal||0).toFixed(0), ((financials.cnssPatronal||0)*12).toFixed(0), `${financials.totalCharges ? (((financials.cnssPatronal||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['AMO patronal (2.03%)', (financials.amoPatronal||0).toFixed(0), ((financials.amoPatronal||0)*12).toFixed(0), `${financials.totalCharges ? (((financials.amoPatronal||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['Autres charges', (financials.charges||0).toLocaleString(), ((financials.charges||0)*12).toLocaleString(), `${financials.totalCharges ? (((financials.charges||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['TOTAL CHARGES', (financials.totalCharges||0).toLocaleString(), ((financials.totalCharges||0)*12).toLocaleString(), '100%'],
       ],
-      headStyles: { fillColor: [15, 31, 61], textColor: [255, 255, 255] },
-      footStyles: { fillColor: [15, 31, 61], textColor: [255, 255, 255] },
-      alternateRowStyles: { fillColor: [245, 247, 250] },
-      styles: { fontSize: 9 },
+      headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: lightgray },
+      columnStyles: { 0: { fontStyle: 'bold' } },
     });
 
-    // P&L Table
-    const y2 = (doc as any).lastAutoTable.finalY + 10;
+    addFooter(3, TOTAL_PAGES);
+
+    // ══ PAGE 4 — COMPTE DE RESULTAT ══
+    doc.addPage(); addHeader('PLAN FINANCIER PREVISIONNEL 3 ANS', 'Compte de resultat, fiscalite et flux de tresorerie');
+
+    const ca1 = (financials.ca||0) * 12;
+    const ca2 = ca1 * 1.2; const ca3 = ca2 * 1.15;
+    const ch1 = (financials.totalCharges||0) * 12;
+    const ch2 = ch1 * 1.1; const ch3 = ch2 * 1.05;
+    const r1 = ca1 - ch1; const r2 = ca2 - ch2; const r3 = ca3 - ch3;
+    const is1 = r1 > 0 ? (r1 <= 300000 ? r1*0.10 : r1 <= 1000000 ? r1*0.20 : r1*0.26) : 0;
+    const is2 = r2 > 0 ? (r2 <= 300000 ? r2*0.10 : r2 <= 1000000 ? r2*0.20 : r2*0.26) : 0;
+    const is3 = r3 > 0 ? (r3 <= 300000 ? r3*0.10 : r3 <= 1000000 ? r3*0.20 : r3*0.26) : 0;
+
     autoTable(doc, {
-      startY: y2,
-      head: [['COMPTE DE RÉSULTAT', 'ANNÉE 1', 'ANNÉE 2 (+20%)', 'ANNÉE 3 (+15%)']],
+      startY: 30,
+      head: [['COMPTE DE RESULTAT', 'ANNEE 1', 'ANNEE 2 (+20%)', 'ANNEE 3 (+15%)']],
       body: [
-        ['Chiffre d\'affaires', `${(financials.ca * 12)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 * 1.15)?.toLocaleString()} MAD`],
-        ['Total charges', `${(financials.totalCharges * 12)?.toLocaleString()} MAD`, `${(financials.totalCharges * 12 * 1.1)?.toLocaleString()} MAD`, `${(financials.totalCharges * 12 * 1.1 * 1.05)?.toLocaleString()} MAD`],
-        ['Résultat avant IS', `${(financials.resultatAnnuel)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 - financials.totalCharges * 12 * 1.1)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 * 1.15 - financials.totalCharges * 12 * 1.1 * 1.05)?.toLocaleString()} MAD`],
-        ['IS estimé', `${financials.is?.toLocaleString()} MAD`, `${(financials.is * 1.2)?.toLocaleString()} MAD`, `${(financials.is * 1.38)?.toLocaleString()} MAD`],
-        ['RÉSULTAT NET', `${(financials.resultatAnnuel - financials.is)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 - financials.totalCharges * 12 * 1.1 - financials.is * 1.2)?.toLocaleString()} MAD`, `${(financials.ca * 12 * 1.2 * 1.15 - financials.totalCharges * 12 * 1.1 * 1.05 - financials.is * 1.38)?.toLocaleString()} MAD`],
+        ['Chiffre d affaires HT', `${ca1.toLocaleString()} MAD`, `${ca2.toLocaleString()} MAD`, `${ca3.toLocaleString()} MAD`],
+        ['TVA collectee (20%)', `${(ca1*0.2).toLocaleString()} MAD`, `${(ca2*0.2).toLocaleString()} MAD`, `${(ca3*0.2).toLocaleString()} MAD`],
+        ['Total charges exploitation', `${ch1.toLocaleString()} MAD`, `${ch2.toLocaleString()} MAD`, `${ch3.toLocaleString()} MAD`],
+        ['Resultat avant IS', `${r1.toLocaleString()} MAD`, `${r2.toLocaleString()} MAD`, `${r3.toLocaleString()} MAD`],
+        ['Impot sur Societes (IS)', `${is1.toLocaleString()} MAD`, `${is2.toLocaleString()} MAD`, `${is3.toLocaleString()} MAD`],
+        ['RESULTAT NET', `${(r1-is1).toLocaleString()} MAD`, `${(r2-is2).toLocaleString()} MAD`, `${(r3-is3).toLocaleString()} MAD`],
+        ['Marge nette %', `${ca1 > 0 ? (((r1-is1)/ca1)*100).toFixed(1) : 0}%`, `${ca2 > 0 ? (((r2-is2)/ca2)*100).toFixed(1) : 0}%`, `${ca3 > 0 ? (((r3-is3)/ca3)*100).toFixed(1) : 0}%`],
       ],
-      headStyles: { fillColor: [15, 31, 61] },
-      alternateRowStyles: { fillColor: [245, 247, 250] },
-      styles: { fontSize: 9 },
+      headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 9 },
+      alternateRowStyles: { fillColor: lightgray },
+      columnStyles: { 0: { fontStyle: 'bold' } },
     });
 
-    // PAGE 3 — Étude complète
-    doc.addPage();
-    doc.setFillColor(15, 31, 61);
-    doc.rect(0, 0, 210, 20, 'F');
-    doc.setFillColor(251, 191, 36);
-    doc.rect(0, 0, 8, 297, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ÉTUDE DE FAISABILITÉ DÉTAILLÉE', 20, 13);
+    const yf = (doc as any).lastAutoTable.finalY + 12;
+    autoTable(doc, {
+      startY: yf,
+      head: [['OBLIGATION FISCALE / SOCIALE', 'FREQUENCE', 'MONTANT ESTIME', 'ORGANISME']],
+      body: [
+        ['Declaration TVA', 'Mensuelle', `${((financials.ca||0)*0.20).toLocaleString()} MAD`, 'DGI / SIMPL'],
+        ['Acomptes IS (4 fois/an)', 'Trimestrielle', `${(is1/4).toLocaleString()} MAD`, 'DGI'],
+        ['CNSS salariale (4.48%)', 'Mensuelle', `${((financials.totalSalaires||0)*0.0448).toFixed(0)} MAD`, 'CNSS'],
+        ['CNSS patronale (21.26%)', 'Mensuelle', `${(financials.cnssPatronal||0).toFixed(0)} MAD`, 'CNSS'],
+        ['AMO patronale (2.03%)', 'Mensuelle', `${(financials.amoPatronal||0).toFixed(0)} MAD`, 'CNSS'],
+        ['Declaration IR salaires', 'Annuelle (Jan)', 'Variable', 'DGI'],
+        ['Bilan comptable', 'Annuelle (Avr)', 'Honoraires comptable', 'DGI'],
+        ['Patente', 'Annuelle', 'Selon CA', 'Mairie'],
+      ],
+      headStyles: { fillColor: [30, 80, 130] as [number,number,number], textColor: white, fontStyle: 'bold', fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: lightgray },
+    });
+
+    addFooter(4, TOTAL_PAGES);
+
+    // ══ PAGE 5 — SWOT ══
+    doc.addPage(); addHeader('ANALYSE SWOT', 'Forces, Faiblesses, Opportunites et Menaces du projet');
+
+    const swotData = [
+      { title: 'FORCES', color: [21,128,61] as [number,number,number], bg: [220,252,231] as [number,number,number], items: [
+        `Experience: ${(data.experience||'').substring(0,50)}`,
+        `Capital disponible: ${(parseFloat(data.capital||'0')).toLocaleString()} MAD`,
+        `Localisation: ${data.ville} — marche porteur`,
+        `Forme juridique adaptee: ${data.forme_juridique}`,
+        'Differenciation: ' + (data.description||'').substring(0,40),
+      ]},
+      { title: 'FAIBLESSES', color: [185,28,28] as [number,number,number], bg: [254,226,226] as [number,number,number], items: [
+        'Phase de demarrage — notoriete a construire',
+        `Charges fixes: ${(financials.totalCharges||0).toLocaleString()} MAD/mois des J1`,
+        'Dependance aux premiers clients',
+        'Besoin de financement externe',
+        'Ressources humaines limitees au demarrage',
+      ]},
+      { title: 'OPPORTUNITES', color: [37,99,235] as [number,number,number], bg: [219,234,254] as [number,number,number], items: [
+        `Marche ${data.secteur} en croissance au Maroc`,
+        'Programmes: Intelaka, Hassan II, OFPPT',
+        'Digitalisation des entreprises marocaines',
+        `Bassin emploi favorable a ${data.ville}`,
+        'Acces aux marches CEDEAO et UE',
+      ]},
+      { title: 'MENACES', color: [217,119,6] as [number,number,number], bg: [254,243,199] as [number,number,number], items: [
+        'Concurrence locale etablie',
+        'Fluctuations economiques',
+        'Evolution de la reglementation fiscale',
+        'Difficultes acces financement bancaire',
+        'Inflation des matieres premieres',
+      ]},
+    ];
+
+    swotData.forEach((swot, i) => {
+      const sx = 14 + (i % 2) * 96; const sy = 30 + Math.floor(i / 2) * 110;
+      doc.setFillColor(...swot.bg); doc.roundedRect(sx, sy, 88, 100, 3, 3, 'F');
+      doc.setFillColor(...swot.color); doc.roundedRect(sx, sy, 88, 14, 3, 3, 'F');
+      doc.rect(sx, sy+8, 88, 6, 'F');
+      doc.setTextColor(...white); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+      doc.text(swot.title, sx+44, sy+9, { align: 'center' });
+      swot.items.forEach((item, j) => {
+        doc.setTextColor(30, 30, 30); doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+        const wrapped = doc.splitTextToSize(`• ${item}`, 80);
+        wrapped.slice(0,2).forEach((line: string, k: number) => {
+          doc.text(line, sx+4, sy+22+j*15+k*6);
+        });
+      });
+    });
+
+    addFooter(5, TOTAL_PAGES);
+
+    // ══ PAGE 6 — PLAN D ACTION ══
+    doc.addPage(); addHeader("PLAN D'ACTION ET CALENDRIER", 'Etapes de creation et lancement du projet');
+
+    const steps = [
+      { phase: 'PHASE 1 — CREATION (Mois 1-2)', color: navy, items: [
+        'Obtenir le certificat negatif aupres du RC',
+        'Rediger et signer les statuts de la societe',
+        'Deposer le capital au compte bancaire bloque',
+        'Immatriculer au Registre de Commerce',
+        'Obtenir IF, ICE et numero CNSS',
+        'Ouvrir le compte bancaire professionnel',
+      ]},
+      { phase: 'PHASE 2 — DEMARRAGE (Mois 3-4)', color: [30,80,130] as [number,number,number], items: [
+        'Trouver et amenager le local commercial',
+        'Recruter et former les premiers employes',
+        'Declarer a la CNSS et DGI',
+        'Mettre en place la comptabilite',
+        'Lancer la communication et le marketing',
+        'Contacter les premiers clients / fournisseurs',
+      ]},
+      { phase: 'PHASE 3 — CROISSANCE (Mois 5-12)', color: green, items: [
+        `Atteindre le seuil de rentabilite: ${(financials.totalCharges||0).toLocaleString()} MAD/mois`,
+        'Soumettre les declarations TVA mensuelles',
+        `Viser le CA mensuel de ${(financials.ca||0).toLocaleString()} MAD`,
+        'Fideliser la clientele — programme fidelite',
+        'Bilan 6 mois et ajustement strategique',
+        'Preparer les acomptes IS (juin et septembre)',
+      ]},
+    ];
+
+    let yp = 30;
+    steps.forEach((step) => {
+      doc.setFillColor(...step.color); doc.roundedRect(14, yp, W-28, 10, 2, 2, 'F');
+      doc.setTextColor(...white); doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.text(step.phase, 20, yp+7);
+      yp += 12;
+      step.items.forEach((item, j) => {
+        if (j % 2 === 0) doc.setFillColor(...lightgray); else doc.setFillColor(...white);
+        doc.rect(14, yp, W-28, 9, 'F');
+        doc.setFillColor(...step.color); doc.rect(14, yp, 3, 9, 'F');
+        doc.setTextColor(30, 30, 30); doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+        doc.text(`  ${j+1}. ${item}`, 20, yp+6);
+        yp += 9;
+      });
+      yp += 10;
+    });
+
+    addFooter(6, TOTAL_PAGES);
+
+    // ══ PAGE 7 — ETUDE COMPLETE AI ══
+    doc.addPage(); addHeader('ANALYSE EXPERTE COMPLETE', `Etude de faisabilite — ${data.nom_projet || 'Projet'}`);
 
     doc.setTextColor(50, 50, 50);
-    const lines = doc.splitTextToSize(etude.replace(/\*\*/g, '').replace(/#{1,3} /g, ''), 178);
-    let y = 28;
-
+    const lines = doc.splitTextToSize(etude.replace(/\*\*/g, '').replace(/#{1,3} /g, '').replace(/══+/g, ''), 178);
+    let yl = 30;
+    let currentPage = 7;
     lines.forEach((line: string) => {
-      if (y > 278) {
+      if (yl > 278) {
+        addFooter(currentPage, TOTAL_PAGES);
         doc.addPage();
-        doc.setFillColor(15, 31, 61);
-        doc.rect(0, 0, 210, 20, 'F');
-        doc.setFillColor(251, 191, 36);
-        doc.rect(0, 0, 8, 297, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text(data.nom_projet || '', 20, 13);
-        doc.setTextColor(50, 50, 50);
-        y = 28;
+        currentPage++;
+        addHeader('ANALYSE EXPERTE (suite)', data.nom_projet || '');
+        yl = 30;
       }
-
-      if (line.includes('═') || line.includes('──')) {
-        doc.setFillColor(15, 31, 61);
-        doc.rect(15, y - 3, 180, 0.5, 'F');
-        y += 4;
-        return;
-      }
-
-      if (line.match(/^\d+\.\s+[A-ZÀÁÂÉÊÈÎÏÔÙÛÜ]/) || (line.toUpperCase() === line && line.trim().length > 3 && !line.includes('MAD') && !line.includes('%'))) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(15, 31, 61);
-        y += 3;
+      if (line.match(/^\d+\.\s+[A-Z]/) || (line.toUpperCase() === line && line.trim().length > 3 && !line.includes('MAD') && !line.includes('%'))) {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...navy); yl += 4;
       } else {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        doc.setTextColor(50, 50, 50);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(50, 50, 50);
       }
-      doc.text(line, 15, y);
-      y += 5;
+      doc.text(line, 14, yl);
+      yl += 5;
     });
 
-    // Footer on all pages
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setFillColor(15, 31, 61);
-      doc.rect(0, 287, 210, 10, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(7);
-      doc.text('Atlas OS Enterprise · Étude de faisabilité · Confidentiel', 15, 293);
-      doc.text(`Page ${i}/${totalPages}`, 190, 293, { align: 'right' });
-    }
-
+    addFooter(currentPage, TOTAL_PAGES);
     doc.save(`etude_${data.nom_projet || 'projet'}_${new Date().getFullYear()}.pdf`);
   };
 
@@ -413,11 +598,10 @@ Sois très précis avec des données réelles du marché marocain. Le document d
             </div>
             <p className="text-white/40 text-xs mt-1">{step}/{questions.length} questions</p>
           </div>
-
           {companyData.raisonSociale && (
             <div className="bg-white/5 rounded-lg p-3">
               <p className="text-white/30 text-xs mb-1 flex items-center gap-1">
-                <CheckCircle size={10} className="text-green-400" /> Données société
+                <CheckCircle size={10} className="text-green-400" /> Donnees societe
               </p>
               <p className="text-white/70 text-xs font-medium">{companyData.raisonSociale}</p>
               {companyData.if_fiscal && <p className="text-white/30 text-xs">IF: {companyData.if_fiscal}</p>}
@@ -425,7 +609,6 @@ Sois très précis avec des données réelles du marché marocain. Le document d
               {companyData.rc && <p className="text-white/30 text-xs">RC: {companyData.rc}</p>}
             </div>
           )}
-
           <div className="space-y-1">
             {questions.slice(0, step).map((q, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -444,13 +627,13 @@ Sois très précis avec des données réelles du marché marocain. Le document d
               <BarChart2 size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-800">Étude de Faisabilité du Projet</h1>
-              <p className="text-xs text-gray-400">Document professionnel · Prêt pour banque / investisseur / Intelaka</p>
+              <h1 className="text-lg font-bold text-gray-800">Etude de Faisabilite du Projet</h1>
+              <p className="text-xs text-gray-400">Document professionnel · Pret pour banque / investisseur / Intelaka</p>
             </div>
           </div>
           {etudeReady && (
             <button onClick={downloadPDF} className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors">
-              <Download size={16} /> PDF Professionnel
+              <Download size={16} /> PDF Professionnel (7 pages)
             </button>
           )}
         </header>
@@ -487,7 +670,7 @@ Sois très précis avec des données réelles du marché marocain. Le document d
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{animationDelay:'0.1s'}}></div>
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{animationDelay:'0.2s'}}></div>
-                      <span className="text-xs text-gray-400 ml-2">Génération en cours...</span>
+                      <span className="text-xs text-gray-400 ml-2">Generation en cours...</span>
                     </div>
                   </div>
                 </div>
@@ -502,7 +685,7 @@ Sois très précis avec des données réelles du marché marocain. Le document d
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                    placeholder="Votre réponse..."
+                    placeholder="Votre reponse..."
                     className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-amber-400"
                     autoFocus
                   />
@@ -519,33 +702,30 @@ Sois très précis avec des données réelles du marché marocain. Le document d
               <div className="bg-[#0F1F3D] px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} className="text-green-400" />
-                  <p className="text-white font-semibold text-sm">Aperçu Étude</p>
+                  <p className="text-white font-semibold text-sm">Apercu Etude</p>
                 </div>
                 <button onClick={downloadPDF} className="flex items-center gap-1 text-amber-400 hover:text-amber-300 text-xs">
                   <Download size={12} /> PDF
                 </button>
               </div>
-
-              {/* KPI Summary */}
               <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 border-b border-gray-200">
                 <div className="bg-blue-500 rounded-lg p-2 text-white text-center">
                   <p className="text-xs opacity-70">CA/mois</p>
-                  <p className="font-bold text-sm">{financials.ca?.toLocaleString()} MAD</p>
+                  <p className="font-bold text-sm">{(financials.ca||0).toLocaleString()} MAD</p>
                 </div>
-                <div className={`${financials.resultatMensuel > 0 ? 'bg-green-500' : 'bg-red-500'} rounded-lg p-2 text-white text-center`}>
-                  <p className="text-xs opacity-70">Résultat</p>
-                  <p className="font-bold text-sm">{financials.resultatMensuel?.toLocaleString()} MAD</p>
+                <div className={`${(financials.resultatMensuel||0) > 0 ? 'bg-green-500' : 'bg-red-500'} rounded-lg p-2 text-white text-center`}>
+                  <p className="text-xs opacity-70">Resultat</p>
+                  <p className="font-bold text-sm">{(financials.resultatMensuel||0).toLocaleString()} MAD</p>
                 </div>
                 <div className="bg-purple-500 rounded-lg p-2 text-white text-center">
-                  <p className="text-xs opacity-70">Rentabilité</p>
-                  <p className="font-bold text-sm">{financials.rentabilite}%</p>
+                  <p className="text-xs opacity-70">Rentabilite</p>
+                  <p className="font-bold text-sm">{financials.rentabilite||0}%</p>
                 </div>
                 <div className="bg-amber-500 rounded-lg p-2 text-white text-center">
                   <p className="text-xs opacity-70">Payback</p>
-                  <p className="font-bold text-sm">{financials.payback} mois</p>
+                  <p className="font-bold text-sm">{financials.payback||0} mois</p>
                 </div>
               </div>
-
               <div className="flex-1 overflow-y-auto p-4 text-xs text-gray-600 leading-relaxed whitespace-pre-line">
                 {etude}
               </div>
