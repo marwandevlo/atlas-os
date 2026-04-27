@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, TrendingUp, DollarSign } from 'lucide-react';
 
+const fmt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
 type Message = { role: 'user' | 'assistant'; content: string; };
 
 const questions = [
@@ -122,16 +124,16 @@ PROJET:
 - Financement: ${projectData.financement}
 
 ANALYSE FINANCIERE:
-- Capital: ${capital.toLocaleString()} MAD
-- CA mensuel: ${ca.toLocaleString()} MAD | Annuel: ${(ca*12).toLocaleString()} MAD
-- Loyer: ${loyer.toLocaleString()} MAD/mois
-- Salaires (${employes} emp x 4500): ${totalSalaires.toLocaleString()} MAD
+- Capital: ${capital} MAD
+- CA mensuel: ${ca} MAD | Annuel: ${fmt(ca*12)} MAD
+- Loyer: ${loyer} MAD/mois
+- Salaires (${employes} emp x 4500): ${totalSalaires} MAD
 - CNSS patronal: ${cnssPatronal.toFixed(0)} MAD | AMO: ${amoPatronal.toFixed(0)} MAD
-- Autres charges: ${charges.toLocaleString()} MAD
-- TOTAL CHARGES: ${totalCharges.toLocaleString()} MAD/mois
-- RESULTAT NET: ${resultatMensuel.toLocaleString()} MAD/mois | ${resultatAnnuel.toLocaleString()} MAD/an
-- TVA mensuelle: ${tva.toLocaleString()} MAD
-- IS annuel: ${is.toLocaleString()} MAD
+- Autres charges: ${charges} MAD
+- TOTAL CHARGES: ${totalCharges} MAD/mois
+- RESULTAT NET: ${resultatMensuel} MAD/mois | ${resultatAnnuel} MAD/an
+- TVA mensuelle: ${tva} MAD
+- IS annuel: ${is} MAD
 - Payback: ${payback} mois
 - Rentabilite: ${rentabilite}%
 - Score: ${score}
@@ -145,7 +147,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
 5. FORME JURIDIQUE ET CADRE LEGAL (analyse ${projectData.forme_juridique}, etapes, couts)
 6. PLAN FINANCIER PREVISIONNEL 3 ANS (tableaux detailles)
 7. ANALYSE FISCALE ET SOCIALE COMPLETE (TVA, IS, CNSS, declarations)
-8. BESOINS EN FINANCEMENT (${capital.toLocaleString()} MAD, options ${projectData.financement})
+8. BESOINS EN FINANCEMENT (${capital} MAD, options ${projectData.financement})
 9. ANALYSE SWOT
 10. INDICATEURS CLES DE PERFORMANCE (seuil rentabilite, payback, ROI)
 11. PLAN D'ACTION - CALENDRIER
@@ -157,7 +159,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
       setEtudeReady(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `🎉 Votre étude de faisabilité est prête!\n\n${score}\n\n📊 Indicateurs clés:\n• CA visé: ${ca.toLocaleString()} MAD/mois\n• Charges: ${totalCharges.toLocaleString()} MAD/mois\n• Résultat net: ${resultatMensuel.toLocaleString()} MAD/mois\n• Rentabilité: ${rentabilite}%\n• Payback: ${payback} mois\n\n✅ Document prêt pour banque / Intelaka / investisseurs\n\n📄 Téléchargez votre PDF professionnel →`
+        content: `🎉 Votre étude de faisabilité est prête!\n\n${score}\n\n📊 Indicateurs clés:\n• CA visé: ${ca} MAD/mois\n• Charges: ${totalCharges} MAD/mois\n• Résultat net: ${resultatMensuel} MAD/mois\n• Rentabilité: ${rentabilite}%\n• Payback: ${payback} mois\n\n✅ Document prêt pour banque / Intelaka / investisseurs\n\n📄 Téléchargez votre PDF professionnel →`
       }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Réessayez.' }]);
@@ -208,7 +210,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
         doc.setFontSize(6); doc.setFont('helvetica', 'normal');
         doc.setTextColor(...gray);
         doc.text(labels[i], bx + barW/2, y + h + 5, { align: 'center' });
-        if (val > 0) doc.text(val.toLocaleString(), bx + barW/2, by - 1, { align: 'center' });
+        if (val > 0) doc.text(val, bx + barW/2, by - 1, { align: 'center' });
       });
       doc.setDrawColor(...navy); doc.setLineWidth(0.3);
       doc.line(x, y, x, y + h); doc.line(x, y + h, x + w, y + h);
@@ -238,7 +240,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
       { label: 'SECTEUR', value: data.secteur || '' },
       { label: 'FORME JURIDIQUE', value: data.forme_juridique || '' },
       { label: 'VILLE', value: data.ville || '' },
-      { label: 'CAPITAL', value: `${(parseFloat(data.capital||'0')).toLocaleString()} MAD` },
+      { label: 'CAPITAL', value: `${(parseFloat(data.capital||'0'))} MAD` },
     ];
     infos.forEach((info, i) => {
       const ix = 20 + (i % 2) * 90; const iy = 132 + Math.floor(i / 2) * 22;
@@ -341,8 +343,8 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     y = 30;
 
     const kpis = [
-      { label: 'CA MENSUEL VISE', value: `${(financials.ca||0).toLocaleString()} MAD`, sub: `Annuel: ${((financials.ca||0)*12).toLocaleString()} MAD`, color: blue },
-      { label: 'RESULTAT NET/MOIS', value: `${(financials.resultatMensuel||0).toLocaleString()} MAD`, sub: `Annuel: ${(financials.resultatAnnuel||0).toLocaleString()} MAD`, color: (financials.resultatMensuel||0) > 0 ? green : red },
+      { label: 'CA MENSUEL VISE', value: `${fmt(financials.ca||0)} MAD`, sub: `Annuel: ${((financials.ca||0)*12)} MAD`, color: blue },
+      { label: 'RESULTAT NET/MOIS', value: `${fmt(financials.resultatMensuel||0)} MAD`, sub: `Annuel: ${fmt(financials.resultatAnnuel||0)} MAD`, color: (financials.resultatMensuel||0) > 0 ? green : red },
       { label: 'RENTABILITE', value: `${financials.rentabilite||0}%`, sub: 'Taux de marge nette', color: [124, 58, 237] as [number,number,number] },
       { label: 'DELAI RETOUR', value: `${financials.payback||0} mois`, sub: 'Payback period', color: [217, 119, 6] as [number,number,number] },
     ];
@@ -378,12 +380,12 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
       startY: y,
       head: [['POSTE DE CHARGES', 'MENSUEL (MAD)', 'ANNUEL (MAD)', '% DU TOTAL']],
       body: [
-        ['Loyer', (financials.loyer||0).toLocaleString(), ((financials.loyer||0)*12).toLocaleString(), `${financials.totalCharges ? (((financials.loyer||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
-        ['Salaires bruts', (financials.totalSalaires||0).toLocaleString(), ((financials.totalSalaires||0)*12).toLocaleString(), `${financials.totalCharges ? (((financials.totalSalaires||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['Loyer', fmt(financials.loyer||0), ((financials.loyer||0)*12), `${financials.totalCharges ? (((financials.loyer||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['Salaires bruts', fmt(financials.totalSalaires||0), ((financials.totalSalaires||0)*12), `${financials.totalCharges ? (((financials.totalSalaires||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
         ['CNSS patronal (21.26%)', (financials.cnssPatronal||0).toFixed(0), ((financials.cnssPatronal||0)*12).toFixed(0), `${financials.totalCharges ? (((financials.cnssPatronal||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
         ['AMO patronal (2.03%)', (financials.amoPatronal||0).toFixed(0), ((financials.amoPatronal||0)*12).toFixed(0), `${financials.totalCharges ? (((financials.amoPatronal||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
-        ['Autres charges', (financials.charges||0).toLocaleString(), ((financials.charges||0)*12).toLocaleString(), `${financials.totalCharges ? (((financials.charges||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
-        ['TOTAL CHARGES', (financials.totalCharges||0).toLocaleString(), ((financials.totalCharges||0)*12).toLocaleString(), '100%'],
+        ['Autres charges', fmt(financials.charges||0), ((financials.charges||0)*12), `${financials.totalCharges ? (((financials.charges||0)/financials.totalCharges)*100).toFixed(1) : 0}%`],
+        ['TOTAL CHARGES', fmt(financials.totalCharges||0), ((financials.totalCharges||0)*12), '100%'],
       ],
       headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 8 },
       bodyStyles: { fontSize: 8 },
@@ -409,12 +411,12 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
       startY: 30,
       head: [['COMPTE DE RESULTAT', 'ANNEE 1', 'ANNEE 2 (+20%)', 'ANNEE 3 (+15%)']],
       body: [
-        ['Chiffre d affaires HT', `${ca1.toLocaleString()} MAD`, `${ca2.toLocaleString()} MAD`, `${ca3.toLocaleString()} MAD`],
-        ['TVA collectee (20%)', `${(ca1*0.2).toLocaleString()} MAD`, `${(ca2*0.2).toLocaleString()} MAD`, `${(ca3*0.2).toLocaleString()} MAD`],
-        ['Total charges exploitation', `${ch1.toLocaleString()} MAD`, `${ch2.toLocaleString()} MAD`, `${ch3.toLocaleString()} MAD`],
-        ['Resultat avant IS', `${r1.toLocaleString()} MAD`, `${r2.toLocaleString()} MAD`, `${r3.toLocaleString()} MAD`],
-        ['Impot sur Societes (IS)', `${is1.toLocaleString()} MAD`, `${is2.toLocaleString()} MAD`, `${is3.toLocaleString()} MAD`],
-        ['RESULTAT NET', `${(r1-is1).toLocaleString()} MAD`, `${(r2-is2).toLocaleString()} MAD`, `${(r3-is3).toLocaleString()} MAD`],
+        ['Chiffre d affaires HT', `${ca1} MAD`, `${ca2} MAD`, `${ca3} MAD`],
+        ['TVA collectee (20%)', `${fmt(ca1*0.2)} MAD`, `${fmt(ca2*0.2)} MAD`, `${fmt(ca3*0.2)} MAD`],
+        ['Total charges exploitation', `${ch1} MAD`, `${ch2} MAD`, `${ch3} MAD`],
+        ['Resultat avant IS', `${r1} MAD`, `${r2} MAD`, `${r3} MAD`],
+        ['Impot sur Societes (IS)', `${is1} MAD`, `${is2} MAD`, `${is3} MAD`],
+        ['RESULTAT NET', `${fmt(r1-is1)} MAD`, `${fmt(r2-is2)} MAD`, `${fmt(r3-is3)} MAD`],
         ['Marge nette %', `${ca1 > 0 ? (((r1-is1)/ca1)*100).toFixed(1) : 0}%`, `${ca2 > 0 ? (((r2-is2)/ca2)*100).toFixed(1) : 0}%`, `${ca3 > 0 ? (((r3-is3)/ca3)*100).toFixed(1) : 0}%`],
       ],
       headStyles: { fillColor: navy, textColor: white, fontStyle: 'bold', fontSize: 9 },
@@ -428,8 +430,8 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
       startY: yf,
       head: [['OBLIGATION FISCALE / SOCIALE', 'FREQUENCE', 'MONTANT ESTIME', 'ORGANISME']],
       body: [
-        ['Declaration TVA', 'Mensuelle', `${((financials.ca||0)*0.20).toLocaleString()} MAD`, 'DGI / SIMPL'],
-        ['Acomptes IS (4 fois/an)', 'Trimestrielle', `${(is1/4).toLocaleString()} MAD`, 'DGI'],
+        ['Declaration TVA', 'Mensuelle', `${((financials.ca||0)*0.20)} MAD`, 'DGI / SIMPL'],
+        ['Acomptes IS (4 fois/an)', 'Trimestrielle', `${fmt(is1/4)} MAD`, 'DGI'],
         ['CNSS salariale (4.48%)', 'Mensuelle', `${((financials.totalSalaires||0)*0.0448).toFixed(0)} MAD`, 'CNSS'],
         ['CNSS patronale (21.26%)', 'Mensuelle', `${(financials.cnssPatronal||0).toFixed(0)} MAD`, 'CNSS'],
         ['AMO patronale (2.03%)', 'Mensuelle', `${(financials.amoPatronal||0).toFixed(0)} MAD`, 'CNSS'],
@@ -450,14 +452,14 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     const swotData = [
       { title: 'FORCES', color: [21,128,61] as [number,number,number], bg: [220,252,231] as [number,number,number], items: [
         `Experience: ${(data.experience||'').substring(0,50)}`,
-        `Capital disponible: ${(parseFloat(data.capital||'0')).toLocaleString()} MAD`,
+        `Capital disponible: ${(parseFloat(data.capital||'0'))} MAD`,
         `Localisation: ${data.ville} — marche porteur`,
         `Forme juridique adaptee: ${data.forme_juridique}`,
         'Differenciation: ' + (data.description||'').substring(0,40),
       ]},
       { title: 'FAIBLESSES', color: [185,28,28] as [number,number,number], bg: [254,226,226] as [number,number,number], items: [
         'Phase de demarrage — notoriete a construire',
-        `Charges fixes: ${(financials.totalCharges||0).toLocaleString()} MAD/mois des J1`,
+        `Charges fixes: ${fmt(financials.totalCharges||0)} MAD/mois des J1`,
         'Dependance aux premiers clients',
         'Besoin de financement externe',
         'Ressources humaines limitees au demarrage',
@@ -517,9 +519,9 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
         'Contacter les premiers clients / fournisseurs',
       ]},
       { phase: 'PHASE 3 — CROISSANCE (Mois 5-12)', color: green, items: [
-        `Atteindre le seuil de rentabilite: ${(financials.totalCharges||0).toLocaleString()} MAD/mois`,
+        `Atteindre le seuil de rentabilite: ${fmt(financials.totalCharges||0)} MAD/mois`,
         'Soumettre les declarations TVA mensuelles',
-        `Viser le CA mensuel de ${(financials.ca||0).toLocaleString()} MAD`,
+        `Viser le CA mensuel de ${fmt(financials.ca||0)} MAD`,
         'Fideliser la clientele — programme fidelite',
         'Bilan 6 mois et ajustement strategique',
         'Preparer les acomptes IS (juin et septembre)',
@@ -697,7 +699,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
             )}
           </div>
 
-          {etudeReady && (
+          {etudeReady && fmt(
             <div className="w-96 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
               <div className="bg-[#0F1F3D] px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
@@ -711,11 +713,11 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
               <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 border-b border-gray-200">
                 <div className="bg-blue-500 rounded-lg p-2 text-white text-center">
                   <p className="text-xs opacity-70">CA/mois</p>
-                  <p className="font-bold text-sm">{(financials.ca||0).toLocaleString()} MAD</p>
+                  <p className="font-bold text-sm">{(financials.ca||0)} MAD</p>
                 </div>
                 <div className={`${(financials.resultatMensuel||0) > 0 ? 'bg-green-500' : 'bg-red-500'} rounded-lg p-2 text-white text-center`}>
                   <p className="text-xs opacity-70">Resultat</p>
-                  <p className="font-bold text-sm">{(financials.resultatMensuel||0).toLocaleString()} MAD</p>
+                  <p className="font-bold text-sm">{fmt(financials.resultatMensuel||0)} MAD</p>
                 </div>
                 <div className="bg-purple-500 rounded-lg p-2 text-white text-center">
                   <p className="text-xs opacity-70">Rentabilite</p>
