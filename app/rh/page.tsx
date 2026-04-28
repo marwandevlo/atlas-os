@@ -33,87 +33,87 @@ type Doc = {
 type Message = { role: 'user' | 'assistant'; content: string };
 
 const docs: Doc[] = [
-  { id: 'attestation_travail', category: 'Attestations', name: 'Attestation de travail', nameAr: 'شهادة العمل', description: 'Certifie qu\'un employe travaille dans la societe', fields: ['nom_employe', 'cin_employe', 'poste', 'date_embauche', 'type_contrat'] },
+  { id: 'attestation_travail', category: 'Attestations', name: 'Attestation de travail', nameAr: 'شهادة العمل', description: "Certifie qu'un employé travaille au sein de la société", fields: ['nom_employe', 'cin_employe', 'poste', 'date_embauche', 'type_contrat'] },
   { id: 'attestation_salaire', category: 'Attestations', name: 'Attestation de salaire', nameAr: 'شهادة الأجر', description: 'Certifie le salaire mensuel net', fields: ['nom_employe', 'cin_employe', 'poste', 'salaire_brut', 'salaire_net', 'date_embauche'] },
-  { id: 'attestation_conge', category: 'Attestations', name: 'Attestation de conge', nameAr: 'شهادة الإجازة', description: 'Attestation de depart en conge annuel', fields: ['nom_employe', 'poste', 'date_debut_conge', 'date_fin_conge', 'nombre_jours'] },
-  { id: 'bulletin_paie', category: 'Attestations', name: 'Bulletin de paie', nameAr: 'بيان الراتب', description: 'Bulletin de salaire mensuel avec CNSS/AMO/IR', fields: ['nom_employe', 'cin_employe', 'poste', 'mois', 'salaire_brut', 'anciennete'] },
-  { id: 'cdi', category: 'Contrats de travail', name: 'Contrat CDI', nameAr: 'عقد العمل غير المحدد', description: 'Contrat a duree indeterminee', fields: ['nom_employe', 'cin_employe', 'adresse_employe', 'poste', 'salaire_brut', 'date_debut', 'lieu_travail', 'horaire'] },
-  { id: 'cdd', category: 'Contrats de travail', name: 'Contrat CDD', nameAr: 'عقد العمل المحدد', description: 'Contrat a duree determinee', fields: ['nom_employe', 'cin_employe', 'adresse_employe', 'poste', 'salaire_brut', 'date_debut', 'date_fin', 'motif_cdd'] },
+  { id: 'attestation_conge', category: 'Attestations', name: 'Attestation de congé', nameAr: 'شهادة الإجازة', description: 'Attestation de départ en congé annuel', fields: ['nom_employe', 'poste', 'date_debut_conge', 'date_fin_conge', 'nombre_jours'] },
+  { id: 'bulletin_paie', category: 'Attestations', name: 'Bulletin de paie', nameAr: 'بيان الراتب', description: 'Bulletin de salaire mensuel avec CNSS / AMO / IR', fields: ['nom_employe', 'cin_employe', 'poste', 'mois', 'salaire_brut', 'anciennete'] },
+  { id: 'cdi', category: 'Contrats de travail', name: 'Contrat CDI', nameAr: 'عقد العمل غير المحدد', description: 'Contrat à durée indéterminée', fields: ['nom_employe', 'cin_employe', 'adresse_employe', 'poste', 'salaire_brut', 'date_debut', 'lieu_travail', 'horaire'] },
+  { id: 'cdd', category: 'Contrats de travail', name: 'Contrat CDD', nameAr: 'عقد العمل المحدد', description: 'Contrat à durée déterminée', fields: ['nom_employe', 'cin_employe', 'adresse_employe', 'poste', 'salaire_brut', 'date_debut', 'date_fin', 'motif_cdd'] },
   { id: 'contrat_stage', category: 'Contrats de travail', name: 'Convention de Stage', nameAr: 'اتفاقية التدريب', description: 'Convention de stage PFE ou professionnel', fields: ['nom_stagiaire', 'cin_stagiaire', 'etablissement', 'niveau_etude', 'poste', 'date_debut', 'date_fin', 'indemnite'] },
-  { id: 'avertissement', category: 'Fin de contrat', name: 'Lettre d\'Avertissement', nameAr: 'رسالة إنذار', description: 'Avertissement disciplinaire ecrit', fields: ['nom_employe', 'poste', 'date_faute', 'nature_faute', 'mesure'] },
-  { id: 'lettre_licenciement', category: 'Fin de contrat', name: 'Lettre de Licenciement', nameAr: 'رسالة الفصل', description: 'Notification de licenciement conforme code du travail', fields: ['nom_employe', 'poste', 'date_embauche', 'motif_licenciement', 'date_effet', 'preavis'] },
-  { id: 'attestation_fin', category: 'Fin de contrat', name: 'Certificat de Travail Final', nameAr: 'شهادة نهاية الخدمة', description: 'Certificat remis a la fin du contrat', fields: ['nom_employe', 'cin_employe', 'poste', 'date_embauche', 'date_fin', 'motif_depart'] },
-  { id: 'recu_solde', category: 'Fin de contrat', name: 'Recu Solde de Tout Compte', nameAr: 'وصل تسوية الحساب', description: 'Recu de paiement du solde de tout compte', fields: ['nom_employe', 'date_fin', 'salaire_dernier_mois', 'conges_payes', 'indemnite_licenciement', 'total'] },
+  { id: 'avertissement', category: 'Fin de contrat', name: "Lettre d'avertissement", nameAr: 'رسالة إنذار', description: 'Avertissement disciplinaire écrit', fields: ['nom_employe', 'poste', 'date_faute', 'nature_faute', 'mesure'] },
+  { id: 'lettre_licenciement', category: 'Fin de contrat', name: 'Lettre de licenciement', nameAr: 'رسالة الفصل', description: 'Notification de licenciement conforme au Code du travail', fields: ['nom_employe', 'poste', 'date_embauche', 'motif_licenciement', 'date_effet', 'preavis'] },
+  { id: 'attestation_fin', category: 'Fin de contrat', name: 'Certificat de travail (fin de contrat)', nameAr: 'شهادة نهاية الخدمة', description: 'Certificat remis à la fin du contrat', fields: ['nom_employe', 'cin_employe', 'poste', 'date_embauche', 'date_fin', 'motif_depart'] },
+  { id: 'recu_solde', category: 'Fin de contrat', name: 'Reçu pour solde de tout compte', nameAr: 'وصل تسوية الحساب', description: 'Reçu de paiement du solde de tout compte', fields: ['nom_employe', 'date_fin', 'salaire_dernier_mois', 'conges_payes', 'indemnite_licenciement', 'total'] },
   { id: 'contrat_vente', category: 'Contrats commerciaux', name: 'Contrat de Vente', nameAr: 'عقد البيع', description: 'Contrat de vente de biens ou marchandises', fields: ['vendeur', 'acheteur', 'objet_vente', 'prix', 'date_livraison', 'conditions_paiement'] },
-  { id: 'contrat_prestation', category: 'Contrats commerciaux', name: 'Contrat de Prestation', nameAr: 'عقد الخدمات', description: 'Contrat de prestation de services', fields: ['prestataire', 'client', 'nature_prestation', 'duree', 'honoraires', 'modalites_paiement'] },
+  { id: 'contrat_prestation', category: 'Contrats commerciaux', name: 'Contrat de prestation', nameAr: 'عقد الخدمات', description: 'Contrat de prestation de services', fields: ['prestataire', 'client', 'nature_prestation', 'duree', 'honoraires', 'modalites_paiement'] },
   { id: 'contrat_bail', category: 'Contrats commerciaux', name: 'Contrat de Bail Commercial', nameAr: 'عقد الكراء التجاري', description: 'Contrat de location de local commercial', fields: ['bailleur', 'locataire', 'adresse_local', 'superficie', 'loyer_mensuel', 'duree_bail', 'depot_garantie'] },
   { id: 'contrat_domiciliation', category: 'Contrats commerciaux', name: 'Contrat de Domiciliation', nameAr: 'عقد التوطين', description: 'Contrat de domiciliation du siege social', fields: ['domiciliataire', 'domicilie', 'adresse', 'duree', 'honoraires_mensuels'] },
-  { id: 'nda', category: 'Contrats commerciaux', name: 'Accord de Confidentialite NDA', nameAr: 'اتفاقية السرية', description: 'Non-Disclosure Agreement', fields: ['partie_1', 'partie_2', 'objet_confidentialite', 'duree', 'date'] },
+  { id: 'nda', category: 'Contrats commerciaux', name: 'Accord de confidentialité (NDA)', nameAr: 'اتفاقية السرية', description: 'Non‑Disclosure Agreement', fields: ['partie_1', 'partie_2', 'objet_confidentialite', 'duree', 'date'] },
 ];
 
 const categories = ['Attestations', 'Contrats de travail', 'Fin de contrat', 'Contrats commerciaux'];
 
 const fieldLabels: Record<string, string> = {
-  nom_employe: "Nom complet de l'employe",
-  cin_employe: "Numero CIN de l'employe",
-  adresse_employe: "Adresse complete de l'employe",
-  poste: 'Poste / Fonction occupee',
+  nom_employe: "Nom complet de l'employé",
+  cin_employe: "Numéro de CIN de l'employé",
+  adresse_employe: "Adresse complète de l'employé",
+  poste: 'Poste / fonction occupée',
   date_embauche: "Date d'embauche (JJ/MM/AAAA)",
   type_contrat: 'Type de contrat (CDI/CDD/Stage)',
   salaire_brut: 'Salaire brut mensuel en MAD',
   salaire_net: 'Salaire net mensuel en MAD',
-  date_debut_conge: 'Date de debut du conge',
-  date_fin_conge: 'Date de fin du conge',
-  nombre_jours: 'Nombre de jours de conge',
-  mois: 'Mois et annee du bulletin (ex: Avril 2026)',
-  anciennete: "Anciennete dans la societe (annees)",
-  date_debut: 'Date de debut du contrat',
+  date_debut_conge: 'Date de début du congé',
+  date_fin_conge: 'Date de fin du congé',
+  nombre_jours: 'Nombre de jours de congé',
+  mois: 'Mois et année du bulletin (ex. avril 2026)',
+  anciennete: 'Ancienneté dans la société (années)',
+  date_debut: 'Date de début du contrat',
   date_fin: 'Date de fin du contrat',
   lieu_travail: 'Lieu de travail',
   horaire: 'Horaire de travail (ex: 8h-17h Lundi-Vendredi)',
   motif_cdd: 'Motif du CDD',
   nom_stagiaire: 'Nom complet du stagiaire',
   cin_stagiaire: 'CIN du stagiaire',
-  etablissement: "Etablissement d'enseignement",
-  niveau_etude: "Niveau d'etude (Licence, Master, BTS...)",
-  indemnite: 'Indemnite de stage en MAD/mois',
+  etablissement: "Établissement d'enseignement",
+  niveau_etude: "Niveau d'étude (licence, master, BTS, etc.)",
+  indemnite: 'Indemnité de stage (MAD / mois)',
   date_faute: 'Date de la faute commise',
   nature_faute: 'Nature de la faute',
   mesure: 'Mesure disciplinaire',
   motif_licenciement: 'Motif du licenciement',
   date_effet: "Date d'effet du licenciement",
-  preavis: 'Duree du preavis (ex: 1 mois)',
-  motif_depart: 'Motif du depart',
+  preavis: 'Durée du préavis (ex. 1 mois)',
+  motif_depart: 'Motif du départ',
   salaire_dernier_mois: 'Salaire du dernier mois en MAD',
-  conges_payes: 'Conges payes non pris en MAD',
-  indemnite_licenciement: 'Indemnite de licenciement en MAD',
+  conges_payes: 'Congés payés non pris (MAD)',
+  indemnite_licenciement: 'Indemnité de licenciement (MAD)',
   total: 'Total solde de tout compte en MAD',
-  vendeur: 'Nom/Societe du vendeur',
-  acheteur: "Nom/Societe de l'acheteur",
+  vendeur: 'Nom / société du vendeur',
+  acheteur: "Nom / société de l'acheteur",
   objet_vente: "Description de l'objet vendu",
   prix: 'Prix de vente en MAD',
-  date_livraison: 'Date de livraison prevue',
+  date_livraison: 'Date de livraison prévue',
   conditions_paiement: 'Conditions de paiement',
-  prestataire: 'Nom/Societe du prestataire',
-  client: 'Nom/Societe du client',
+  prestataire: 'Nom / société du prestataire',
+  client: 'Nom / société du client',
   nature_prestation: 'Nature de la prestation',
-  duree: 'Duree',
+  duree: 'Durée',
   honoraires: 'Honoraires en MAD',
-  modalites_paiement: 'Modalites de paiement',
-  bailleur: 'Nom/Societe du bailleur',
-  locataire: 'Nom/Societe du locataire',
-  adresse_local: 'Adresse complete du local',
+  modalites_paiement: 'Modalités de paiement',
+  bailleur: 'Nom / société du bailleur',
+  locataire: 'Nom / société du locataire',
+  adresse_local: 'Adresse complète du local',
   superficie: 'Superficie en m2',
   loyer_mensuel: 'Loyer mensuel en MAD HT',
-  duree_bail: 'Duree du bail (ex: 3 ans)',
-  depot_garantie: 'Depot de garantie en MAD',
-  domiciliataire: 'Nom/Societe domiciliataire',
-  domicilie: 'Nom/Societe domiciliee',
+  duree_bail: 'Durée du bail (ex. 3 ans)',
+  depot_garantie: 'Dépôt de garantie (MAD)',
+  domiciliataire: 'Nom / société domiciliataire',
+  domicilie: 'Nom / société domiciliée',
   adresse: 'Adresse de domiciliation',
   honoraires_mensuels: 'Honoraires mensuels en MAD',
-  partie_1: 'Nom/Societe Partie 1',
-  partie_2: 'Nom/Societe Partie 2',
-  objet_confidentialite: 'Informations confidentielles concernees',
+  partie_1: 'Nom / société — Partie 1',
+  partie_2: 'Nom / société — Partie 2',
+  objet_confidentialite: 'Informations confidentielles concernées',
   date: 'Date de signature',
 };
 
@@ -157,7 +157,7 @@ export default function RHPage() {
     setSelectedCompany(null);
     setSearchCompany('');
     setPhase('select_company');
-    setMessages([{ role: 'assistant', content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle societe souhaitez-vous ce document?\nChoisissez dans la liste.` }]);
+    setMessages([{ role: 'assistant', content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle société souhaitez-vous ce document ?\nChoisissez dans la liste.` }]);
   };
 
   const chooseCompany = (company: Company) => {
@@ -166,7 +166,7 @@ export default function RHPage() {
     setStep(0);
     setMessages(prev => [...prev,
       { role: 'user', content: `✅ ${company.raisonSociale}` },
-      { role: 'assistant', content: `✅ Societe: ${company.raisonSociale}\nIF: ${company.if_fiscal} | CNSS: ${company.cnss} | ${company.ville}\n\n${fieldLabels[selectedDoc!.fields[0]]}?` }
+      { role: 'assistant', content: `✅ Société : ${company.raisonSociale}\nIF : ${company.if_fiscal} | CNSS : ${company.cnss} | ${company.ville}\n\n${fieldLabels[selectedDoc!.fields[0]]} ?` }
     ]);
   };
 
@@ -186,7 +186,7 @@ export default function RHPage() {
       }, 300);
     } else {
       setLoading(true);
-      setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Generation du document...' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '⏳ Génération du document…' }]);
       await generateDoc(newData);
       setLoading(false);
     }
@@ -238,9 +238,9 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
       }
       setDocContent(responseData.response);
       setDocReady(true);
-      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\n📥 Telechargez en PDF ou Word →` }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document généré.\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\n📥 Téléchargez en PDF ou Word →` }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur. Reessayez.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Une erreur est survenue. Réessayez.' }]);
     }
   };
 
@@ -297,7 +297,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
       await navigator.share({ title: selectedDoc?.name, text });
     } else {
       await navigator.clipboard.writeText(text);
-      alert('Copie dans le presse-papier!');
+      alert('Copié dans le presse-papiers.');
     }
   };
 
@@ -339,7 +339,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
         {selectedCompany && (
           <div className="px-4 py-3 border-t border-white/10">
             <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-white/30 text-xs mb-1">Societe selectionnee</p>
+              <p className="text-white/30 text-xs mb-1">Société sélectionnée</p>
               <p className="text-white/70 text-xs font-medium truncate">{selectedCompany.raisonSociale}</p>
               <p className="text-white/30 text-xs">{selectedCompany.ville}</p>
             </div>
@@ -384,7 +384,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800 text-sm">{selectedDoc.name}</p>
-                  <p className="text-xs text-gray-400">{selectedCompany ? selectedCompany.raisonSociale : 'Selectionnez une societe'}</p>
+                  <p className="text-xs text-gray-400">{selectedCompany ? selectedCompany.raisonSociale : 'Sélectionnez une société'}</p>
                 </div>
               </div>
               {docReady && (
@@ -442,7 +442,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                   <div className="bg-white border-t border-gray-200 px-6 py-3">
                     <div className="flex gap-2">
                       <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                        placeholder="Votre reponse..." className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400" autoFocus />
+                        placeholder="Votre réponse…" className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-green-400" autoFocus />
                       <button onClick={sendMessage} disabled={loading} className="px-4 py-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50">
                         <Send size={16} />
                       </button>
@@ -454,8 +454,8 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
               {phase === 'select_company' && (
                 <div className="w-80 border-l border-gray-200 bg-white flex flex-col overflow-hidden shrink-0">
                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                    <p className="font-semibold text-gray-700 text-sm">Choisir la societe</p>
-                    <p className="text-xs text-gray-400">{companies.length} societes disponibles</p>
+                    <p className="font-semibold text-gray-700 text-sm">Choisir la société</p>
+                    <p className="text-xs text-gray-400">{companies.length} sociétés disponibles</p>
                   </div>
                   <div className="px-3 py-2 border-b border-gray-100">
                     <div className="relative">
@@ -483,9 +483,9 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                     ))}
                     {filteredCompanies.length === 0 && (
                       <div className="text-center py-8">
-                        <p className="text-gray-400 text-sm">Aucune societe trouvee</p>
+                        <p className="text-gray-400 text-sm">Aucune société trouvée</p>
                         <button onClick={() => router.push('/companies')} className="mt-2 text-xs text-green-500 hover:underline">
-                          + Ajouter une societe
+                          + Ajouter une société
                         </button>
                       </div>
                     )}
@@ -498,7 +498,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
           <div className="flex-1 hidden lg:flex items-center justify-center bg-gray-50">
             <div className="text-center">
               <Users size={48} className="text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 font-medium">Selectionnez un document RH</p>
+              <p className="text-gray-500 font-medium">Sélectionnez un document RH</p>
               <p className="text-gray-400 text-sm mt-1">Contrats, attestations, certificats...</p>
             </div>
           </div>

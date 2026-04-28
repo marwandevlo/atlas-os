@@ -3,6 +3,10 @@ import { useState, useRef } from 'react';
 import { ArrowLeft, Upload, FileText, CheckCircle, Clock, Trash2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { fetchAi } from '../lib/fetch-ai';
+import { addDaysYmd, todayYmd } from '@/app/lib/atlas-dates';
+import { readSupplierInvoicesFromLocalStorage, writeSupplierInvoicesToLocalStorage } from '@/app/lib/atlas-supplier-invoices-repository';
+import type { AtlasSupplierInvoice } from '@/app/types/atlas-supplier-invoice';
+import { normalizePaymentTerms } from '@/app/types/atlas-payment-terms';
 
 type Document = {
   id: number;
@@ -23,6 +27,33 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [dragging, setDragging] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+
+  const createSupplierInvoice = (doc: Document) => {
+    if (!doc.fournisseur || !doc.montant_ttc) return;
+    const issueDate = doc.date || todayYmd();
+    const paymentTerms = normalizePaymentTerms({ kind: 'preset', days: 60 });
+    const dueDate = addDaysYmd(issueDate, paymentTerms.days);
+
+    const next: AtlasSupplierInvoice = {
+      id: Date.now(),
+      supplierName: doc.fournisseur,
+      invoiceNumber: doc.numero_facture,
+      issueDate,
+      amountHT: doc.montant_ht,
+      vatAmount: doc.montant_tva,
+      totalTTC: doc.montant_ttc,
+      paymentTerms,
+      dueDate,
+      status: 'unpaid',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const existing = readSupplierInvoicesFromLocalStorage();
+    const updated = [...existing, next];
+    writeSupplierInvoicesToLocalStorage(updated);
+    router.push('/clients');
+  };
 
   const analyzeImage = async (file: File) => {
     setAnalyzing(true);
@@ -105,7 +136,7 @@ export default function DocumentsPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-800">Documents IA — OCR</h1>
-              <p className="text-xs text-gray-400">Claude analyse vos factures automatiquement</p>
+              <p className="text-xs text-gray-400">Analyse automatique de vos factures</p>
             </div>
           </div>
         </header>
@@ -138,7 +169,7 @@ export default function DocumentsPage() {
             {analyzing ? (
               <div className="flex flex-col items-center gap-3">
                 <div className="w-12 h-12 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-rose-600 font-medium">Claude analyse votre facture...</p>
+                <p className="text-rose-600 font-medium">Analyse de votre facture en cours…</p>
                 <p className="text-sm text-gray-400">Extraction des données en cours</p>
               </div>
             ) : (
@@ -148,7 +179,7 @@ export default function DocumentsPage() {
                 </div>
                 <p className="font-medium text-gray-700">Déposez votre facture ici</p>
                 <p className="text-sm text-gray-400">Images (JPG, PNG) ou PDF</p>
-                <p className="text-xs text-rose-500 font-medium">Claude extrait: N° facture, fournisseur, montants, TVA</p>
+                <p className="text-xs text-rose-500 font-medium">Extraction : n° de facture, fournisseur, montants, TVA</p>
               </div>
             )}
           </div>
@@ -189,9 +220,19 @@ export default function DocumentsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => setDocuments(documents.filter(x => x.id !== d.id))} className="text-gray-300 hover:text-red-500 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="flex items-center justify-end gap-3">
+                          {d.statut === 'analysé' && d.fournisseur && d.montant_ttc && (
+                            <button
+                              onClick={() => createSupplierInvoice(d)}
+                              className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                            >
+                              + Facture fournisseur
+                            </button>
+                          )}
+                          <button onClick={() => setDocuments(documents.filter(x => x.id !== d.id))} className="text-gray-300 hover:text-red-500 transition-colors">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

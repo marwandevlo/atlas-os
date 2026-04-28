@@ -9,26 +9,26 @@ const fmt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d)
 type Message = { role: 'user' | 'assistant'; content: string; };
 
 const questions = [
-  { key: 'nom_projet', q: "Quel est le nom de votre projet?" },
-  { key: 'nom_gerant', q: "Quel est votre nom complet (gérant/porteur de projet)?" },
-  { key: 'cin', q: "Votre numéro de CIN?" },
-  { key: 'experience', q: "Décrivez votre expérience dans ce domaine (années, postes, formations...)?" },
-  { key: 'secteur', q: "Dans quel secteur d'activité?\n(Commerce, Services, Restauration, BTP, Industrie, Agriculture, Transport, Santé, IT...)" },
-  { key: 'forme_juridique', q: "Forme juridique souhaitée?\n1. Auto-entrepreneur\n2. SARL AU (associé unique)\n3. SARL (plusieurs associés)\n4. SA\n5. Recommandez-moi la meilleure option" },
-  { key: 'ville', q: "Dans quelle ville au Maroc?" },
-  { key: 'capital', q: "Capital disponible en MAD?" },
-  { key: 'loyer', q: "Loyer mensuel prévu en MAD? (0 si local propre)" },
-  { key: 'employes', q: "Nombre d'employés au démarrage?" },
-  { key: 'ca_prevu', q: "Chiffre d'affaires mensuel visé en MAD?" },
-  { key: 'charges', q: "Autres charges mensuelles en MAD (fournitures, transport, communication...)" },
-  { key: 'financement', q: "Type de financement recherché?\n1. Prêt bancaire classique\n2. Programme Intelaka (jeunes entrepreneurs)\n3. Fonds Hassan II\n4. Investisseur privé / Business Angel\n5. Autofinancement\n6. Combinaison de plusieurs sources" },
-  { key: 'description', q: "Décrivez votre projet et ce qui le différencie de la concurrence (2-3 phrases)." },
+  { key: 'nom_projet', q: 'Quel est le nom de votre projet ?' },
+  { key: 'nom_gerant', q: 'Quel est votre nom complet (gérant / porteur de projet) ?' },
+  { key: 'cin', q: 'Quel est votre numéro de CIN ?' },
+  { key: 'experience', q: 'Décrivez votre expérience dans ce domaine (années, postes, formations, etc.).' },
+  { key: 'secteur', q: "Dans quel secteur d'activité ?\n(Commerce, services, restauration, BTP, industrie, agriculture, transport, santé, IT, etc.)" },
+  { key: 'forme_juridique', q: "Forme juridique souhaitée ?\n1. Auto-entrepreneur\n2. SARL AU (associé unique)\n3. SARL (plusieurs associés)\n4. SA\n5. Recommandez-moi la meilleure option" },
+  { key: 'ville', q: 'Dans quelle ville au Maroc ?' },
+  { key: 'capital', q: 'Quel capital est disponible (MAD) ?' },
+  { key: 'loyer', q: 'Quel loyer mensuel prévoyez-vous (MAD) ? (0 si local propre)' },
+  { key: 'employes', q: "Combien d'employés au démarrage ?" },
+  { key: 'ca_prevu', q: "Quel chiffre d'affaires mensuel visez-vous (MAD) ?" },
+  { key: 'charges', q: 'Quelles autres charges mensuelles prévoyez-vous (MAD) ? (fournitures, transport, communication, etc.)' },
+  { key: 'financement', q: "Type de financement recherché ?\n1. Prêt bancaire classique\n2. Programme Intelaka (jeunes entrepreneurs)\n3. Fonds Hassan II\n4. Investisseur privé / Business Angel\n5. Autofinancement\n6. Combinaison de plusieurs sources" },
+  { key: 'description', q: 'Décrivez votre projet et ce qui le différencie de la concurrence (2–3 phrases).' },
 ];
 
 export default function EtudeProjetPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Bonjour! 👋 Je suis votre expert en création d'entreprise au Maroc.\n\nJe vais créer une étude de faisabilité PROFESSIONNELLE prête à soumettre à une banque, un investisseur ou un programme de soutien (Intelaka, Hassan II...).\n\nRépondez à mes questions et votre dossier sera prêt en quelques minutes!\n\n" + questions[0].q }
+    { role: 'assistant', content: "Bonjour. Je suis votre expert en création d'entreprise au Maroc.\n\nJe vais créer une étude de faisabilité professionnelle, prête à soumettre à une banque, un investisseur ou un programme de soutien (Intelaka, Hassan II, etc.).\n\nRépondez à mes questions et votre dossier sera prêt en quelques minutes.\n\n" + questions[0].q }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,7 +67,7 @@ export default function EtudeProjetPage() {
       setLoading(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "✅ Parfait! J'ai toutes les informations.\n\n🔄 Génération de votre étude complète...\nCela peut prendre 15-30 secondes ⏳"
+        content: "✅ Parfait. J'ai toutes les informations.\n\n🔄 Génération de votre étude complète…\nCela peut prendre 15–30 secondes."
       }]);
       await generateEtude(newData);
       setLoading(false);
@@ -106,11 +106,11 @@ PORTEUR DU PROJET:
 - Expérience: ${projectData.experience}
 
 ENTREPRISE:
-- Raison sociale: ${companyData.raisonSociale || 'A creer'}
-- IF: ${companyData.if_fiscal || 'A obtenir'}
-- ICE: ${companyData.ice || 'A obtenir'}
-- RC: ${companyData.rc || 'A obtenir'}
-- CNSS: ${companyData.cnss || 'A obtenir'}
+- Raison sociale: ${companyData.raisonSociale || 'À créer'}
+- IF: ${companyData.if_fiscal || 'À obtenir'}
+- ICE: ${companyData.ice || 'À obtenir'}
+- RC: ${companyData.rc || 'À obtenir'}
+- CNSS: ${companyData.cnss || 'À obtenir'}
 - Adresse: ${companyData.adresse || ''} ${companyData.ville || ''}
 
 PROJET:
@@ -193,7 +193,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     const addFooter = (pageNum: number, total: number) => {
       doc.setFillColor(...navy); doc.rect(0, 287, W, 10, 'F');
       doc.setTextColor(...white); doc.setFontSize(7);
-      doc.text(`Atlas OS Enterprise · ${data.nom_projet || 'Etude de Faisabilite'} · Confidentiel`, 14, 293);
+      doc.text(`Atlas OS Enterprise · ${data.nom_projet || 'Étude de faisabilité'} · Confidentiel`, 14, 293);
       doc.text(`${pageNum} / ${total}`, W - 14, 293, { align: 'right' });
     };
 
@@ -230,7 +230,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     doc.setFillColor(...gold); doc.rect(20, 44, 170, 1.5, 'F');
 
     doc.setTextColor(...white); doc.setFontSize(38); doc.setFont('helvetica', 'bold');
-    doc.text('ETUDE DE', 20, 75); doc.text('FAISABILITE', 20, 97);
+    doc.text('ÉTUDE DE', 20, 75); doc.text('FAISABILITÉ', 20, 97);
     doc.setFillColor(...gold); doc.rect(20, 103, 110, 2, 'F');
 
     doc.setFontSize(20); doc.setTextColor(...gold);
@@ -548,7 +548,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     addFooter(6, TOTAL_PAGES);
 
     // ══ PAGE 7 — ETUDE COMPLETE AI ══
-    doc.addPage(); addHeader('ANALYSE EXPERTE COMPLETE', `Etude de faisabilite — ${data.nom_projet || 'Projet'}`);
+    doc.addPage(); addHeader('ANALYSE EXPERTE COMPLÈTE', `Étude de faisabilité — ${data.nom_projet || 'Projet'}`);
 
     doc.setTextColor(50, 50, 50);
     const lines = doc.splitTextToSize(etude.replace(/\*\*/g, '').replace(/#{1,3} /g, '').replace(/══+/g, ''), 178);
@@ -589,7 +589,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
             <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <BarChart2 size={16} /> Etude de Projet
+            <BarChart2 size={16} /> Étude de projet
           </button>
         </nav>
         <div className="px-4 py-4 border-t border-white/10 space-y-3">
@@ -603,7 +603,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
           {companyData.raisonSociale && (
             <div className="bg-white/5 rounded-lg p-3">
               <p className="text-white/30 text-xs mb-1 flex items-center gap-1">
-                <CheckCircle size={10} className="text-green-400" /> Donnees societe
+                <CheckCircle size={10} className="text-green-400" /> Données société
               </p>
               <p className="text-white/70 text-xs font-medium">{companyData.raisonSociale}</p>
               {companyData.if_fiscal && <p className="text-white/30 text-xs">IF: {companyData.if_fiscal}</p>}
@@ -629,8 +629,8 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
               <BarChart2 size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-800">Etude de Faisabilite du Projet</h1>
-              <p className="text-xs text-gray-400">Document professionnel · Pret pour banque / investisseur / Intelaka</p>
+              <h1 className="text-lg font-bold text-gray-800">Étude de faisabilité du projet</h1>
+              <p className="text-xs text-gray-400">Document professionnel · Prêt pour banque / investisseur / Intelaka</p>
             </div>
           </div>
           {etudeReady && (
@@ -672,7 +672,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{animationDelay:'0.1s'}}></div>
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{animationDelay:'0.2s'}}></div>
-                      <span className="text-xs text-gray-400 ml-2">Generation en cours...</span>
+                      <span className="text-xs text-gray-400 ml-2">Génération en cours…</span>
                     </div>
                   </div>
                 </div>
@@ -687,7 +687,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                    placeholder="Votre reponse..."
+                    placeholder="Votre réponse…"
                     className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-amber-400"
                     autoFocus
                   />
@@ -704,7 +704,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
               <div className="bg-[#0F1F3D] px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} className="text-green-400" />
-                  <p className="text-white font-semibold text-sm">Apercu Etude</p>
+                  <p className="text-white font-semibold text-sm">Aperçu de l’étude</p>
                 </div>
                 <button onClick={downloadPDF} className="flex items-center gap-1 text-amber-400 hover:text-amber-300 text-xs">
                   <Download size={12} /> PDF

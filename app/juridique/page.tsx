@@ -832,7 +832,7 @@ EN-TETE: ${header}
   if (step === 'select_type') return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 bg-white">
-        <h2 className="font-bold text-gray-800">Modifications Société</h2>
+        <h2 className="font-bold text-gray-800">Modifications de société</h2>
         <p className="text-xs text-gray-400 mt-0.5">Choisissez le type de modification</p>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

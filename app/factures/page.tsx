@@ -1,54 +1,196 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Plus, Trash2, Download, Send, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { addDaysYmd, isOverdue, todayYmd } from '@/app/lib/atlas-dates';
+import { readInvoicesFromLocalStorage, writeInvoicesToLocalStorage } from '@/app/lib/atlas-invoices-repository';
+import type { AtlasInvoice } from '@/app/types/atlas-invoice';
+import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
+import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
 
-type Facture = {
+type FactureRow = {
   id: number;
   numero: string;
   client: string;
   date: string;
+  delai: string;
+  echeance: string;
   montantHT: number;
   tva: number;
+  ttc: number;
   statut: 'payée' | 'en attente' | 'en retard';
 };
 
 export default function FacturesPage() {
   const router = useRouter();
-  const [factures, setFactures] = useState<Facture[]>([
-    { id: 1, numero: 'F-2026-001', client: 'Société Alpha', date: '2026-04-01', montantHT: 15000, tva: 3000, statut: 'payée' },
-    { id: 2, numero: 'F-2026-002', client: 'Entreprise Beta', date: '2026-04-05', montantHT: 8500, tva: 1700, statut: 'en attente' },
-    { id: 3, numero: 'F-2026-003', client: 'Client Gamma', date: '2026-03-20', montantHT: 5000, tva: 1000, statut: 'en retard' },
-  ]);
+  const [invoices, setInvoices] = useState<AtlasInvoice[]>([]);
 
   const [showForm, setShowForm] = useState(false);
+  const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
+  const [termsCustomDays, setTermsCustomDays] = useState('45');
   const [form, setForm] = useState({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
+
+  useEffect(() => {
+    const existing = readInvoicesFromLocalStorage();
+    if (existing.length) {
+      setInvoices(existing);
+      return;
+    }
+
+    const seed: AtlasInvoice[] = [
+      {
+        id: 1,
+        number: 'F-2026-001',
+        clientName: 'Société Alpha',
+        issueDate: '2026-04-01',
+        amountHT: 15000,
+        vatRate: 0.2,
+        vatAmount: 3000,
+        totalTTC: 18000,
+        paymentTerms: { kind: 'preset', days: 30 },
+        dueDate: addDaysYmd('2026-04-01', 30),
+        status: 'paid',
+        paidAt: '2026-04-15',
+        paidAmount: 18000,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        number: 'F-2026-002',
+        clientName: 'Entreprise Beta',
+        issueDate: '2026-04-05',
+        amountHT: 8500,
+        vatRate: 0.2,
+        vatAmount: 1700,
+        totalTTC: 10200,
+        paymentTerms: { kind: 'preset', days: 60 },
+        dueDate: addDaysYmd('2026-04-05', 60),
+        status: 'sent',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 3,
+        number: 'F-2026-003',
+        clientName: 'Client Gamma',
+        issueDate: '2026-03-20',
+        amountHT: 5000,
+        vatRate: 0.2,
+        vatAmount: 1000,
+        totalTTC: 6000,
+        paymentTerms: { kind: 'preset', days: 30 },
+        dueDate: addDaysYmd('2026-03-20', 30),
+        status: 'sent',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+    setInvoices(seed);
+    writeInvoicesToLocalStorage(seed);
+  }, []);
 
   const addFacture = () => {
     if (!form.numero || !form.client || !form.montantHT) return;
-    const ht = parseFloat(form.montantHT);
-    const tva = ht * (parseFloat(form.taux) / 100);
-    setFactures([...factures, {
+
+    const issueDate = form.date || todayYmd();
+    const ht = Number.parseFloat(form.montantHT);
+    const vatRate = (Number.parseFloat(form.taux) || 0) / 100;
+    const vatAmount = ht * vatRate;
+    const totalTTC = ht + vatAmount;
+
+    const paymentTerms: AtlasPaymentTerms =
+      termsKind === 'custom'
+        ? { kind: 'custom', days: Number.parseInt(termsCustomDays || '0', 10) || 0 }
+        : { kind: 'preset', days: Number.parseInt(termsKind, 10) as AtlasPaymentTermsPreset };
+
+    const normalized = normalizePaymentTerms(paymentTerms);
+    const dueDate = addDaysYmd(issueDate, normalized.days);
+
+    const now = new Date().toISOString();
+    const next: AtlasInvoice = {
       id: Date.now(),
-      numero: form.numero,
-      client: form.client,
-      date: form.date || new Date().toISOString().split('T')[0],
-      montantHT: ht,
-      tva,
-      statut: 'en attente',
-    }]);
+      number: form.numero,
+      clientName: form.client,
+      issueDate,
+      amountHT: ht,
+      vatRate,
+      vatAmount,
+      totalTTC,
+      paymentTerms: normalized,
+      dueDate,
+      status: 'sent',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const updated = [...invoices, next];
+    setInvoices(updated);
+    writeInvoicesToLocalStorage(updated);
+
     setForm({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
+    setTermsKind('30');
+    setTermsCustomDays('45');
     setShowForm(false);
   };
 
-  const statutColor = (s: string) => {
+  const rows: FactureRow[] = useMemo(() => {
+    const now = todayYmd();
+    return invoices.map((inv) => {
+      const paid = inv.status === 'paid';
+      const overdue = isOverdue(inv.dueDate, paid, now);
+      const statut: FactureRow['statut'] = paid ? 'payée' : overdue ? 'en retard' : 'en attente';
+      return {
+        id: inv.id,
+        numero: inv.number,
+        client: inv.clientName,
+        date: inv.issueDate,
+        delai: paymentTermsLabel(inv.paymentTerms),
+        echeance: inv.dueDate,
+        montantHT: inv.amountHT,
+        tva: inv.vatAmount,
+        ttc: inv.totalTTC,
+        statut,
+      };
+    });
+  }, [invoices]);
+
+  const statutColor = (s: FactureRow['statut']) => {
     if (s === 'payée') return 'bg-green-100 text-green-700';
     if (s === 'en attente') return 'bg-amber-100 text-amber-700';
     return 'bg-red-100 text-red-700';
   };
 
-  const total = factures.reduce((sum, f) => sum + f.montantHT + f.tva, 0);
-  const enAttente = factures.filter(f => f.statut === 'en attente').reduce((sum, f) => sum + f.montantHT + f.tva, 0);
+  const totals = useMemo(() => {
+    const totalFacture = rows.reduce((sum, r) => sum + r.ttc, 0);
+    const totalUnpaid = rows.filter((r) => r.statut !== 'payée').reduce((sum, r) => sum + r.ttc, 0);
+    const totalOverdue = rows.filter((r) => r.statut === 'en retard').reduce((sum, r) => sum + r.ttc, 0);
+    const overdueCount = rows.filter((r) => r.statut === 'en retard').length;
+    return { totalFacture, totalUnpaid, totalOverdue, overdueCount };
+  }, [rows]);
+
+  const markPaid = (id: number) => {
+    const nowYmd = todayYmd();
+    const updated = invoices.map((inv) => {
+      if (inv.id !== id) return inv;
+      const next: AtlasInvoice = {
+        ...inv,
+        status: 'paid',
+        paidAt: nowYmd,
+        paidAmount: inv.totalTTC,
+        updatedAt: new Date().toISOString(),
+      };
+      return next;
+    });
+    setInvoices(updated);
+    writeInvoicesToLocalStorage(updated);
+  };
+
+  const removeInvoice = (id: number) => {
+    const updated = invoices.filter((inv) => inv.id !== id);
+    setInvoices(updated);
+    writeInvoicesToLocalStorage(updated);
+  };
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -82,17 +224,23 @@ export default function FacturesPage() {
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <p className="text-xs text-gray-400">Total facturé</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{total.toLocaleString()} MAD</p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">{totals.totalFacture.toLocaleString()} MAD</p>
             </div>
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400">En attente</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{enAttente.toLocaleString()} MAD</p>
+              <p className="text-xs text-gray-400">Reste à encaisser</p>
+              <p className="text-2xl font-bold text-amber-600 mt-1">{totals.totalUnpaid.toLocaleString()} MAD</p>
             </div>
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400">Nombre de factures</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{factures.length}</p>
+              <p className="text-xs text-gray-400">Retards de paiement</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">{totals.overdueCount}</p>
             </div>
           </div>
+
+          {totals.overdueCount > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
+              <span className="font-semibold">Alerte paiements :</span> {totals.overdueCount} facture(s) en retard — {totals.totalOverdue.toLocaleString()} MAD.
+            </div>
+          )}
 
           {showForm && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-200">
@@ -102,6 +250,27 @@ export default function FacturesPage() {
                 <input value={form.client} onChange={e => setForm({...form, client: e.target.value})} placeholder="Nom du client" className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
                 <input value={form.date} onChange={e => setForm({...form, date: e.target.value})} type="date" className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
                 <input value={form.montantHT} onChange={e => setForm({...form, montantHT: e.target.value})} placeholder="Montant HT (MAD)" type="number" className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Délai de paiement</label>
+                  <div className="flex gap-2">
+                    <select value={termsKind} onChange={e => setTermsKind(e.target.value as any)} className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                      <option value="30">30 jours</option>
+                      <option value="60">60 jours</option>
+                      <option value="90">90 jours</option>
+                      <option value="custom">Personnalisé</option>
+                    </select>
+                    {termsKind === 'custom' && (
+                      <input
+                        value={termsCustomDays}
+                        onChange={e => setTermsCustomDays(e.target.value)}
+                        placeholder="Jours"
+                        type="number"
+                        min={0}
+                        className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                      />
+                    )}
+                  </div>
+                </div>
                 <select value={form.taux} onChange={e => setForm({...form, taux: e.target.value})} className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
                   <option value="20">TVA 20%</option>
                   <option value="14">TVA 14%</option>
@@ -124,6 +293,8 @@ export default function FacturesPage() {
                   <th className="px-4 py-3">Numéro</th>
                   <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Délai</th>
+                  <th className="px-4 py-3">Échéance</th>
                   <th className="px-4 py-3 text-right">Montant HT</th>
                   <th className="px-4 py-3 text-right">TVA</th>
                   <th className="px-4 py-3 text-right">TTC</th>
@@ -132,22 +303,29 @@ export default function FacturesPage() {
                 </tr>
               </thead>
               <tbody>
-                {factures.map(f => (
+                {rows.map(f => (
                   <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-700">{f.numero}</td>
                     <td className="px-4 py-3 text-gray-600">{f.client}</td>
                     <td className="px-4 py-3 text-gray-500">{f.date}</td>
+                    <td className="px-4 py-3 text-gray-500">{f.delai}</td>
+                    <td className="px-4 py-3 text-gray-500">{f.echeance}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{f.montantHT.toLocaleString()} MAD</td>
                     <td className="px-4 py-3 text-right text-blue-600">{f.tva.toLocaleString()} MAD</td>
-                    <td className="px-4 py-3 text-right font-medium">{(f.montantHT + f.tva).toLocaleString()} MAD</td>
+                    <td className="px-4 py-3 text-right font-medium">{f.ttc.toLocaleString()} MAD</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statutColor(f.statut)}`}>{f.statut}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end">
+                        {f.statut !== 'payée' && (
+                          <button onClick={() => markPaid(f.id)} className="text-gray-300 hover:text-green-600 transition-colors text-xs font-medium">
+                            Marquer payée
+                          </button>
+                        )}
                         <button className="text-gray-300 hover:text-blue-500 transition-colors"><Download size={14} /></button>
                         <button className="text-gray-300 hover:text-green-500 transition-colors"><Send size={14} /></button>
-                        <button onClick={() => setFactures(factures.filter(x => x.id !== f.id))} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                        <button onClick={() => removeInvoice(f.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>

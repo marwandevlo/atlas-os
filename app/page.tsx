@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard, FileText, Receipt, Calculator,
@@ -9,13 +9,17 @@ import {
   Users, Zap, Shield, Clock, Menu, X, LogIn, LogOut,
   Scale, BarChart2
 } from 'lucide-react';
+import { readInvoicesFromLocalStorage } from '@/app/lib/atlas-invoices-repository';
+import type { AtlasInvoice } from '@/app/types/atlas-invoice';
+import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 
 const modules = [
   { id: 'tva', label: 'TVA', labelAr: 'الضريبة على القيمة المضافة', icon: Receipt, color: 'bg-blue-500', href: '/tva', deadline: '20 Mai', urgent: true },
   { id: 'is', label: 'IS Fiscal', labelAr: 'الضريبة على الشركات', icon: Calculator, color: 'bg-purple-500', href: '/is', deadline: '31 Mars', urgent: false },
   { id: 'ir', label: 'IR / Salaires', labelAr: 'الضريبة على الدخل', icon: TrendingUp, color: 'bg-green-500', href: '/ir', deadline: '30 Avril', urgent: false },
   { id: 'factures', label: 'Factures', labelAr: 'الفواتير', icon: FileText, color: 'bg-amber-500', href: '/factures', deadline: null, urgent: false },
-  { id: 'comptabilite', label: 'Comptabilite', labelAr: 'المحاسبة', icon: LayoutDashboard, color: 'bg-cyan-500', href: '/comptabilite', deadline: null, urgent: false },
+  { id: 'clients', label: 'Clients', labelAr: 'العملاء', icon: Users, color: 'bg-emerald-500', href: '/clients', deadline: null, urgent: false },
+  { id: 'comptabilite', label: 'Comptabilité', labelAr: 'المحاسبة', icon: LayoutDashboard, color: 'bg-cyan-500', href: '/comptabilite', deadline: null, urgent: false },
   { id: 'documents', label: 'Documents IA', labelAr: 'وثائق الذكاء الاصطناعي', icon: Upload, color: 'bg-rose-500', href: '/documents', deadline: null, urgent: false },
   { id: 'consultant', label: 'Consultant IA', labelAr: 'المستشار الذكي', icon: Brain, color: 'bg-indigo-500', href: '/consultant', deadline: null, urgent: false },
 ];
@@ -26,29 +30,24 @@ const navItems = [
   { id: 'is', label: 'IS Fiscal', labelAr: 'ضريبة الشركات', icon: Calculator, href: '/is' },
   { id: 'ir', label: 'IR / Salaires', labelAr: 'الرواتب والضرائب', icon: TrendingUp, href: '/ir' },
   { id: 'factures', label: 'Factures', labelAr: 'الفواتير', icon: FileText, href: '/factures' },
-  { id: 'comptabilite', label: 'Comptabilite', labelAr: 'المحاسبة', icon: LayoutDashboard, href: '/comptabilite' },
+  { id: 'clients', label: 'Clients', labelAr: 'العملاء', icon: Users, href: '/clients' },
+  { id: 'comptabilite', label: 'Comptabilité', labelAr: 'المحاسبة', icon: LayoutDashboard, href: '/comptabilite' },
   { id: 'documents', label: 'Documents IA', labelAr: 'وثائق ذكية', icon: Upload, href: '/documents' },
   { id: 'consultant', label: 'Consultant IA', labelAr: 'المستشار', icon: Brain, href: '/consultant' },
   { id: 'agents', label: 'Agents IA', labelAr: 'الوكلاء الذكيون', icon: Zap, href: '/agents' },
-  { id: 'etude', label: 'Etude de Projet', labelAr: 'دراسة الجدوى', icon: BarChart2, href: '/etude-projet' },
+  { id: 'etude', label: 'Étude de projet', labelAr: 'دراسة الجدوى', icon: BarChart2, href: '/etude-projet' },
   { id: 'juridique', label: 'Juridique', labelAr: 'القانونية', icon: Scale, href: '/juridique' },
-  { id: 'rh', label: 'Ressources Humaines', labelAr: 'الموارد البشرية', icon: Users, href: '/rh' },{ id: 'companies', label: 'Mes societes', labelAr: 'شركاتي', icon: Building2, href: '/companies' },
+  { id: 'rh', label: 'Ressources humaines', labelAr: 'الموارد البشرية', icon: Users, href: '/rh' },
+  { id: 'companies', label: 'Mes sociétés', labelAr: 'شركاتي', icon: Building2, href: '/companies' },
   { id: 'rapports', label: 'Rapports PDF', labelAr: 'التقارير', icon: FileText, href: '/rapports' },
-  { id: 'settings', label: 'Parametres', labelAr: 'الإعدادات', icon: Settings, href: '/settings' },
-];
-
-const kpis = [
-  { label: "Chiffre d'affaires", labelAr: 'رقم الأعمال', value: '0 MAD', change: '+0%', up: true, icon: TrendingUp, color: 'text-blue-600' },
-  { label: 'TVA a payer', labelAr: 'TVA واجبة', value: '0 MAD', change: 'Echeance: 20 Mai', up: false, icon: Receipt, color: 'text-red-600' },
-  { label: 'Factures en attente', labelAr: 'فواتير معلقة', value: '0', change: '0 en retard', up: true, icon: FileText, color: 'text-amber-600' },
-  { label: 'Declarations dues', labelAr: 'تصاريح واجبة', value: '2', change: 'Ce mois', up: false, icon: Calendar, color: 'text-purple-600' },
+  { id: 'settings', label: 'Paramètres', labelAr: 'الإعدادات', icon: Settings, href: '/settings' },
 ];
 
 const deadlines = [
-  { label: 'Declaration TVA mensuelle', labelAr: 'التصريح الشهري بالـ TVA', date: '20 Mai 2026', jours: 3, type: 'danger', lien: 'https://www.tax.gov.ma' },
+  { label: 'Déclaration TVA mensuelle', labelAr: 'التصريح الشهري بالـ TVA', date: '20 mai 2026', jours: 3, type: 'danger', lien: 'https://www.tax.gov.ma' },
   { label: 'Virement CNSS', labelAr: 'تحويل CNSS', date: '25 Mai 2026', jours: 8, type: 'warning', lien: 'https://www.cnss.ma' },
   { label: 'Acompte IS (2eme)', labelAr: 'الدفعة الثانية IS', date: '31 Mai 2026', jours: 14, type: 'info', lien: 'https://www.tax.gov.ma' },
-  { label: 'Declaration IR salaires', labelAr: 'تصريح IR الرواتب', date: '30 Juin 2026', jours: 44, type: 'ok', lien: 'https://www.tax.gov.ma' },
+  { label: 'Déclaration IR salaires', labelAr: 'تصريح IR الرواتب', date: '30 juin 2026', jours: 44, type: 'ok', lien: 'https://www.tax.gov.ma' },
 ];
 
 export default function Home() {
@@ -56,7 +55,32 @@ export default function Home() {
   const [lang, setLang] = useState<'fr' | 'ar'>('fr');
   const [menuOpen, setMenuOpen] = useState(false);
   const [connected, setConnected] = useState(true);
+  const [invoices, setInvoices] = useState<AtlasInvoice[]>([]);
   const t = (fr: string, ar: string) => lang === 'fr' ? fr : ar;
+
+  useEffect(() => {
+    setInvoices(readInvoicesFromLocalStorage());
+  }, []);
+
+  const invoiceSummary = useMemo(() => {
+    const now = todayYmd();
+    const totalFacture = invoices.reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
+    const unpaid = invoices.filter((inv) => inv.status !== 'paid');
+    const overdue = unpaid.filter((inv) => isOverdue(inv.dueDate, false, now));
+    return {
+      totalFacture,
+      unpaidCount: unpaid.length,
+      overdueCount: overdue.length,
+      overdueAmount: overdue.reduce((sum, inv) => sum + (inv.totalTTC || 0), 0),
+    };
+  }, [invoices]);
+
+  const kpis = useMemo(() => ([
+    { label: "Chiffre d'affaires", labelAr: 'رقم الأعمال', value: `${Math.round(invoiceSummary.totalFacture).toLocaleString()} MAD`, change: "Factures émises", up: true, icon: TrendingUp, color: 'text-blue-600' },
+    { label: 'TVA à payer', labelAr: 'TVA واجبة', value: '0 MAD', change: 'Échéance : 20 mai', up: false, icon: Receipt, color: 'text-red-600' },
+    { label: 'Factures en attente', labelAr: 'فواتير معلقة', value: String(invoiceSummary.unpaidCount), change: `${invoiceSummary.overdueCount} en retard`, up: invoiceSummary.overdueCount === 0, icon: FileText, color: 'text-amber-600' },
+    { label: 'Déclarations dues', labelAr: 'تصاريح واجبة', value: '2', change: 'Ce mois', up: false, icon: Calendar, color: 'text-purple-600' },
+  ]), [invoiceSummary]);
 
   const deadlineColor = (type: string) => {
     if (type === 'danger') return 'bg-red-50 border-red-200 text-red-700';
@@ -127,7 +151,7 @@ export default function Home() {
           {connected ? (
             <button onClick={() => { setConnected(false); router.push('/login'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 text-sm transition-all">
               <LogOut size={16} className="shrink-0" />
-              <span>{t('Se deconnecter', 'تسجيل الخروج')}</span>
+              <span>{t('Se déconnecter', 'تسجيل الخروج')}</span>
             </button>
           ) : (
             <button onClick={() => { setConnected(true); router.push('/login'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-green-400 hover:bg-green-500/10 hover:text-green-300 text-sm transition-all">
@@ -166,6 +190,11 @@ export default function Home() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6">
+          {invoiceSummary.overdueCount > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
+              <span className="font-semibold">Alertes paiements :</span> {invoiceSummary.overdueCount} facture(s) en retard — {Math.round(invoiceSummary.overdueAmount).toLocaleString()} MAD.
+            </div>
+          )}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
             {kpis.map((kpi, i) => (
               <div key={i} className="bg-white rounded-xl p-4 lg:p-5 shadow-sm border border-gray-100">
@@ -189,7 +218,7 @@ export default function Home() {
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="font-semibold text-gray-700 text-sm flex items-center gap-2">
                   <Clock size={14} className="text-red-500" />
-                  {t('Echeances fiscales', 'المواعيد الضريبية')}
+                  {t('Échéances fiscales', 'المواعيد الضريبية')}
                 </h2>
                 <span className="text-xs text-red-500 font-medium bg-red-50 px-2 py-0.5 rounded-full">
                   {t('Ce mois', 'هذا الشهر')}
@@ -250,7 +279,7 @@ export default function Home() {
                   <Users size={14} className="text-green-500 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-green-700">CNSS</p>
-                    <p className="text-xs text-green-400 hidden lg:block">{t('Securite sociale', 'الضمان')}</p>
+                    <p className="text-xs text-green-400 hidden lg:block">{t('Sécurité sociale', 'الضمان')}</p>
                   </div>
                 </button>
                 <button onClick={() => navigate('/consultant')} className="flex items-center gap-2 p-2.5 bg-indigo-50 rounded-xl border border-indigo-100 hover:bg-indigo-100 transition-colors">

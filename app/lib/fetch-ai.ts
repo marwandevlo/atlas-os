@@ -1,28 +1,15 @@
-import { supabase } from './supabase';
-
-export type FetchAiInput = {
+type FetchAiArgs = {
   type: 'consultant' | 'juridique' | 'ocr';
   message?: string;
   imageBase64?: string;
   systemPrompt?: string;
 };
 
-export async function fetchAi(input: FetchAiInput): Promise<Response> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
+export async function fetchAi(args: FetchAiArgs): Promise<Response> {
   return fetch('/api/ai', {
     method: 'POST',
-    headers,
-    body: JSON.stringify(input),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
   });
 }
 

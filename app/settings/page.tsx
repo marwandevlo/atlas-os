@@ -52,7 +52,7 @@ export default function SettingsPage() {
             <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Building2 size={16} /> Parametres
+            <Building2 size={16} /> Paramètres
           </button>
         </nav>
       </aside>
@@ -60,11 +60,11 @@ export default function SettingsPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Parametres de la societe</h1>
-            <p className="text-xs text-gray-400 mt-0.5">IF · ICE · RC · CNSS · Coordonnees fiscales</p>
+            <h1 className="text-xl font-bold text-gray-800">Paramètres de la société</h1>
+            <p className="text-xs text-gray-400 mt-0.5">IF · ICE · RC · CNSS · Coordonnées fiscales</p>
           </div>
           <button onClick={handleSave} className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium transition-colors ${saved ? 'bg-green-500 text-white' : 'bg-[#1B2A4A] text-white hover:bg-[#243660]'}`}>
-            {saved ? <><CheckCircle size={16} /> Sauvegarde!</> : <><Save size={16} /> Enregistrer</>}
+            {saved ? <><CheckCircle size={16} /> Sauvegardé</> : <><Save size={16} /> Enregistrer</>}
           </button>
         </header>
 
@@ -73,7 +73,7 @@ export default function SettingsPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <h2 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
               <Building2 size={16} className="text-blue-500" />
-              Identification de la societe
+              Identification de la société
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
@@ -87,7 +87,7 @@ export default function SettingsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Activite principale</label>
+                <label className="text-xs text-gray-400 mb-1 block">Activité principale</label>
                 <input value={company.activite} onChange={e => setCompany({...company, activite: e.target.value})} placeholder="Ex: Commerce de detail" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function SettingsPage() {
                 <input value={company.rc} onChange={e => setCompany({...company, rc: e.target.value})} placeholder="Ex: 123456" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">N CNSS employeur</label>
+                <label className="text-xs text-gray-400 mb-1 block">N° CNSS employeur</label>
                 <input value={company.cnss} onChange={e => setCompany({...company, cnss: e.target.value})} placeholder="Ex: 1234567" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
               </div>
               <div>
@@ -117,18 +117,18 @@ export default function SettingsPage() {
                 <input value={company.taxeProfessionnelle} onChange={e => setCompany({...company, taxeProfessionnelle: e.target.value})} placeholder="Ex: TP123456" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Regime TVA</label>
+                <label className="text-xs text-gray-400 mb-1 block">Régime TVA</label>
                 <select value={company.regimeTVA} onChange={e => setCompany({...company, regimeTVA: e.target.value})} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
                   <option value="mensuel">Mensuel</option>
                   <option value="trimestriel">Trimestriel</option>
-                  <option value="exonere">Exonere</option>
+                  <option value="exonere">Exonéré</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h2 className="font-semibold text-gray-700 mb-4">Coordonnees</h2>
+            <h2 className="font-semibold text-gray-700 mb-4">Coordonnées</h2>
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="text-xs text-gray-400 mb-1 block">Adresse</label>
@@ -142,7 +142,7 @@ export default function SettingsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Telephone</label>
+                <label className="text-xs text-gray-400 mb-1 block">Téléphone</label>
                 <input value={company.telephone} onChange={e => setCompany({...company, telephone: e.target.value})} placeholder="Ex: 0522123456" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
               </div>
               <div>

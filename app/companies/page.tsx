@@ -100,14 +100,14 @@ export default function CompaniesPage() {
             <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Building2 size={16} /> Mes societes
+            <Building2 size={16} /> Mes sociétés
           </button>
         </nav>
         <div className="px-4 py-4 border-t border-white/10">
           <div className="bg-amber-400/20 rounded-lg p-3 text-center">
             <p className="text-amber-300 text-xs font-medium">Forfait {plan}</p>
             <p className="text-white font-bold text-lg">{companies.length} / {maxCompanies === Infinity ? '∞' : maxCompanies}</p>
-            <p className="text-white/40 text-xs">societes</p>
+            <p className="text-white/40 text-xs">sociétés</p>
             <div className="w-full bg-white/10 rounded-full h-1.5 mt-2">
               <div className="bg-amber-400 h-1.5 rounded-full" style={{width: `${Math.min((companies.length / (maxCompanies === Infinity ? companies.length : maxCompanies)) * 100, 100)}%`}}></div>
             </div>
@@ -118,19 +118,19 @@ export default function CompaniesPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Gestion des societes</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Gerez toutes vos societes depuis un seul espace</p>
+            <h1 className="text-xl font-bold text-gray-800">Gestion des sociétés</h1>
+            <p className="text-xs text-gray-400 mt-0.5">Gérez toutes vos sociétés depuis un seul espace</p>
           </div>
           <button onClick={() => setShowForm(!showForm)} disabled={companies.length >= maxCompanies}
             className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors disabled:opacity-50">
-            <Plus size={16} /> Nouvelle societe
+            <Plus size={16} /> Nouvelle société
           </button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400">Total societes</p>
+              <p className="text-xs text-gray-400">Total sociétés</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">{companies.length}</p>
             </div>
             <div className="bg-white rounded-xl p-5 shadow-sm border border-green-200 bg-green-50">
@@ -145,12 +145,12 @@ export default function CompaniesPage() {
 
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une societe..." className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 bg-white" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher une société…" className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 bg-white" />
           </div>
 
           {showForm && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-200">
-              <h2 className="font-semibold text-gray-700 mb-4">Nouvelle societe</h2>
+              <h2 className="font-semibold text-gray-700 mb-4">Nouvelle société</h2>
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
                   <label className="text-xs text-gray-400 mb-1 block">Raison sociale *</label>
@@ -185,19 +185,19 @@ export default function CompaniesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Telephone</label>
+                  <label className="text-xs text-gray-400 mb-1 block">Téléphone</label>
                   <input value={form.telephone} onChange={e => setForm({...form, telephone: e.target.value})} placeholder="0522123456" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Activite</label>
+                  <label className="text-xs text-gray-400 mb-1 block">Activité</label>
                   <input value={form.activite} onChange={e => setForm({...form, activite: e.target.value})} placeholder="Commerce..." className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Regime TVA</label>
+                  <label className="text-xs text-gray-400 mb-1 block">Régime TVA</label>
                   <select value={form.regimeTVA} onChange={e => setForm({...form, regimeTVA: e.target.value})} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
                     <option value="mensuel">Mensuel</option>
                     <option value="trimestriel">Trimestriel</option>
-                    <option value="exonere">Exonere</option>
+                    <option value="exonere">Exonéré</option>
                   </select>
                 </div>
                 <div className="col-span-3 flex gap-3">
@@ -238,7 +238,7 @@ export default function CompaniesPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     {!c.actif && (
                       <button onClick={() => selectCompany(c.id)} className="flex items-center gap-1 px-3 py-2 bg-[#1B2A4A] text-white rounded-lg text-xs hover:bg-[#243660]">
-                        Selectionner <ChevronRight size={12} />
+                        Sélectionner <ChevronRight size={12} />
                       </button>
                     )}
                     <button onClick={() => deleteCompany(c.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
