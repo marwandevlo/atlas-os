@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { ArrowLeft, Upload, FileText, CheckCircle, Clock, Trash2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { fetchAi } from '../lib/fetch-ai';
 
 type Document = {
   id: number;
@@ -43,13 +44,14 @@ export default function DocumentsPage() {
         reader.readAsDataURL(file);
       });
 
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'ocr', imageBase64: base64 }),
-      });
+      const response = await fetchAi({ type: 'ocr', imageBase64: base64 });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setDocuments(prev => prev.map(d => d.id === newDoc.id ? { ...d, statut: 'erreur' } : d));
+        setAnalyzing(false);
+        return;
+      }
       
       try {
         const parsed = JSON.parse(data.response);

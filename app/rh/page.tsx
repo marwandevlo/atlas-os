@@ -1,4 +1,5 @@
 'use client';
+import { fetchAi } from '../lib/fetch-ai';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck, Search, Share2 } from 'lucide-react';
@@ -194,13 +195,10 @@ export default function RHPage() {
   const generateDoc = async (data: Record<string, string>) => {
     try {
       const company = selectedCompany!;
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'consultant',
-          message: `Tu es un expert RH et juridique specialise en droit du travail marocain.
-Genere le document: ${selectedDoc?.name}
+      const res = await fetchAi({
+        type: 'consultant',
+        systemPrompt: `Tu es un expert RH et juridique spécialisé en droit du travail marocain (Loi 65-99). Tu rédiges des documents RH clairs, en français, sans tableaux ASCII ni HTML.`,
+        message: `Genere le document: ${selectedDoc?.name}
 
 SOCIETE EMPLOYEUR:
 - Raison sociale: ${company.raisonSociale}
@@ -231,10 +229,13 @@ EXIGENCES:
 7. Signatures: nom, qualite, date, "Lu et approuve"
 8. Minimum 2-3 pages
 
-Genere UNIQUEMENT le document en texte propre, sans commentaires.`
-        }),
+Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
       });
-      const responseData = await res.json();
+      const responseData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessages(prev => [...prev, { role: 'assistant', content: typeof responseData.error === 'string' ? responseData.error : 'Erreur API.' }]);
+        return;
+      }
       setDocContent(responseData.response);
       setDocReady(true);
       setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document genere!\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\n📥 Telechargez en PDF ou Word →` }]);

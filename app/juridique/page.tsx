@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Scale, Search, Building2, RefreshCw, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
+import { fetchAi } from '../lib/fetch-ai';
 
 type Company = {
   id: number; raisonSociale: string; formeJuridique: string; if_fiscal: string;
@@ -24,11 +25,11 @@ const cleanText = (text: string) => text
   .replace(/&nbsp;/g, ' ').replace(/<[^>]*>/g, '').replace(/\|/g, ' ').trim();
 
 const callAI = async (message: string) => {
-  const res = await fetch('/api/ai', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'consultant', message }),
-  });
-  const data = await res.json();
+  const res = await fetchAi({ type: 'juridique', message });
+  const data = (await res.json().catch(() => ({}))) as { response?: string; error?: string };
+  if (!res.ok) {
+    throw new Error(data.error ?? `Erreur ${res.status}`);
+  }
   return data.response as string;
 };
 

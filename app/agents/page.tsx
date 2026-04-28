@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { fetchAi } from '../lib/fetch-ai';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Receipt, Users, TrendingUp, Shield, Bell, Play, Pause, MessageSquare, CheckCircle, Clock, Zap } from 'lucide-react';
 
@@ -129,19 +130,20 @@ export default function AgentsPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: input,
-          type: 'consultant',
-          systemPrompt: `Tu es ${agent?.name}, un agent IA spécialisé en ${agent?.role} pour les entreprises marocaines. Tu réponds de manière concise et professionnelle en français ou darija selon la question.`
-        }),
+      const response = await fetchAi({
+        message: input,
+        type: 'consultant',
+        systemPrompt: `Tu es ${agent?.name}, un agent IA spécialisé en ${agent?.role} pour les entreprises marocaines. Tu réponds de manière concise et professionnelle en français ou darija selon la question.`,
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       setChat(prev => ({
         ...prev,
-        [agentId]: [...(prev[agentId] || []), { role: 'assistant', content: data.response }]
+        [agentId]: [...(prev[agentId] || []), {
+          role: 'assistant',
+          content: response.ok && typeof data.response === 'string'
+            ? data.response
+            : (typeof data.error === 'string' ? data.error : 'Erreur de connexion ou session expirée.'),
+        }],
       }));
     } catch {
       setChat(prev => ({

@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, TrendingUp, DollarSign } from 'lucide-react';
+import { fetchAi } from '../lib/fetch-ai';
 
 const fmt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
@@ -95,12 +96,9 @@ export default function EtudeProjetPage() {
     setFinancials({ capital, loyer, employes, ca, charges, totalSalaires, cnssPatronal, amoPatronal, totalCharges, resultatMensuel, resultatAnnuel, tva, is, payback, rentabilite: parseFloat(rentabilite) });
 
     try {
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'consultant',
-          message: `Tu es un expert-comptable et conseiller en création d'entreprise au Maroc. Génère une étude de faisabilité PROFESSIONNELLE et COMPLÈTE.
+      const response = await fetchAi({
+        type: 'consultant',
+        message: `Tu es un expert-comptable et conseiller en création d'entreprise au Maroc. Génère une étude de faisabilité PROFESSIONNELLE et COMPLÈTE.
 
 PORTEUR DU PROJET:
 - Nom: ${projectData.nom_gerant}
@@ -151,10 +149,12 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
 9. ANALYSE SWOT
 10. INDICATEURS CLES DE PERFORMANCE (seuil rentabilite, payback, ROI)
 11. PLAN D'ACTION - CALENDRIER
-12. CONCLUSION ET RECOMMANDATION D'EXPERT`
-        }),
+12. CONCLUSION ET RECOMMANDATION D'EXPERT`,
       });
-      const responseData = await response.json();
+      const responseData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof responseData.error === 'string' ? responseData.error : 'api');
+      }
       setEtude(responseData.response);
       setEtudeReady(true);
       setMessages(prev => [...prev, {
@@ -210,7 +210,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
         doc.setFontSize(6); doc.setFont('helvetica', 'normal');
         doc.setTextColor(...gray);
         doc.text(labels[i], bx + barW/2, y + h + 5, { align: 'center' });
-        if (val > 0) doc.text(val, bx + barW/2, by - 1, { align: 'center' });
+        if (val > 0) doc.text(String(val), bx + barW/2, by - 1, { align: 'center' });
       });
       doc.setDrawColor(...navy); doc.setLineWidth(0.3);
       doc.line(x, y, x, y + h); doc.line(x, y + h, x + w, y + h);
@@ -699,7 +699,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
             )}
           </div>
 
-          {etudeReady && fmt(
+          {etudeReady && (
             <div className="w-96 border-l border-gray-200 bg-white flex flex-col overflow-hidden">
               <div className="bg-[#0F1F3D] px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
