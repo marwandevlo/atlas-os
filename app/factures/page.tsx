@@ -3,11 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Plus, Trash2, Download, Send, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { addDaysYmd, isOverdue, todayYmd } from '@/app/lib/atlas-dates';
-import { readInvoicesFromLocalStorage, writeInvoicesToLocalStorage } from '@/app/lib/atlas-invoices-repository';
-import type { AtlasInvoice, AtlasInvoiceUiStatut } from '@/app/types/atlas-invoice';
+import { deleteAtlasInvoice, listAtlasInvoices, shouldSeedDemoInvoices, upsertAtlasInvoice } from '@/app/lib/atlas-invoices-repository';
+import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
-import { applyUiStatut, computeInvoiceStatut } from '@/app/lib/atlas-invoice-ui';
 
 type FactureRow = {
   id: number;
@@ -25,21 +24,33 @@ type FactureRow = {
 export default function FacturesPage() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<AtlasInvoice[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
   const [termsCustomDays, setTermsCustomDays] = useState('45');
-  const [statut, setStatut] = useState<AtlasInvoiceUiStatut>('en attente');
   const [form, setForm] = useState({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
 
   useEffect(() => {
-    const existing = readInvoicesFromLocalStorage();
-    if (existing.length) {
-      setInvoices(existing);
-      return;
-    }
+    let cancelled = false;
+    (async () => {
+      setLoadingInvoices(true);
+      const existing = await listAtlasInvoices();
+      if (cancelled) return;
+      if (existing.length) {
+        setInvoices(existing);
+        setLoadingInvoices(false);
+        return;
+      }
 
-    const seed: AtlasInvoice[] = [
+      if (!shouldSeedDemoInvoices()) {
+        setInvoices([]);
+        setLoadingInvoices(false);
+        return;
+      }
+
+      // Seed only for local backend (demo mode).
+      const seed: AtlasInvoice[] = [
       {
         id: 1,
         number: 'F-2026-001',
@@ -88,11 +99,19 @@ export default function FacturesPage() {
         updatedAt: new Date().toISOString(),
       },
     ];
-    setInvoices(seed);
-    writeInvoicesToLocalStorage(seed);
+      // Persist seed via repo (localStorage mode will store, Supabase mode will simply load empty).
+      if (!cancelled) {
+        setInvoices(seed);
+        await Promise.all(seed.map((inv) => upsertAtlasInvoice(inv)));
+      }
+      setLoadingInvoices(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const addFacture = () => {
+  const addFacture = async () => {
     if (!form.numero || !form.client || !form.montantHT) return;
 
     const issueDate = form.date || todayYmd();
@@ -110,7 +129,7 @@ export default function FacturesPage() {
     const dueDate = addDaysYmd(issueDate, normalized.days);
 
     const now = new Date().toISOString();
-    const base: AtlasInvoice = {
+    const next: AtlasInvoice = {
       id: Date.now(),
       number: form.numero,
       clientName: form.client,
@@ -125,16 +144,14 @@ export default function FacturesPage() {
       createdAt: now,
       updatedAt: now,
     };
-    const next = applyUiStatut(base, statut, issueDate);
 
     const updated = [...invoices, next];
     setInvoices(updated);
-    writeInvoicesToLocalStorage(updated);
+    await upsertAtlasInvoice(next);
 
     setForm({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
     setTermsKind('30');
     setTermsCustomDays('45');
-    setStatut('en attente');
     setShowForm(false);
   };
 
@@ -151,7 +168,9 @@ export default function FacturesPage() {
   const rows: FactureRow[] = useMemo(() => {
     const now = todayYmd();
     return invoices.map((inv) => {
-      const statut = computeInvoiceStatut(inv, now);
+      const paid = inv.status === 'paid';
+      const overdue = isOverdue(inv.dueDate, paid, now);
+      const statut: FactureRow['statut'] = paid ? 'payée' : overdue ? 'en retard' : 'en attente';
       return {
         id: inv.id,
         numero: inv.number,
@@ -183,20 +202,28 @@ export default function FacturesPage() {
     return { totalFacture, totalUnpaid, totalOverdue, overdueCount };
   }, [rows]);
 
-  const updateInvoiceStatut = (id: number, nextStatut: AtlasInvoiceUiStatut) => {
-    const updated = invoices.map((inv) => (inv.id === id ? applyUiStatut(inv, nextStatut) : inv));
+  const markPaid = async (id: number) => {
+    const nowYmd = todayYmd();
+    const updated = invoices.map((inv) => {
+      if (inv.id !== id) return inv;
+      const next: AtlasInvoice = {
+        ...inv,
+        status: 'paid',
+        paidAt: nowYmd,
+        paidAmount: inv.totalTTC,
+        updatedAt: new Date().toISOString(),
+      };
+      return next;
+    });
     setInvoices(updated);
-    writeInvoicesToLocalStorage(updated);
+    const inv = updated.find((i) => i.id === id);
+    if (inv) await upsertAtlasInvoice(inv);
   };
 
-  const markPaid = (id: number) => {
-    updateInvoiceStatut(id, 'payée');
-  };
-
-  const removeInvoice = (id: number) => {
+  const removeInvoice = async (id: number) => {
     const updated = invoices.filter((inv) => inv.id !== id);
     setInvoices(updated);
-    writeInvoicesToLocalStorage(updated);
+    await deleteAtlasInvoice(id);
   };
 
   return (
@@ -228,6 +255,11 @@ export default function FacturesPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+          {loadingInvoices && (
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-sm text-gray-500">
+              Chargement des factures…
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <p className="text-xs text-gray-400">Total facturé</p>
@@ -322,18 +354,6 @@ export default function FacturesPage() {
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
                   />
                 </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Statut</label>
-                  <select
-                    value={statut}
-                    onChange={(e) => setStatut(e.target.value as AtlasInvoiceUiStatut)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
-                  >
-                    <option value="payée">payé</option>
-                    <option value="en attente">en attente</option>
-                    <option value="en retard">en retard</option>
-                  </select>
-                </div>
                 <select value={form.taux} onChange={e => setForm({...form, taux: e.target.value})} className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
                   <option value="20">TVA 20%</option>
                   <option value="14">TVA 14%</option>
@@ -367,28 +387,17 @@ export default function FacturesPage() {
               </thead>
               <tbody>
                 {rows.map(f => (
-                  <tr
-                    key={f.id}
-                    className={`border-b hover:bg-gray-50 ${f.statut === 'en retard' ? 'bg-red-50/40 border-red-100' : 'border-gray-50'}`}
-                  >
+                  <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-700">{f.numero}</td>
                     <td className="px-4 py-3 text-gray-600">{f.client}</td>
                     <td className="px-4 py-3 text-gray-500">{f.date}</td>
                     <td className="px-4 py-3 text-gray-500">{f.delai}</td>
-                    <td className={`px-4 py-3 ${f.statut === 'en retard' ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{f.echeance}</td>
+                    <td className="px-4 py-3 text-gray-500">{f.echeance}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{f.montantHT.toLocaleString()} MAD</td>
                     <td className="px-4 py-3 text-right text-blue-600">{f.tva.toLocaleString()} MAD</td>
                     <td className="px-4 py-3 text-right font-medium">{f.ttc.toLocaleString()} MAD</td>
                     <td className="px-4 py-3">
-                      <select
-                        value={f.statut}
-                        onChange={(e) => updateInvoiceStatut(f.id, e.target.value as AtlasInvoiceUiStatut)}
-                        className={`px-2 py-1 rounded-full text-xs font-medium border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-100 ${statutColor(f.statut)}`}
-                      >
-                        <option value="payée">payé</option>
-                        <option value="en attente">en attente</option>
-                        <option value="en retard">en retard</option>
-                      </select>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statutColor(f.statut)}`}>{f.statut}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end">

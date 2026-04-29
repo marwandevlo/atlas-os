@@ -9,7 +9,7 @@ import {
   Users, Zap, Shield, Clock, Menu, X, LogIn, LogOut,
   Scale, BarChart2
 } from 'lucide-react';
-import { readInvoicesFromLocalStorage } from '@/app/lib/atlas-invoices-repository';
+import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 
@@ -59,7 +59,14 @@ export default function Home() {
   const t = (fr: string, ar: string) => lang === 'fr' ? fr : ar;
 
   useEffect(() => {
-    setInvoices(readInvoicesFromLocalStorage());
+    let cancelled = false;
+    (async () => {
+      const inv = await listAtlasInvoices();
+      if (!cancelled) setInvoices(inv);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const invoiceSummary = useMemo(() => {

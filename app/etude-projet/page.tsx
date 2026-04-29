@@ -2,33 +2,44 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, TrendingUp, DollarSign } from 'lucide-react';
-import { fetchAi } from '../lib/fetch-ai';
 
 const fmt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
 
 type Message = { role: 'user' | 'assistant'; content: string; };
 
 const questions = [
-  { key: 'nom_projet', q: 'Quel est le nom de votre projet ?' },
-  { key: 'nom_gerant', q: 'Quel est votre nom complet (gérant / porteur de projet) ?' },
-  { key: 'cin', q: 'Quel est votre numéro de CIN ?' },
-  { key: 'experience', q: 'Décrivez votre expérience dans ce domaine (années, postes, formations, etc.).' },
-  { key: 'secteur', q: "Dans quel secteur d'activité ?\n(Commerce, services, restauration, BTP, industrie, agriculture, transport, santé, IT, etc.)" },
-  { key: 'forme_juridique', q: "Forme juridique souhaitée ?\n1. Auto-entrepreneur\n2. SARL AU (associé unique)\n3. SARL (plusieurs associés)\n4. SA\n5. Recommandez-moi la meilleure option" },
-  { key: 'ville', q: 'Dans quelle ville au Maroc ?' },
-  { key: 'capital', q: 'Quel capital est disponible (MAD) ?' },
-  { key: 'loyer', q: 'Quel loyer mensuel prévoyez-vous (MAD) ? (0 si local propre)' },
-  { key: 'employes', q: "Combien d'employés au démarrage ?" },
-  { key: 'ca_prevu', q: "Quel chiffre d'affaires mensuel visez-vous (MAD) ?" },
-  { key: 'charges', q: 'Quelles autres charges mensuelles prévoyez-vous (MAD) ? (fournitures, transport, communication, etc.)' },
-  { key: 'financement', q: "Type de financement recherché ?\n1. Prêt bancaire classique\n2. Programme Intelaka (jeunes entrepreneurs)\n3. Fonds Hassan II\n4. Investisseur privé / Business Angel\n5. Autofinancement\n6. Combinaison de plusieurs sources" },
-  { key: 'description', q: 'Décrivez votre projet et ce qui le différencie de la concurrence (2–3 phrases).' },
+  { key: 'nom_projet', q: "Quel est le nom de votre projet?" },
+  { key: 'secteur', q: "Dans quel secteur d'activite?\n(Commerce, Services, Restauration, BTP, Industrie, Agriculture, Transport, Sante, IT...)" },
+  { key: 'forme_juridique', q: "Forme juridique souhaitee?\n1. Auto-entrepreneur\n2. SARL AU (associe unique)\n3. SARL (plusieurs associes)\n4. SA\n5. Recommandez-moi la meilleure option" },
+  { key: 'ville', q: "Dans quelle ville au Maroc?" },
+  { key: 'description', q: "Decrivez votre projet et ce qui le differencie de la concurrence (2-3 phrases)." },
+  { key: 'financement', q: "Type de financement recherche?\n1. Pret bancaire classique\n2. Programme Intelaka\n3. Fonds Hassan II\n4. Investisseur prive\n5. Autofinancement\n6. Combinaison" },
+  { key: 'raison_sociale', q: "Raison sociale de la societe?" },
+  { key: 'adresse_societe', q: "Adresse complete du siege social?" },
+  { key: 'capital', q: "Capital social en MAD?" },
+  { key: 'rc', q: "Numero RC (Registre de Commerce)? (ou 'en cours' si pas encore)" },
+  { key: 'if_fiscal', q: "Numero IF (Identifiant Fiscal)? (ou 'en cours')" },
+  { key: 'ice', q: "Numero ICE? (ou 'en cours')" },
+  { key: 'cnss', q: "Numero CNSS? (ou 'en cours')" },
+  { key: 'tp', q: "Numero TP (Taxe Professionnelle)? (ou 'en cours')" },
+  { key: 'nom_gerant', q: "Nom complet du gerant/porteur de projet?" },
+  { key: 'nationalite', q: "Nationalite du gerant?" },
+  { key: 'adresse_gerant', q: "Adresse personnelle complete du gerant?" },
+  { key: 'cin', q: "Numero de la Carte Nationale d'Identite (CIN)?" },
+  { key: 'date_naissance', q: "Date de naissance du gerant? (JJ/MM/AAAA)" },
+  { key: 'lieu_naissance', q: "Lieu de naissance du gerant?" },
+  { key: 'experience', q: "Decrivez votre experience dans ce domaine (annees, postes, formations...)?" },
+  { key: 'loyer', q: "Loyer mensuel prevu en MAD? (0 si local propre)" },
+  { key: 'employes', q: "Nombre d'employes au demarrage?" },
+  { key: 'ca_prevu', q: "Chiffre d'affaires mensuel vise en MAD?" },
+  { key: 'charges', q: "Autres charges mensuelles en MAD (fournitures, transport, communication...)" },
 ];
 
 export default function EtudeProjetPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Bonjour. Je suis votre expert en création d'entreprise au Maroc.\n\nJe vais créer une étude de faisabilité professionnelle, prête à soumettre à une banque, un investisseur ou un programme de soutien (Intelaka, Hassan II, etc.).\n\nRépondez à mes questions et votre dossier sera prêt en quelques minutes.\n\n" + questions[0].q }
+    { role: 'assistant', content: "Bonjour! 👋 Je suis votre expert en création d'entreprise au Maroc.\n\nJe vais créer une étude de faisabilité PROFESSIONNELLE prête à soumettre à une banque, un investisseur ou un programme de soutien (Intelaka, Hassan II...).\n\nRépondez à mes questions et votre dossier sera prêt en quelques minutes!\n\n" + questions[0].q }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,7 +78,7 @@ export default function EtudeProjetPage() {
       setLoading(true);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "✅ Parfait. J'ai toutes les informations.\n\n🔄 Génération de votre étude complète…\nCela peut prendre 15–30 secondes."
+        content: "✅ Parfait! J'ai toutes les informations.\n\n🔄 Génération de votre étude complète...\nCela peut prendre 15-30 secondes ⏳"
       }]);
       await generateEtude(newData);
       setLoading(false);
@@ -96,21 +107,28 @@ export default function EtudeProjetPage() {
     setFinancials({ capital, loyer, employes, ca, charges, totalSalaires, cnssPatronal, amoPatronal, totalCharges, resultatMensuel, resultatAnnuel, tva, is, payback, rentabilite: parseFloat(rentabilite) });
 
     try {
-      const response = await fetchAi({
-        type: 'consultant',
-        message: `Tu es un expert-comptable et conseiller en création d'entreprise au Maroc. Génère une étude de faisabilité PROFESSIONNELLE et COMPLÈTE.
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'consultant',
+          message: `Tu es un expert-comptable et conseiller en création d'entreprise au Maroc. Génère une étude de faisabilité PROFESSIONNELLE et COMPLÈTE.
 
 PORTEUR DU PROJET:
-- Nom: ${projectData.nom_gerant}
+- Nom complet: ${projectData.nom_gerant}
+- Nationalite: ${projectData.nationalite || 'Marocaine'}
+- Adresse: ${projectData.adresse_gerant || ''}
 - CIN: ${projectData.cin}
-- Expérience: ${projectData.experience}
+- Date de naissance: ${projectData.date_naissance || ''}
+- Lieu de naissance: ${projectData.lieu_naissance || ''}
+- Experience: ${projectData.experience}
 
 ENTREPRISE:
-- Raison sociale: ${companyData.raisonSociale || 'À créer'}
-- IF: ${companyData.if_fiscal || 'À obtenir'}
-- ICE: ${companyData.ice || 'À obtenir'}
-- RC: ${companyData.rc || 'À obtenir'}
-- CNSS: ${companyData.cnss || 'À obtenir'}
+- Raison sociale: ${data.raison_sociale || companyData.raisonSociale || 'A creer'}
+- IF: ${companyData.if_fiscal || 'A obtenir'}
+- ICE: ${companyData.ice || 'A obtenir'}
+- RC: ${companyData.rc || 'A obtenir'}
+- CNSS: ${companyData.cnss || 'A obtenir'}
 - Adresse: ${companyData.adresse || ''} ${companyData.ville || ''}
 
 PROJET:
@@ -149,12 +167,10 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
 9. ANALYSE SWOT
 10. INDICATEURS CLES DE PERFORMANCE (seuil rentabilite, payback, ROI)
 11. PLAN D'ACTION - CALENDRIER
-12. CONCLUSION ET RECOMMANDATION D'EXPERT`,
+12. CONCLUSION ET RECOMMANDATION D'EXPERT`
+        }),
       });
-      const responseData = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(typeof responseData.error === 'string' ? responseData.error : 'api');
-      }
+      const responseData = await response.json();
       setEtude(responseData.response);
       setEtudeReady(true);
       setMessages(prev => [...prev, {
@@ -193,7 +209,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     const addFooter = (pageNum: number, total: number) => {
       doc.setFillColor(...navy); doc.rect(0, 287, W, 10, 'F');
       doc.setTextColor(...white); doc.setFontSize(7);
-      doc.text(`Atlas OS Enterprise · ${data.nom_projet || 'Étude de faisabilité'} · Confidentiel`, 14, 293);
+      doc.text(`${data.nom_projet || 'Etude de Faisabilite'} · Confidentiel`, 14, 293);
       doc.text(`${pageNum} / ${total}`, W - 14, 293, { align: 'right' });
     };
 
@@ -210,7 +226,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
         doc.setFontSize(6); doc.setFont('helvetica', 'normal');
         doc.setTextColor(...gray);
         doc.text(labels[i], bx + barW/2, y + h + 5, { align: 'center' });
-        if (val > 0) doc.text(String(val), bx + barW/2, by - 1, { align: 'center' });
+        if (val > 0) doc.text(val, bx + barW/2, by - 1, { align: 'center' });
       });
       doc.setDrawColor(...navy); doc.setLineWidth(0.3);
       doc.line(x, y, x, y + h); doc.line(x, y + h, x + w, y + h);
@@ -225,12 +241,12 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
 
     doc.setFillColor(...gold); doc.roundedRect(20, 20, 55, 14, 3, 3, 'F');
     doc.setTextColor(...navy); doc.setFontSize(8); doc.setFont('helvetica', 'bold');
-    doc.text('ATLAS OS ENTERPRISE', 47, 29, { align: 'center' });
+    
 
     doc.setFillColor(...gold); doc.rect(20, 44, 170, 1.5, 'F');
 
     doc.setTextColor(...white); doc.setFontSize(38); doc.setFont('helvetica', 'bold');
-    doc.text('ÉTUDE DE', 20, 75); doc.text('FAISABILITÉ', 20, 97);
+    doc.text('ETUDE DE', 20, 75); doc.text('FAISABILITE', 20, 97);
     doc.setFillColor(...gold); doc.rect(20, 103, 110, 2, 'F');
 
     doc.setFontSize(20); doc.setTextColor(...gold);
@@ -272,7 +288,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     }
 
     doc.setFontSize(7); doc.setTextColor(150, 150, 150);
-    doc.text(`Preparee le ${new Date().toLocaleDateString('fr-MA')} par Atlas OS Enterprise`, 20, 275);
+    doc.text(`Preparee le ${new Date().toLocaleDateString('fr-MA')} par `, 20, 275);
     doc.text('Document confidentiel — Usage bancaire, investisseurs, Intelaka, Hassan II', 20, 281);
 
     // ══ PAGE 2 — PORTEUR DE PROJET ══
@@ -548,7 +564,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
     addFooter(6, TOTAL_PAGES);
 
     // ══ PAGE 7 — ETUDE COMPLETE AI ══
-    doc.addPage(); addHeader('ANALYSE EXPERTE COMPLÈTE', `Étude de faisabilité — ${data.nom_projet || 'Projet'}`);
+    doc.addPage(); addHeader('ANALYSE EXPERTE COMPLETE', `Etude de faisabilite — ${data.nom_projet || 'Projet'}`);
 
     doc.setTextColor(50, 50, 50);
     const lines = doc.splitTextToSize(etude.replace(/\*\*/g, '').replace(/#{1,3} /g, '').replace(/══+/g, ''), 178);
@@ -589,7 +605,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
             <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <BarChart2 size={16} /> Étude de projet
+            <BarChart2 size={16} /> Etude de Projet
           </button>
         </nav>
         <div className="px-4 py-4 border-t border-white/10 space-y-3">
@@ -603,7 +619,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
           {companyData.raisonSociale && (
             <div className="bg-white/5 rounded-lg p-3">
               <p className="text-white/30 text-xs mb-1 flex items-center gap-1">
-                <CheckCircle size={10} className="text-green-400" /> Données société
+                <CheckCircle size={10} className="text-green-400" /> Donnees societe
               </p>
               <p className="text-white/70 text-xs font-medium">{companyData.raisonSociale}</p>
               {companyData.if_fiscal && <p className="text-white/30 text-xs">IF: {companyData.if_fiscal}</p>}
@@ -629,8 +645,8 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
               <BarChart2 size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-800">Étude de faisabilité du projet</h1>
-              <p className="text-xs text-gray-400">Document professionnel · Prêt pour banque / investisseur / Intelaka</p>
+              <h1 className="text-lg font-bold text-gray-800">Etude de Faisabilite du Projet</h1>
+              <p className="text-xs text-gray-400">Document professionnel · Pret pour banque / investisseur / Intelaka</p>
             </div>
           </div>
           {etudeReady && (
@@ -672,7 +688,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{animationDelay:'0.1s'}}></div>
                       <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{animationDelay:'0.2s'}}></div>
-                      <span className="text-xs text-gray-400 ml-2">Génération en cours…</span>
+                      <span className="text-xs text-gray-400 ml-2">Generation en cours...</span>
                     </div>
                   </div>
                 </div>
@@ -687,7 +703,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                    placeholder="Votre réponse…"
+                    placeholder="Votre reponse..."
                     className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-amber-400"
                     autoFocus
                   />
@@ -704,7 +720,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
               <div className="bg-[#0F1F3D] px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <CheckCircle size={16} className="text-green-400" />
-                  <p className="text-white font-semibold text-sm">Aperçu de l’étude</p>
+                  <p className="text-white font-semibold text-sm">Apercu Etude</p>
                 </div>
                 <button onClick={downloadPDF} className="flex items-center gap-1 text-amber-400 hover:text-amber-300 text-xs">
                   <Download size={12} /> PDF
@@ -713,7 +729,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
               <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 border-b border-gray-200">
                 <div className="bg-blue-500 rounded-lg p-2 text-white text-center">
                   <p className="text-xs opacity-70">CA/mois</p>
-                  <p className="font-bold text-sm">{(financials.ca||0)} MAD</p>
+                  <p className="font-bold text-sm">{fmt(financials.ca||0)} MAD</p>
                 </div>
                 <div className={`${(financials.resultatMensuel||0) > 0 ? 'bg-green-500' : 'bg-red-500'} rounded-lg p-2 text-white text-center`}>
                   <p className="text-xs opacity-70">Resultat</p>
