@@ -226,7 +226,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
         doc.setFontSize(6); doc.setFont('helvetica', 'normal');
         doc.setTextColor(...gray);
         doc.text(labels[i], bx + barW/2, y + h + 5, { align: 'center' });
-        if (val > 0) doc.text(val, bx + barW/2, by - 1, { align: 'center' });
+        if (val > 0) doc.text(fmt(val), bx + barW/2, by - 1, { align: 'center' });
       });
       doc.setDrawColor(...navy); doc.setLineWidth(0.3);
       doc.line(x, y, x, y + h); doc.line(x, y + h, x + w, y + h);
