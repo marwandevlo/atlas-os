@@ -5,10 +5,18 @@ type FetchAiArgs = {
   systemPrompt?: string;
 };
 
-export async function fetchAi(args: FetchAiArgs): Promise<Response> {
+/**
+ * Thin client wrapper around `/api/ai`.
+ * Keeps auth transport flexible (cookies by default), so production can enforce auth later
+ * without changing UI callsites.
+ */
+export function fetchAi(args: FetchAiArgs): Promise<Response> {
   return fetch('/api/ai', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
     body: JSON.stringify(args),
   });
 }

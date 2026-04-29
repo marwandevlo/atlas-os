@@ -2,40 +2,79 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Building2, ChevronRight, Trash2, Edit, CheckCircle, Search } from 'lucide-react';
+import type { AtlasCompany } from '@/app/types/atlas-company';
+import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
+import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
 
-export type Company = {
-  id: number;
-  raisonSociale: string;
-  formeJuridique: string;
-  if_fiscal: string;
-  ice: string;
-  rc: string;
-  cnss: string;
-  adresse: string;
-  ville: string;
-  telephone: string;
-  email: string;
-  activite: string;
-  regimeTVA: string;
-  actif: boolean;
-};
-
-const defaultCompanies: Company[] = [
-  { id: 1, raisonSociale: 'ATLAS COMMERCE SARL', formeJuridique: 'SARL', if_fiscal: '12345678', ice: '001234567000012', rc: '123456', cnss: '1234567', adresse: '123 Rue Mohammed V', ville: 'Casablanca', telephone: '0522123456', email: 'contact@atlas.ma', activite: 'Commerce de detail', regimeTVA: 'mensuel', actif: true },
-  { id: 2, raisonSociale: 'TECH SOLUTIONS SA', formeJuridique: 'SA', if_fiscal: '87654321', ice: '001234567000034', rc: '654321', cnss: '7654321', adresse: '45 Avenue Hassan II', ville: 'Rabat', telephone: '0537123456', email: 'contact@tech.ma', activite: 'Services informatiques', regimeTVA: 'mensuel', actif: false },
-  { id: 3, raisonSociale: 'BATI MAROC SARL', formeJuridique: 'SARL', if_fiscal: '11223344', ice: '001234567000056', rc: '112233', cnss: '2233441', adresse: '78 Rue de la Menara', ville: 'Marrakech', telephone: '0524123456', email: 'contact@bati.ma', activite: 'Construction', regimeTVA: 'trimestriel', actif: false },
+const defaultCompanies: AtlasCompany[] = [
+  {
+    id: 1,
+    raisonSociale: 'ATLAS COMMERCE SARL',
+    formeJuridique: 'SARL',
+    if_fiscal: '12345678',
+    ice: '001234567000012',
+    rc: '123456',
+    cnss: '1234567',
+    adresse: '123 Rue Mohammed V',
+    ville: 'Casablanca',
+    telephone: '0522123456',
+    email: 'contact@atlas.ma',
+    activite: 'Commerce de detail',
+    regimeTVA: 'mensuel',
+    actif: true,
+    paymentTerms: { kind: 'preset', days: 30 },
+    balance: 0,
+  },
+  {
+    id: 2,
+    raisonSociale: 'TECH SOLUTIONS SA',
+    formeJuridique: 'SA',
+    if_fiscal: '87654321',
+    ice: '001234567000034',
+    rc: '654321',
+    cnss: '7654321',
+    adresse: '45 Avenue Hassan II',
+    ville: 'Rabat',
+    telephone: '0537123456',
+    email: 'contact@tech.ma',
+    activite: 'Services informatiques',
+    regimeTVA: 'mensuel',
+    actif: false,
+    paymentTerms: { kind: 'preset', days: 60 },
+    balance: 0,
+  },
+  {
+    id: 3,
+    raisonSociale: 'BATI MAROC SARL',
+    formeJuridique: 'SARL',
+    if_fiscal: '11223344',
+    ice: '001234567000056',
+    rc: '112233',
+    cnss: '2233441',
+    adresse: '78 Rue de la Menara',
+    ville: 'Marrakech',
+    telephone: '0524123456',
+    email: 'contact@bati.ma',
+    activite: 'Construction',
+    regimeTVA: 'trimestriel',
+    actif: false,
+    paymentTerms: { kind: 'preset', days: 30 },
+    balance: 0,
+  },
 ];
 
 export default function CompaniesPage() {
   const router = useRouter();
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<AtlasCompany[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
+  const [termsCustomDays, setTermsCustomDays] = useState('45');
   const [form, setForm] = useState({
     raisonSociale: '', formeJuridique: 'SARL', if_fiscal: '', ice: '',
     rc: '', cnss: '', adresse: '', ville: 'Casablanca', telephone: '',
     email: '', activite: '', regimeTVA: 'mensuel',
+    balance: '0',
   });
 
   useEffect(() => {
@@ -49,7 +88,7 @@ export default function CompaniesPage() {
     }
   }, []);
 
-  const saveCompanies = (newCompanies: Company[]) => {
+  const saveCompanies = (newCompanies: AtlasCompany[]) => {
     setCompanies(newCompanies);
     localStorage.setItem('atlas_companies', JSON.stringify(newCompanies));
     const active = newCompanies.find(c => c.actif);
@@ -58,9 +97,23 @@ export default function CompaniesPage() {
 
   const addCompany = () => {
     if (!form.raisonSociale) return;
-    const newCompany: Company = { id: Date.now(), ...form, actif: false };
+    const { balance, ...payload } = form;
+    const paymentTerms: AtlasPaymentTerms =
+      termsKind === 'custom'
+        ? { kind: 'custom', days: Number.parseInt(termsCustomDays || '0', 10) || 0 }
+        : { kind: 'preset', days: Number.parseInt(termsKind, 10) as AtlasPaymentTermsPreset };
+    const normalized = normalizePaymentTerms(paymentTerms);
+    const newCompany: AtlasCompany = {
+      id: Date.now(),
+      ...payload,
+      actif: false,
+      paymentTerms: normalized,
+      balance: Number.parseFloat(form.balance || '0') || 0,
+    };
     saveCompanies([...companies, newCompany]);
-    setForm({ raisonSociale: '', formeJuridique: 'SARL', if_fiscal: '', ice: '', rc: '', cnss: '', adresse: '', ville: 'Casablanca', telephone: '', email: '', activite: '', regimeTVA: 'mensuel' });
+    setForm({ raisonSociale: '', formeJuridique: 'SARL', if_fiscal: '', ice: '', rc: '', cnss: '', adresse: '', ville: 'Casablanca', telephone: '', email: '', activite: '', regimeTVA: 'mensuel', balance: '0' });
+    setTermsKind('30');
+    setTermsCustomDays('45');
     setShowForm(false);
   };
 
@@ -200,6 +253,31 @@ export default function CompaniesPage() {
                     <option value="exonere">Exonéré</option>
                   </select>
                 </div>
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-400 mb-1 block">Délai de paiement</label>
+                  <div className="flex gap-2">
+                    <select value={termsKind} onChange={e => setTermsKind(e.target.value as any)} className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                      <option value="30">30 jours</option>
+                      <option value="60">60 jours</option>
+                      <option value="90">90 jours</option>
+                      <option value="custom">Personnalisé</option>
+                    </select>
+                    {termsKind === 'custom' && (
+                      <input
+                        value={termsCustomDays}
+                        onChange={e => setTermsCustomDays(e.target.value)}
+                        placeholder="Jours"
+                        type="number"
+                        min={0}
+                        className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                      />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Balance (MAD)</label>
+                  <input value={form.balance} onChange={e => setForm({...form, balance: e.target.value})} type="number" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+                </div>
                 <div className="col-span-3 flex gap-3">
                   <button onClick={addCompany} className="px-6 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660]">Ajouter</button>
                   <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600">Annuler</button>
@@ -230,6 +308,16 @@ export default function CompaniesPage() {
                       {c.ice && <span className="text-xs text-gray-400">ICE: {c.ice}</span>}
                       {c.cnss && <span className="text-xs text-gray-400">CNSS: {c.cnss}</span>}
                       <span className="text-xs text-gray-400">{c.ville}</span>
+                      {c.paymentTerms && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                          Délai {paymentTermsLabel(c.paymentTerms)}
+                        </span>
+                      )}
+                      {typeof c.balance === 'number' && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${c.balance > 0 ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
+                          Balance {Math.round(c.balance).toLocaleString()} MAD
+                        </span>
+                      )}
                       <span className={`text-xs px-2 py-0.5 rounded-full ${c.regimeTVA === 'mensuel' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
                         TVA {c.regimeTVA}
                       </span>

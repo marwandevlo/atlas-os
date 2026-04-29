@@ -134,6 +134,16 @@ export default function FacturesPage() {
     setShowForm(false);
   };
 
+  const dueDatePreview = useMemo(() => {
+    const issueDate = form.date || todayYmd();
+    const paymentTerms: AtlasPaymentTerms =
+      termsKind === 'custom'
+        ? { kind: 'custom', days: Number.parseInt(termsCustomDays || '0', 10) || 0 }
+        : { kind: 'preset', days: Number.parseInt(termsKind, 10) as AtlasPaymentTermsPreset };
+    const normalized = normalizePaymentTerms(paymentTerms);
+    return addDaysYmd(issueDate, normalized.days);
+  }, [form.date, termsKind, termsCustomDays]);
+
   const rows: FactureRow[] = useMemo(() => {
     const now = todayYmd();
     return invoices.map((inv) => {
@@ -154,6 +164,8 @@ export default function FacturesPage() {
       };
     });
   }, [invoices]);
+
+  const overdueUnpaid = useMemo(() => rows.filter((r) => r.statut === 'en retard'), [rows]);
 
   const statutColor = (s: FactureRow['statut']) => {
     if (s === 'payée') return 'bg-green-100 text-green-700';
@@ -242,13 +254,49 @@ export default function FacturesPage() {
             </div>
           )}
 
+          {overdueUnpaid.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-red-100 flex items-center justify-between">
+                <h2 className="font-semibold text-gray-800 text-sm">Factures impayées en retard</h2>
+                <span className="text-xs text-red-700 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full font-medium">
+                  {overdueUnpaid.length} en retard
+                </span>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
+                    <th className="px-6 py-3">Numéro</th>
+                    <th className="px-6 py-3">Client</th>
+                    <th className="px-6 py-3">Date émission</th>
+                    <th className="px-6 py-3">Date échéance</th>
+                    <th className="px-6 py-3 text-right">TTC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overdueUnpaid.map((f) => (
+                    <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-6 py-3 font-medium text-gray-700">{f.numero}</td>
+                      <td className="px-6 py-3 text-gray-600">{f.client}</td>
+                      <td className="px-6 py-3 text-gray-500">{f.date}</td>
+                      <td className="px-6 py-3 text-red-700 font-medium">{f.echeance}</td>
+                      <td className="px-6 py-3 text-right font-medium text-gray-800">{f.ttc.toLocaleString()} MAD</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {showForm && (
             <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-200">
               <h2 className="font-semibold text-gray-700 mb-4">Nouvelle facture</h2>
               <div className="grid grid-cols-2 gap-4">
                 <input value={form.numero} onChange={e => setForm({...form, numero: e.target.value})} placeholder="Numéro (ex: F-2026-004)" className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
                 <input value={form.client} onChange={e => setForm({...form, client: e.target.value})} placeholder="Nom du client" className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
-                <input value={form.date} onChange={e => setForm({...form, date: e.target.value})} type="date" className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Date émission</label>
+                  <input value={form.date} onChange={e => setForm({...form, date: e.target.value})} type="date" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+                </div>
                 <input value={form.montantHT} onChange={e => setForm({...form, montantHT: e.target.value})} placeholder="Montant HT (MAD)" type="number" className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Délai de paiement</label>
@@ -271,6 +319,14 @@ export default function FacturesPage() {
                     )}
                   </div>
                 </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Date échéance</label>
+                  <input
+                    value={dueDatePreview}
+                    readOnly
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
+                  />
+                </div>
                 <select value={form.taux} onChange={e => setForm({...form, taux: e.target.value})} className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
                   <option value="20">TVA 20%</option>
                   <option value="14">TVA 14%</option>
@@ -292,7 +348,7 @@ export default function FacturesPage() {
                 <tr className="text-left text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
                   <th className="px-4 py-3">Numéro</th>
                   <th className="px-4 py-3">Client</th>
-                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Date émission</th>
                   <th className="px-4 py-3">Délai</th>
                   <th className="px-4 py-3">Échéance</th>
                   <th className="px-4 py-3 text-right">Montant HT</th>

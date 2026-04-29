@@ -5,14 +5,18 @@ export type AtlasPaymentTerms =
   | { kind: 'custom'; days: number };
 
 export function normalizePaymentTerms(terms: AtlasPaymentTerms): AtlasPaymentTerms {
-  const days = Math.max(0, Math.floor(terms.days));
-  return terms.kind === 'preset'
-    ? ({ kind: 'preset', days: (days === 30 || days === 60 || days === 90 ? days : 30) } as const)
-    : ({ kind: 'custom', days } as const);
+  const rawDays = Number.isFinite(terms.days) ? Math.trunc(terms.days) : 0;
+  const days = Math.max(0, rawDays);
+  if (terms.kind === 'preset') {
+    if (days === 30 || days === 60 || days === 90) return { kind: 'preset', days };
+    return { kind: 'preset', days: 30 };
+  }
+  return { kind: 'custom', days };
 }
 
 export function paymentTermsLabel(terms: AtlasPaymentTerms): string {
-  if (terms.kind === 'preset') return `${terms.days} jours`;
-  return `${terms.days} jours (personnalisé)`;
+  const t = normalizePaymentTerms(terms);
+  if (t.kind === 'preset') return `${t.days} jours`;
+  return t.days > 0 ? `${t.days} jours` : 'Personnalisé';
 }
 

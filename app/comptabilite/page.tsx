@@ -1,7 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Plus, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { readInvoicesFromLocalStorage } from '@/app/lib/atlas-invoices-repository';
+import type { AtlasInvoice } from '@/app/types/atlas-invoice';
+import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 
 type Ecriture = {
   id: number;
@@ -15,6 +18,7 @@ type Ecriture = {
 export default function ComptabilitePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'journal' | 'grandlivre' | 'bilan'>('journal');
+  const [invoices, setInvoices] = useState<AtlasInvoice[]>([]);
   const [ecritures, setEcritures] = useState<Ecriture[]>([
     { id: 1, date: '2026-04-01', libelle: 'Vente Client Alpha', compte: '3421', debit: 18000, credit: 0 },
     { id: 2, date: '2026-04-01', libelle: 'TVA collectee', compte: '4455', debit: 0, credit: 3000 },
@@ -27,8 +31,37 @@ export default function ComptabilitePage() {
   const [form, setForm] = useState({ date: '', libelle: '', compte: '', debit: '', credit: '' });
   const [showForm, setShowForm] = useState(false);
 
+  useEffect(() => {
+    setInvoices(readInvoicesFromLocalStorage());
+  }, []);
+
   const totalDebit = ecritures.reduce((s, e) => s + e.debit, 0);
   const totalCredit = ecritures.reduce((s, e) => s + e.credit, 0);
+
+  const accountingKpis = useMemo(() => {
+    const totalFacture = invoices.reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
+    const totalPaye = invoices.filter((inv) => inv.status === 'paid').reduce((sum, inv) => sum + (inv.paidAmount ?? inv.totalTTC ?? 0), 0);
+    const resteAPayer = invoices.filter((inv) => inv.status !== 'paid').reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
+
+    const balanceClient = resteAPayer;
+    const balanceFournisseur = 0; // reserved for supplier invoices (atlas_supplier_invoices)
+    const soldeGlobal = balanceClient - balanceFournisseur;
+
+    const now = todayYmd();
+    const overdue = invoices
+      .filter((inv) => inv.status !== 'paid' && isOverdue(inv.dueDate, false, now))
+      .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
+
+    return {
+      balanceClient,
+      balanceFournisseur,
+      totalFacture,
+      totalPaye,
+      resteAPayer,
+      soldeGlobal,
+      overdue,
+    };
+  }, [invoices]);
 
   const addEcriture = () => {
     if (!form.libelle || !form.compte) return;
@@ -77,6 +110,68 @@ export default function ComptabilitePage() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Balance client</p>
+              <p className="text-2xl font-bold text-amber-700 mt-1">{Math.round(accountingKpis.balanceClient).toLocaleString()} MAD</p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Balance fournisseur</p>
+              <p className="text-2xl font-bold text-blue-700 mt-1">{Math.round(accountingKpis.balanceFournisseur).toLocaleString()} MAD</p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Solde global</p>
+              <p className={`text-2xl font-bold mt-1 ${accountingKpis.soldeGlobal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {Math.round(accountingKpis.soldeGlobal).toLocaleString()} MAD
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Total facturé</p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">{Math.round(accountingKpis.totalFacture).toLocaleString()} MAD</p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Total payé</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{Math.round(accountingKpis.totalPaye).toLocaleString()} MAD</p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Reste à payer</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">{Math.round(accountingKpis.resteAPayer).toLocaleString()} MAD</p>
+            </div>
+          </div>
+
+          {accountingKpis.overdue.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-red-100 flex items-center justify-between">
+                <h2 className="font-semibold text-gray-800 text-sm">Alerte paiements · Factures en retard</h2>
+                <span className="text-xs text-red-700 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full font-medium">
+                  {accountingKpis.overdue.length} en retard
+                </span>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
+                    <th className="px-6 py-3">Numéro</th>
+                    <th className="px-6 py-3">Client</th>
+                    <th className="px-6 py-3">Date émission</th>
+                    <th className="px-6 py-3">Date échéance</th>
+                    <th className="px-6 py-3 text-right">TTC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accountingKpis.overdue.map((inv) => (
+                    <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="px-6 py-3 font-medium text-gray-700">{inv.number}</td>
+                      <td className="px-6 py-3 text-gray-600">{inv.clientName}</td>
+                      <td className="px-6 py-3 text-gray-500">{inv.issueDate}</td>
+                      <td className="px-6 py-3 text-red-700 font-medium">{inv.dueDate}</td>
+                      <td className="px-6 py-3 text-right font-medium text-gray-800">{Math.round(inv.totalTTC || 0).toLocaleString()} MAD</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <p className="text-xs text-gray-400">Total Debit</p>

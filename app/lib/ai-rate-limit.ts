@@ -1,34 +1,36 @@
-type RateLimitOk = { ok: true };
-type RateLimitErr = { ok: false; retryAfterSec: number };
+type RateLimitResult = { ok: true } | { ok: false; retryAfterSec: number };
 
-type Bucket = { windowStartMs: number; count: number };
+type Bucket = { resetAtMs: number; count: number };
 
-const WINDOW_MS = 60_000;
-const MAX_REQUESTS_PER_WINDOW = 30;
+const buckets = new Map<string, Bucket>();
 
-function getStore(): Map<string, Bucket> {
-  const g = globalThis as unknown as { __atlasAiRateStore?: Map<string, Bucket> };
-  if (!g.__atlasAiRateStore) g.__atlasAiRateStore = new Map();
-  return g.__atlasAiRateStore;
+function limits() {
+  const windowSec = Number.parseInt(process.env.ATLAS_AI_RATE_WINDOW_SEC ?? '60', 10) || 60;
+  const max = Number.parseInt(process.env.ATLAS_AI_RATE_MAX ?? '20', 10) || 20;
+  return { windowSec: Math.max(10, windowSec), max: Math.max(1, max) };
 }
 
-export function checkAiRateLimit(key: string): RateLimitOk | RateLimitErr {
+/**
+ * Simple in-memory rate limiter (per server instance).
+ * Good enough to prevent accidental spam; can be swapped for Upstash/Redis later.
+ */
+export function checkAiRateLimit(key: string): RateLimitResult {
+  const { windowSec, max } = limits();
   const now = Date.now();
-  const store = getStore();
-  const bucket = store.get(key);
+  const existing = buckets.get(key);
 
-  if (!bucket || now - bucket.windowStartMs >= WINDOW_MS) {
-    store.set(key, { windowStartMs: now, count: 1 });
+  if (!existing || existing.resetAtMs <= now) {
+    buckets.set(key, { resetAtMs: now + windowSec * 1000, count: 1 });
     return { ok: true };
   }
 
-  if (bucket.count >= MAX_REQUESTS_PER_WINDOW) {
-    const retryAfterSec = Math.max(1, Math.ceil((WINDOW_MS - (now - bucket.windowStartMs)) / 1000));
+  if (existing.count >= max) {
+    const retryAfterSec = Math.max(1, Math.ceil((existing.resetAtMs - now) / 1000));
     return { ok: false, retryAfterSec };
   }
 
-  bucket.count += 1;
-  store.set(key, bucket);
+  existing.count += 1;
+  buckets.set(key, existing);
   return { ok: true };
 }
 

@@ -5,9 +5,19 @@ export type AtlasClient = {
   name: string;
   email?: string;
   phone?: string;
+  address?: string;
   city?: string;
+
+  /** Contractual payment terms for invoices (used to auto-calculate due date). */
   paymentTerms: AtlasPaymentTerms;
-  createdAt: string; // ISO date
-  updatedAt: string; // ISO date
+
+  /**
+   * Current balance in MAD.
+   * Positive = client owes you, negative = you owe client (credit note / advance).
+   */
+  balance: number;
+
+  createdAt: string;
+  updatedAt: string;
 };
 

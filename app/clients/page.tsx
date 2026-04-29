@@ -1,135 +1,148 @@
 'use client';
-
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Users, Plus, Trash2, Search, HandCoins, Building2 } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Trash2, Pencil, Search, CheckCircle } from 'lucide-react';
 import type { AtlasClient } from '@/app/types/atlas-client';
-import { normalizePaymentTerms, paymentTermsLabel, type AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
+import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
+import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
 import { readClientsFromLocalStorage, writeClientsToLocalStorage } from '@/app/lib/atlas-clients-repository';
-import { readInvoicesFromLocalStorage } from '@/app/lib/atlas-invoices-repository';
-import { readSupplierInvoicesFromLocalStorage, writeSupplierInvoicesToLocalStorage } from '@/app/lib/atlas-supplier-invoices-repository';
-import type { AtlasInvoice } from '@/app/types/atlas-invoice';
-import type { AtlasSupplierInvoice } from '@/app/types/atlas-supplier-invoice';
-import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 
-type Tab = 'clients' | 'fournisseurs';
-
-function money(n: number): string {
-  return Math.round(n).toLocaleString('fr-MA') + ' MAD';
-}
+const seedClients: AtlasClient[] = [
+  {
+    id: 1,
+    name: 'Société Alpha',
+    email: 'contact@alpha.ma',
+    phone: '0522000000',
+    city: 'Casablanca',
+    paymentTerms: { kind: 'preset', days: 30 },
+    balance: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    name: 'Entreprise Beta',
+    email: 'finance@beta.ma',
+    phone: '0537000000',
+    city: 'Rabat',
+    paymentTerms: { kind: 'preset', days: 60 },
+    balance: 10200,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
 export default function ClientsPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>('clients');
-  const [search, setSearch] = useState('');
-
   const [clients, setClients] = useState<AtlasClient[]>([]);
-  const [supplierInvoices, setSupplierInvoices] = useState<AtlasSupplierInvoice[]>([]);
-  const [invoices, setInvoices] = useState<AtlasInvoice[]>([]);
-
+  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [formName, setFormName] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
   const [termsCustomDays, setTermsCustomDays] = useState('45');
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: 'Casablanca',
+    balance: '0',
+  });
 
   useEffect(() => {
-    setClients(readClientsFromLocalStorage());
-    setInvoices(readInvoicesFromLocalStorage());
-    setSupplierInvoices(readSupplierInvoicesFromLocalStorage());
+    const existing = readClientsFromLocalStorage();
+    if (existing.length) {
+      setClients(existing);
+      return;
+    }
+    setClients(seedClients);
+    writeClientsToLocalStorage(seedClients);
   }, []);
 
-  const now = todayYmd();
-
-  const clientBalances = useMemo(() => {
-    const normalized = (name: string) => name.trim().toLowerCase();
-    const byClient = new Map<string, { totalFacture: number; totalPaye: number; overdueCount: number; overdueAmount: number }>();
-    invoices.forEach((inv) => {
-      const key = normalized(inv.clientName);
-      const existing = byClient.get(key) ?? { totalFacture: 0, totalPaye: 0, overdueCount: 0, overdueAmount: 0 };
-      existing.totalFacture += inv.totalTTC || 0;
-      if (inv.status === 'paid') existing.totalPaye += inv.paidAmount ?? inv.totalTTC ?? 0;
-      if (isOverdue(inv.dueDate, inv.status === 'paid', now)) {
-        existing.overdueCount += 1;
-        existing.overdueAmount += inv.totalTTC || 0;
-      }
-      byClient.set(key, existing);
-    });
-
-    const rows = clients.map((c) => {
-      const b = byClient.get(normalized(c.name)) ?? { totalFacture: 0, totalPaye: 0, overdueCount: 0, overdueAmount: 0 };
-      const reste = Math.max(0, b.totalFacture - b.totalPaye);
-      return {
-        client: c,
-        totalFacture: b.totalFacture,
-        totalPaye: b.totalPaye,
-        reste,
-        solde: reste,
-        overdueCount: b.overdueCount,
-        overdueAmount: b.overdueAmount,
-      };
-    });
-
-    return rows.sort((a, b) => b.reste - a.reste);
-  }, [clients, invoices, now]);
-
-  const supplierBalance = useMemo(() => {
-    const totalFacture = supplierInvoices.reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
-    const totalPaye = supplierInvoices.filter((i) => i.status === 'paid').reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
-    const unpaid = supplierInvoices.filter((i) => i.status !== 'paid');
-    const overdue = unpaid.filter((i) => isOverdue(i.dueDate, false, now));
-    return {
-      totalFacture,
-      totalPaye,
-      reste: Math.max(0, totalFacture - totalPaye),
-      solde: Math.max(0, totalFacture - totalPaye),
-      overdueCount: overdue.length,
-      overdueAmount: overdue.reduce((sum, inv) => sum + (inv.totalTTC || 0), 0),
-    };
-  }, [supplierInvoices, now]);
-
-  const filteredClientBalances = useMemo(() => {
+  const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return clientBalances;
-    return clientBalances.filter((r) => r.client.name.toLowerCase().includes(q));
-  }, [clientBalances, search]);
+    if (!q) return clients;
+    return clients.filter((c) =>
+      c.name.toLowerCase().includes(q) ||
+      (c.email ?? '').toLowerCase().includes(q) ||
+      (c.phone ?? '').toLowerCase().includes(q)
+    );
+  }, [clients, search]);
 
-  const addClient = () => {
-    const name = formName.trim();
-    if (!name) return;
+  const saveClients = (next: AtlasClient[]) => {
+    setClients(next);
+    writeClientsToLocalStorage(next);
+  };
 
-    const paymentTerms =
-      termsKind === 'custom'
-        ? normalizePaymentTerms({ kind: 'custom', days: Number.parseInt(termsCustomDays || '0', 10) || 0 })
-        : normalizePaymentTerms({ kind: 'preset', days: Number.parseInt(termsKind, 10) as AtlasPaymentTermsPreset });
-
-    const nowIso = new Date().toISOString();
-    const next: AtlasClient = {
-      id: Date.now(),
-      name,
-      paymentTerms,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-    const updated = [...clients, next];
-    setClients(updated);
-    writeClientsToLocalStorage(updated);
-    setFormName('');
+  const resetForm = () => {
+    setForm({ name: '', email: '', phone: '', address: '', city: 'Casablanca', balance: '0' });
     setTermsKind('30');
     setTermsCustomDays('45');
+    setEditingId(null);
+  };
+
+  const startCreate = () => {
+    resetForm();
+    setShowForm(true);
+  };
+
+  const startEdit = (c: AtlasClient) => {
+    setForm({
+      name: c.name,
+      email: c.email ?? '',
+      phone: c.phone ?? '',
+      address: c.address ?? '',
+      city: c.city ?? 'Casablanca',
+      balance: String(c.balance ?? 0),
+    });
+    if (c.paymentTerms.kind === 'preset') {
+      setTermsKind(String(c.paymentTerms.days) as any);
+      setTermsCustomDays('45');
+    } else {
+      setTermsKind('custom');
+      setTermsCustomDays(String(c.paymentTerms.days ?? 0));
+    }
+    setEditingId(c.id);
+    setShowForm(true);
+  };
+
+  const upsertClient = () => {
+    if (!form.name.trim()) return;
+    const paymentTerms: AtlasPaymentTerms =
+      termsKind === 'custom'
+        ? { kind: 'custom', days: Number.parseInt(termsCustomDays || '0', 10) || 0 }
+        : { kind: 'preset', days: Number.parseInt(termsKind, 10) as AtlasPaymentTermsPreset };
+    const normalized = normalizePaymentTerms(paymentTerms);
+    const now = new Date().toISOString();
+
+    const payload: AtlasClient = {
+      id: editingId ?? Date.now(),
+      name: form.name.trim(),
+      email: form.email.trim() || undefined,
+      phone: form.phone.trim() || undefined,
+      address: form.address.trim() || undefined,
+      city: form.city.trim() || undefined,
+      paymentTerms: normalized,
+      balance: Number.parseFloat(form.balance || '0') || 0,
+      createdAt: editingId ? (clients.find((c) => c.id === editingId)?.createdAt ?? now) : now,
+      updatedAt: now,
+    };
+
+    const next = editingId
+      ? clients.map((c) => (c.id === editingId ? payload : c))
+      : [...clients, payload];
+
+    saveClients(next);
+    resetForm();
     setShowForm(false);
   };
 
-  const deleteClient = (id: number) => {
-    const updated = clients.filter((c) => c.id !== id);
-    setClients(updated);
-    writeClientsToLocalStorage(updated);
+  const removeClient = (id: number) => {
+    saveClients(clients.filter((c) => c.id !== id));
   };
 
-  const markAllSuppliersPaid = () => {
-    const updated = supplierInvoices.map((inv) => ({ ...inv, status: 'paid' as const, paidAt: now, updatedAt: new Date().toISOString() }));
-    setSupplierInvoices(updated);
-    writeSupplierInvoicesToLocalStorage(updated);
-  };
+  const totalBalance = useMemo(() => clients.reduce((sum, c) => sum + (c.balance || 0), 0), [clients]);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -139,11 +152,14 @@ export default function ClientsPage() {
           <p className="text-white/40 text-xs">Enterprise</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Tableau de bord
+          <button
+            onClick={() => router.push('/')}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all"
+          >
+            <ArrowLeft size={16} /> Dashboard
           </button>
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Users size={16} /> Clients & fournisseurs
+            <Users size={16} /> Clients
           </button>
         </nav>
       </aside>
@@ -151,171 +167,212 @@ export default function ClientsPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Clients & fournisseurs</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Délais de paiement, balances et retards</p>
+            <h1 className="text-xl font-bold text-gray-800">Clients</h1>
+            <p className="text-xs text-gray-400 mt-0.5">Données clients · Délai de paiement · Balance</p>
           </div>
-          {tab === 'clients' && (
-            <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors">
-              <Plus size={16} /> Nouveau client
-            </button>
-          )}
+          <button
+            onClick={() => (showForm ? setShowForm(false) : startCreate())}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors"
+          >
+            <Plus size={16} /> Nouveau client
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-          <div className="flex items-center gap-2">
-            <button onClick={() => setTab('clients')} className={`px-4 py-2 rounded-lg text-sm font-medium border ${tab === 'clients' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              <Users size={14} className="inline-block mr-2" />
-              Clients
-            </button>
-            <button onClick={() => setTab('fournisseurs')} className={`px-4 py-2 rounded-lg text-sm font-medium border ${tab === 'fournisseurs' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              <Building2 size={14} className="inline-block mr-2" />
-              Fournisseurs
-            </button>
-            <div className="ml-auto relative w-80 max-w-full">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tab === 'clients' ? 'Rechercher un client…' : 'Rechercher…'} className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 bg-white" />
+        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Total clients</p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">{clients.length}</p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Balance totale</p>
+              <p className={`text-2xl font-bold mt-1 ${totalBalance >= 0 ? 'text-amber-600' : 'text-blue-700'}`}>
+                {Math.round(totalBalance).toLocaleString()} MAD
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <p className="text-xs text-gray-400">Clients en crédit</p>
+              <p className="text-2xl font-bold text-gray-800 mt-1">{clients.filter((c) => (c.balance || 0) > 0).length}</p>
             </div>
           </div>
 
-          {tab === 'clients' ? (
-            <>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Total facturé</p>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{money(clientBalances.reduce((s, r) => s + r.totalFacture, 0))}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Total payé</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{money(clientBalances.reduce((s, r) => s + r.totalPaye, 0))}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Reste à encaisser</p>
-                  <p className="text-2xl font-bold text-amber-600 mt-1">{money(clientBalances.reduce((s, r) => s + r.reste, 0))}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Retards de paiement</p>
-                  <p className="text-2xl font-bold text-red-600 mt-1">{clientBalances.reduce((s, r) => s + r.overdueCount, 0)}</p>
-                </div>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un client…"
+              className="w-full pl-10 pr-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400 bg-white"
+            />
+          </div>
+
+          {showForm && (
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-200">
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <h2 className="font-semibold text-gray-700">
+                  {editingId ? 'Modifier le client' : 'Nouveau client'}
+                </h2>
+                {editingId && (
+                  <span className="text-xs text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle size={12} /> Edition
+                  </span>
+                )}
               </div>
 
-              {showForm && (
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-200">
-                  <h2 className="font-semibold text-gray-700 mb-4">Nouveau client</h2>
-                  <div className="grid grid-cols-3 gap-4 items-end">
-                    <div className="col-span-1">
-                      <label className="text-xs text-gray-500 mb-1 block">Nom du client</label>
-                      <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Ex : Société Alpha" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
-                    </div>
-                    <div className="col-span-1">
-                      <label className="text-xs text-gray-500 mb-1 block">Délai de paiement par défaut</label>
-                      <div className="flex gap-2">
-                        <select value={termsKind} onChange={(e) => setTermsKind(e.target.value as any)} className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
-                          <option value="30">30 jours</option>
-                          <option value="60">60 jours</option>
-                          <option value="90">90 jours</option>
-                          <option value="custom">Personnalisé</option>
-                        </select>
-                        {termsKind === 'custom' && (
-                          <input value={termsCustomDays} onChange={(e) => setTermsCustomDays(e.target.value)} type="number" min={0} placeholder="Jours" className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-1 flex gap-2">
-                      <button onClick={addClient} className="flex-1 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors">Ajouter</button>
-                      <button onClick={() => setShowForm(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Annuler</button>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-400 mb-1 block">Nom *</label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="Ex: Société Alpha"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                  />
                 </div>
-              )}
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Balance (MAD)</label>
+                  <input
+                    value={form.balance}
+                    onChange={(e) => setForm({ ...form, balance: e.target.value })}
+                    type="number"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                  />
+                </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
-                      <th className="px-4 py-3">Client</th>
-                      <th className="px-4 py-3">Délai de paiement</th>
-                      <th className="px-4 py-3 text-right">Total facturé</th>
-                      <th className="px-4 py-3 text-right">Total payé</th>
-                      <th className="px-4 py-3 text-right">Reste à payer</th>
-                      <th className="px-4 py-3 text-right">Solde</th>
-                      <th className="px-4 py-3 text-right">Retards</th>
-                      <th className="px-4 py-3"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredClientBalances.map((r) => (
-                      <tr key={r.client.id} className="border-b border-gray-50 hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-700">{r.client.name}</td>
-                        <td className="px-4 py-3 text-gray-500">{paymentTermsLabel(r.client.paymentTerms)}</td>
-                        <td className="px-4 py-3 text-right text-gray-700">{money(r.totalFacture)}</td>
-                        <td className="px-4 py-3 text-right text-green-700">{money(r.totalPaye)}</td>
-                        <td className="px-4 py-3 text-right text-amber-700">{money(r.reste)}</td>
-                        <td className="px-4 py-3 text-right font-semibold">{money(r.solde)}</td>
-                        <td className="px-4 py-3 text-right">
-                          {r.overdueCount > 0 ? (
-                            <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                              <HandCoins size={12} /> {r.overdueCount} ({money(r.overdueAmount)})
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button onClick={() => deleteClient(r.client.id)} className="text-gray-300 hover:text-red-500 transition-colors">
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredClientBalances.length === 0 && (
-                      <tr>
-                        <td className="px-4 py-8 text-center text-sm text-gray-400" colSpan={8}>Aucun client</td>
-                      </tr>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Email</label>
+                  <input
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="contact@exemple.ma"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Téléphone</label>
+                  <input
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    placeholder="05..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Ville</label>
+                  <input
+                    value={form.city}
+                    onChange={(e) => setForm({ ...form, city: e.target.value })}
+                    placeholder="Casablanca"
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+
+                <div className="col-span-3">
+                  <label className="text-xs text-gray-400 mb-1 block">Adresse</label>
+                  <input
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    placeholder="Rue, quartier, ... "
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-400 mb-1 block">Délai de paiement</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={termsKind}
+                      onChange={(e) => setTermsKind(e.target.value as any)}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                    >
+                      <option value="30">30 jours</option>
+                      <option value="60">60 jours</option>
+                      <option value="90">90 jours</option>
+                      <option value="custom">Personnalisé</option>
+                    </select>
+                    {termsKind === 'custom' && (
+                      <input
+                        value={termsCustomDays}
+                        onChange={(e) => setTermsCustomDays(e.target.value)}
+                        placeholder="Jours"
+                        type="number"
+                        min={0}
+                        className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                      />
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Total facturé</p>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{money(supplierBalance.totalFacture)}</p>
+                  </div>
                 </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Total payé</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{money(supplierBalance.totalPaye)}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Reste à payer</p>
-                  <p className="text-2xl font-bold text-amber-600 mt-1">{money(supplierBalance.reste)}</p>
-                </div>
-                <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-400">Retards de paiement</p>
-                  <p className="text-2xl font-bold text-red-600 mt-1">{supplierBalance.overdueCount}</p>
-                </div>
-              </div>
 
-              {supplierInvoices.length === 0 ? (
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 text-sm text-gray-600">
-                  Aucune facture fournisseur pour le moment. Vous pouvez en créer depuis <span className="font-medium">Documents IA</span> après analyse OCR.
+                <div className="col-span-3 flex gap-3">
+                  <button
+                    onClick={upsertClient}
+                    className="px-6 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660]"
+                  >
+                    {editingId ? 'Enregistrer' : 'Ajouter'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      resetForm();
+                      setShowForm(false);
+                    }}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600"
+                  >
+                    Annuler
+                  </button>
                 </div>
-              ) : (
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-gray-700">Factures fournisseurs</p>
-                    <button onClick={markAllSuppliersPaid} className="px-3 py-2 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition-colors">
-                      Marquer tout comme payé
-                    </button>
-                  </div>
-                  <div className="mt-4 text-sm text-gray-500">
-                    Total : {supplierInvoices.length} facture(s).
-                  </div>
-                </div>
-              )}
-            </>
+              </div>
+            </div>
           )}
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
+                  <th className="px-4 py-3">Client</th>
+                  <th className="px-4 py-3">Contact</th>
+                  <th className="px-4 py-3">Délai</th>
+                  <th className="px-4 py-3 text-right">Balance</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((c) => (
+                  <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-gray-700">{c.name}</p>
+                      <p className="text-xs text-gray-400">{c.city ?? '-'}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      <p className="truncate max-w-[18rem]">{c.email ?? '-'}</p>
+                      <p className="text-xs text-gray-400">{c.phone ?? ''}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{paymentTermsLabel(c.paymentTerms)}</td>
+                    <td className={`px-4 py-3 text-right font-medium ${(c.balance || 0) > 0 ? 'text-amber-700' : 'text-gray-700'}`}>
+                      {Math.round(c.balance || 0).toLocaleString()} MAD
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          onClick={() => startEdit(c)}
+                          className="text-gray-300 hover:text-blue-500 transition-colors"
+                          aria-label="Modifier"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => removeClient(c.id)}
+                          className="text-gray-300 hover:text-red-500 transition-colors"
+                          aria-label="Supprimer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </main>
     </div>

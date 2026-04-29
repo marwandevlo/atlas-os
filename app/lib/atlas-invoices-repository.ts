@@ -1,7 +1,3 @@
-/**
- * Data-access boundary for invoices: today localStorage, tomorrow Supabase.
- */
-
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { ATLAS_STORAGE_KEYS } from '@/app/lib/atlas-storage-keys';
 

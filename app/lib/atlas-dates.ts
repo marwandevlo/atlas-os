@@ -1,19 +1,22 @@
-export function todayYmd(): string {
-  return new Date().toISOString().slice(0, 10);
+export function todayYmd(now: Date = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function addDaysYmd(ymd: string, days: number): string {
-  const base = new Date(`${ymd}T00:00:00`);
-  base.setDate(base.getDate() + days);
-  return base.toISOString().slice(0, 10);
+  const safeDays = Number.isFinite(days) ? Math.max(0, Math.trunc(days)) : 0;
+  const [y, m, d] = ymd.split('-').map((v) => Number.parseInt(v, 10));
+  if (!y || !m || !d) return ymd;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + safeDays);
+  return todayYmd(dt);
 }
 
-export function isPastYmd(a: string, b: string): boolean {
-  // a < b
-  return a.localeCompare(b) < 0;
-}
-
-export function isOverdue(dueDate: string, paid: boolean, nowYmd = todayYmd()): boolean {
-  return !paid && isPastYmd(dueDate, nowYmd);
+export function isOverdue(dueDateYmd: string, isPaid: boolean, nowYmd: string = todayYmd()): boolean {
+  if (isPaid) return false;
+  if (!dueDateYmd) return false;
+  return dueDateYmd < nowYmd;
 }
 

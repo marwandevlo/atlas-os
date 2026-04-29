@@ -1,23 +1,38 @@
 import type { NextRequest } from 'next/server';
 
 type AuthOk = { ok: true; status: 200; user: { id: string } };
-type AuthErr = {
-  ok: false;
-  status: 401 | 500;
-  code: 'missing_token' | 'invalid_token' | 'server_config';
-};
+type AuthErrorCode = 'missing_token' | 'invalid_token' | 'server_not_configured';
+type AuthErr = { ok: false; status: 401 | 500; code: AuthErrorCode };
+
+function requireAuth(): boolean {
+  const v = (process.env.ATLAS_AI_REQUIRE_AUTH ?? 'false').toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
 
 /**
- * Minimal server auth wrapper for AI endpoints.
+ * Server-side auth gate for `/api/ai`.
  *
- * Note: This codebase currently doesn't wire Supabase SSR cookies here.
- * For now we allow the request if the server has an AI key configured.
+ * Default behavior is permissive (anonymous) to avoid breaking production in projects
+ * where Supabase auth isn't wired to the AI route yet.
+ *
+ * Set `ATLAS_AI_REQUIRE_AUTH=true` to enforce presence of a bearer token.
  */
-export async function authenticateAiRequest(_request: NextRequest): Promise<AuthOk | AuthErr> {
+export async function authenticateAiRequest(request: NextRequest): Promise<AuthOk | AuthErr> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { ok: false, status: 500, code: 'server_config' };
+    return { ok: false, status: 500, code: 'server_not_configured' };
   }
 
-  return { ok: true, status: 200, user: { id: 'local' } };
+  if (!requireAuth()) {
+    return { ok: true, status: 200, user: { id: 'anon' } };
+  }
+
+  const auth = request.headers.get('authorization') ?? '';
+  const token = auth.toLowerCase().startsWith('bearer ') ? auth.slice(7).trim() : '';
+  if (!token) return { ok: false, status: 401, code: 'missing_token' };
+
+  // Minimal validation. If you want full validation, integrate Supabase auth verification here.
+  if (token.length < 10) return { ok: false, status: 401, code: 'invalid_token' };
+
+  return { ok: true, status: 200, user: { id: token.slice(0, 16) } };
 }
 

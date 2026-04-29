@@ -1,6 +1,8 @@
 /**
  * Canonical company shape used across Atlas OS (localStorage today, Supabase JSON tomorrow).
  */
+import type { AtlasPaymentTerms } from '@/app/types/atlas-payment-terms';
+
 export type AtlasCompany = {
   id: number;
   raisonSociale: string;
@@ -16,4 +18,10 @@ export type AtlasCompany = {
   activite: string;
   regimeTVA: string;
   actif: boolean;
+
+  /** Default payment terms for invoices emitted by this company. */
+  paymentTerms?: AtlasPaymentTerms;
+
+  /** Current balance snapshot (MAD). */
+  balance?: number;
 };

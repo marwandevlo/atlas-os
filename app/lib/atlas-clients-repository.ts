@@ -1,7 +1,3 @@
-/**
- * Data-access boundary for clients: today localStorage, tomorrow Supabase.
- */
-
 import type { AtlasClient } from '@/app/types/atlas-client';
 import { ATLAS_STORAGE_KEYS } from '@/app/lib/atlas-storage-keys';
 
