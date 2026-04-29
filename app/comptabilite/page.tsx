@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { readInvoicesFromLocalStorage } from '@/app/lib/atlas-invoices-repository';
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
+import { computeInvoiceStatut, toFrontendInvoice } from '@/app/lib/atlas-invoice-ui';
 
 type Ecriture = {
   id: number;
@@ -39,17 +40,19 @@ export default function ComptabilitePage() {
   const totalCredit = ecritures.reduce((s, e) => s + e.credit, 0);
 
   const accountingKpis = useMemo(() => {
-    const totalFacture = invoices.reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
-    const totalPaye = invoices.filter((inv) => inv.status === 'paid').reduce((sum, inv) => sum + (inv.paidAmount ?? inv.totalTTC ?? 0), 0);
-    const resteAPayer = invoices.filter((inv) => inv.status !== 'paid').reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
+    const now = todayYmd();
+    const frontend = invoices.map((inv) => toFrontendInvoice(inv, now));
+
+    const totalFacture = frontend.reduce((sum, inv) => sum + (inv.montant || 0), 0);
+    const totalPaye = frontend.filter((inv) => inv.statut === 'payée').reduce((sum, inv) => sum + (inv.montant || 0), 0);
+    const resteAPayer = totalFacture - totalPaye;
 
     const balanceClient = resteAPayer;
     const balanceFournisseur = 0; // reserved for supplier invoices (atlas_supplier_invoices)
     const soldeGlobal = balanceClient - balanceFournisseur;
 
-    const now = todayYmd();
     const overdue = invoices
-      .filter((inv) => inv.status !== 'paid' && isOverdue(inv.dueDate, false, now))
+      .filter((inv) => computeInvoiceStatut(inv, now) !== 'payée' && isOverdue(inv.dueDate, false, now))
       .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
 
     return {

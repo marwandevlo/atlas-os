@@ -4,9 +4,10 @@ import { ArrowLeft, Plus, Trash2, Download, Send, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation';
 import { addDaysYmd, isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 import { readInvoicesFromLocalStorage, writeInvoicesToLocalStorage } from '@/app/lib/atlas-invoices-repository';
-import type { AtlasInvoice } from '@/app/types/atlas-invoice';
+import type { AtlasInvoice, AtlasInvoiceUiStatut } from '@/app/types/atlas-invoice';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
+import { applyUiStatut, computeInvoiceStatut } from '@/app/lib/atlas-invoice-ui';
 
 type FactureRow = {
   id: number;
@@ -28,6 +29,7 @@ export default function FacturesPage() {
   const [showForm, setShowForm] = useState(false);
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
   const [termsCustomDays, setTermsCustomDays] = useState('45');
+  const [statut, setStatut] = useState<AtlasInvoiceUiStatut>('en attente');
   const [form, setForm] = useState({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
 
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function FacturesPage() {
     const dueDate = addDaysYmd(issueDate, normalized.days);
 
     const now = new Date().toISOString();
-    const next: AtlasInvoice = {
+    const base: AtlasInvoice = {
       id: Date.now(),
       number: form.numero,
       clientName: form.client,
@@ -123,6 +125,7 @@ export default function FacturesPage() {
       createdAt: now,
       updatedAt: now,
     };
+    const next = applyUiStatut(base, statut, issueDate);
 
     const updated = [...invoices, next];
     setInvoices(updated);
@@ -131,6 +134,7 @@ export default function FacturesPage() {
     setForm({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
     setTermsKind('30');
     setTermsCustomDays('45');
+    setStatut('en attente');
     setShowForm(false);
   };
 
@@ -147,9 +151,7 @@ export default function FacturesPage() {
   const rows: FactureRow[] = useMemo(() => {
     const now = todayYmd();
     return invoices.map((inv) => {
-      const paid = inv.status === 'paid';
-      const overdue = isOverdue(inv.dueDate, paid, now);
-      const statut: FactureRow['statut'] = paid ? 'payée' : overdue ? 'en retard' : 'en attente';
+      const statut = computeInvoiceStatut(inv, now);
       return {
         id: inv.id,
         numero: inv.number,
@@ -181,21 +183,14 @@ export default function FacturesPage() {
     return { totalFacture, totalUnpaid, totalOverdue, overdueCount };
   }, [rows]);
 
-  const markPaid = (id: number) => {
-    const nowYmd = todayYmd();
-    const updated = invoices.map((inv) => {
-      if (inv.id !== id) return inv;
-      const next: AtlasInvoice = {
-        ...inv,
-        status: 'paid',
-        paidAt: nowYmd,
-        paidAmount: inv.totalTTC,
-        updatedAt: new Date().toISOString(),
-      };
-      return next;
-    });
+  const updateInvoiceStatut = (id: number, nextStatut: AtlasInvoiceUiStatut) => {
+    const updated = invoices.map((inv) => (inv.id === id ? applyUiStatut(inv, nextStatut) : inv));
     setInvoices(updated);
     writeInvoicesToLocalStorage(updated);
+  };
+
+  const markPaid = (id: number) => {
+    updateInvoiceStatut(id, 'payée');
   };
 
   const removeInvoice = (id: number) => {
@@ -327,6 +322,18 @@ export default function FacturesPage() {
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
                   />
                 </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Statut</label>
+                  <select
+                    value={statut}
+                    onChange={(e) => setStatut(e.target.value as AtlasInvoiceUiStatut)}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                  >
+                    <option value="payée">payé</option>
+                    <option value="en attente">en attente</option>
+                    <option value="en retard">en retard</option>
+                  </select>
+                </div>
                 <select value={form.taux} onChange={e => setForm({...form, taux: e.target.value})} className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
                   <option value="20">TVA 20%</option>
                   <option value="14">TVA 14%</option>
@@ -360,17 +367,28 @@ export default function FacturesPage() {
               </thead>
               <tbody>
                 {rows.map(f => (
-                  <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
+                  <tr
+                    key={f.id}
+                    className={`border-b hover:bg-gray-50 ${f.statut === 'en retard' ? 'bg-red-50/40 border-red-100' : 'border-gray-50'}`}
+                  >
                     <td className="px-4 py-3 font-medium text-gray-700">{f.numero}</td>
                     <td className="px-4 py-3 text-gray-600">{f.client}</td>
                     <td className="px-4 py-3 text-gray-500">{f.date}</td>
                     <td className="px-4 py-3 text-gray-500">{f.delai}</td>
-                    <td className="px-4 py-3 text-gray-500">{f.echeance}</td>
+                    <td className={`px-4 py-3 ${f.statut === 'en retard' ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{f.echeance}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{f.montantHT.toLocaleString()} MAD</td>
                     <td className="px-4 py-3 text-right text-blue-600">{f.tva.toLocaleString()} MAD</td>
                     <td className="px-4 py-3 text-right font-medium">{f.ttc.toLocaleString()} MAD</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statutColor(f.statut)}`}>{f.statut}</span>
+                      <select
+                        value={f.statut}
+                        onChange={(e) => updateInvoiceStatut(f.id, e.target.value as AtlasInvoiceUiStatut)}
+                        className={`px-2 py-1 rounded-full text-xs font-medium border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-100 ${statutColor(f.statut)}`}
+                      >
+                        <option value="payée">payé</option>
+                        <option value="en attente">en attente</option>
+                        <option value="en retard">en retard</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end">
