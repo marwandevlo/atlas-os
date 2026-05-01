@@ -79,7 +79,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="text-xs text-gray-400 mb-1 block">Raison sociale *</label>
-                <input value={company.raisonSociale} onChange={e => setCompany({...company, raisonSociale: e.target.value})} placeholder="Ex: ATLAS COMMERCE SARL" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+                <input value={company.raisonSociale} onChange={e => setCompany({...company, raisonSociale: e.target.value})} placeholder="Ex: ZAFIRIX COMMERCE SARL" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
               </div>
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Forme juridique</label>

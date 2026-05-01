@@ -1,9 +1,9 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle, Zap, Shield, Brain, FileText, TrendingUp, Upload, ArrowRight, Star } from 'lucide-react';
+import Image from 'next/image';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 type Lang = 'fr' | 'ar';
 
@@ -12,7 +12,7 @@ export default function LandingPage() {
   const [lang, setLang] = useState<Lang>('fr');
   const isAr = lang === 'ar';
 
-  const t = (fr: string, ar: string) => (isAr ? ar : fr);
+  const t = useCallback((fr: string, ar: string) => (isAr ? ar : fr), [isAr]);
 
   const features = useMemo(
     () => [
@@ -53,7 +53,7 @@ export default function LandingPage() {
         color: 'bg-cyan-500',
       },
     ],
-    [lang],
+    [t],
   );
 
   const testimonials = useMemo(
@@ -86,7 +86,7 @@ export default function LandingPage() {
         stars: 5,
       },
     ],
-    [lang],
+    [t],
   );
 
   return (
@@ -98,10 +98,17 @@ export default function LandingPage() {
             <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center">
               <Building2 size={18} className="text-[#1B2A4A]" />
             </div>
-            <BrandWordmark size="md" />
+            <Image
+              src="/zafirix-logo.png"
+              alt="ZAFIRIX PRO"
+              width={140}
+              height={40}
+              className="h-7 w-auto sm:h-8"
+              priority
+            />
             <span className="text-white/40 text-xs ml-1">ZAFIRIX GROUP</span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="hidden sm:flex items-center gap-1 rounded-lg bg-white/10 p-1">
               <button
                 type="button"
@@ -118,10 +125,16 @@ export default function LandingPage() {
                 AR
               </button>
             </div>
-            <button onClick={() => router.push('/pricing')} className="text-white/70 hover:text-white text-sm transition-colors">
+            <button
+              onClick={() => router.push('/pricing')}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-linear-to-r from-sky-500 via-indigo-500 to-violet-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition"
+            >
               {t('Tarifs', 'الأسعار')}
             </button>
-            <button onClick={() => router.push('/login')} className="text-white/70 hover:text-white text-sm transition-colors">
+            <button
+              onClick={() => router.push('/login')}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold text-white/90 border border-white/20 bg-white/10 hover:bg-white/15 hover:text-white transition"
+            >
               {t('Connexion', 'تسجيل الدخول')}
             </button>
             <button onClick={() => router.push('/signup')} className="px-4 py-2 bg-amber-400 text-[#1B2A4A] rounded-lg text-sm font-bold hover:bg-amber-300 transition-colors">
@@ -136,29 +149,29 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center px-6">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-sm mb-6">
             <Zap size={14} className="text-amber-400" />
-            <span>{t('La première solution comptable IA pour le Maroc', 'أول منصة محاسبة بالذكاء الاصطناعي للمغرب')}</span>
+            <span>{t('Comptabilité & fiscalité au Maroc — plus simples au quotidien', 'المحاسبة والجباية بالمغرب — أبسط في العمل اليومي')}</span>
           </div>
           <h1 className="text-5xl font-bold leading-tight mb-6">
-            {t('La comptabilité marocaine,', 'المحاسبة المغربية،')}
+            {t('Pilotez votre gestion,', 'دبّر تسييرك،')}
             <br />
-            <span className="text-amber-400">{t("automatisée par l'IA", 'مؤتمتة بالذكاء الاصطناعي')}</span>
+            <span className="text-amber-400">{t('avec des outils pensés pour le Maroc', 'بأدوات مصممة للمغرب')}</span>
           </h1>
           <p className="text-white/60 text-xl mb-10 max-w-2xl mx-auto">
             {t(
-              'TVA, IS, IR, CNSS, AMO — ZAFIRIX PRO gère toute votre fiscalité marocaine automatiquement. Conforme DGI, simple, rapide.',
-              'TVA، IS، IR، CNSS، AMO — ZAFIRIX PRO يدير جبائتك المغربية تلقائياً. متوافق مع DGI، بسيط وسريع.',
+              "Centralisez vos factures, suivez vos échéances et préparez vos déclarations (TVA, IS, IR) avec une expérience claire — pour PME et cabinets.",
+              'نظّم فواتيرك، تتبع آجالك، وحضّر تصاريحك (TVA، IS، IR) بتجربة واضحة — للشركات والمكاتب المحاسبية.',
             )}
           </p>
           <div className="flex items-center justify-center gap-4">
             <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-8 py-4 bg-amber-400 text-[#1B2A4A] rounded-xl text-base font-bold hover:bg-amber-300 transition-colors">
-              {t('Commencer gratuitement', 'ابدأ مجاناً')} <ArrowRight size={18} />
+              {t('Créer un compte', 'إنشاء حساب')} <ArrowRight size={18} />
             </button>
             <button onClick={() => router.push('/pricing')} className="px-8 py-4 border border-white/20 rounded-xl text-base hover:bg-white/10 transition-colors">
-              {t('Voir les tarifs', 'اطّلع على الأسعار')}
+              {t('Voir les offres', 'اطّلع على العروض')}
             </button>
           </div>
           <p className="text-white/30 text-sm mt-4">
-            {t('7 jours gratuits · Sans carte bancaire · Annulez à tout moment', '7 أيام مجاناً · بدون بطاقة بنكية · يمكنك الإلغاء في أي وقت')}
+            {t('Essai 7 jours · Sans carte bancaire · Support local', 'تجربة 7 أيام · بدون بطاقة بنكية · دعم محلي')}
           </p>
         </div>
       </section>
@@ -240,7 +253,7 @@ export default function LandingPage() {
                 <div className="flex gap-1 mb-4">
                   {[...Array(t.stars)].map((_, j) => <Star key={j} size={14} className="text-amber-400 fill-amber-400" />)}
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">"{t.text}"</p>
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">&quot;{t.text}&quot;</p>
                 <div>
                   <p className="font-semibold text-gray-800 text-sm">{t.name}</p>
                   <p className="text-gray-400 text-xs">{t.role}</p>

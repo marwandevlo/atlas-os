@@ -3,13 +3,13 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Mail, Lock, Eye, EyeOff, User, Phone, Building, MapPin, BadgeCheck } from 'lucide-react';
+import Image from 'next/image';
 import { supabase } from '@/app/lib/supabase';
 import { addDaysYmd, todayYmd } from '@/app/lib/atlas-dates';
 import { ATLAS_STORAGE_KEYS } from '@/app/lib/atlas-storage-keys';
 import type { AtlasCompany } from '@/app/types/atlas-company';
 import { readCompaniesFromLocalStorage, writeCompaniesToLocalStorage } from '@/app/lib/atlas-companies-repository';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 
 type UserProfile = {
@@ -215,7 +215,14 @@ export default function SignUpPage() {
                 <Building2 size={24} className="text-[#0F1F3D]" />
               </div>
               <div>
-                <BrandWordmark size="lg" />
+                <Image
+                  src="/zafirix-logo.png"
+                  alt="ZAFIRIX PRO"
+                  width={140}
+                  height={40}
+                  className="h-10 w-auto"
+                  priority
+                />
                 <p className="text-white/60 text-sm">Créer un compte · إنشاء حساب</p>
               </div>
             </div>

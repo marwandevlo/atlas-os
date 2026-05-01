@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react';
+import Image from 'next/image';
 import { supabase } from '@/app/lib/supabase';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 
 const MIN_PASSWORD_LEN = 8;
@@ -73,7 +73,14 @@ export default function ResetPasswordPage() {
             >
               <ArrowLeft size={16} /> Retour
             </button>
-            <BrandWordmark size="md" />
+            <Image
+              src="/zafirix-logo.png"
+              alt="ZAFIRIX PRO"
+              width={140}
+              height={40}
+              className="h-8 w-auto"
+              priority
+            />
             <div />
           </div>
 

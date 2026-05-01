@@ -14,7 +14,7 @@ import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 import { GlobalSearchButton } from '@/app/components/search/GlobalSearchButton';
 import { UsageWidget } from '@/app/components/usage/UsageWidget';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import Image from 'next/image';
 
 const modules = [
   { id: 'tva', label: 'TVA', labelAr: 'الضريبة على القيمة المضافة', icon: Receipt, color: 'bg-blue-500', href: '/tva', deadline: '20 Mai', urgent: true },
@@ -128,7 +128,14 @@ export default function Home() {
               <Building2 size={20} className="text-[#0F1F3D]" />
             </div>
             <div>
-              <BrandWordmark size="md" />
+              <Image
+                src="/zafirix-logo.png"
+                alt="ZAFIRIX PRO"
+                width={140}
+                height={40}
+                className="h-8 w-auto sm:h-9"
+                priority
+              />
               <p className="text-white/40 text-xs">ZAFIRIX GROUP · المغرب</p>
             </div>
           </div>

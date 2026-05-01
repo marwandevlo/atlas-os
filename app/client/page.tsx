@@ -88,7 +88,7 @@ export default function ClientPortalPage() {
             </div>
             <div>
               <p className="font-bold">ZAFIRIX PRO — Espace Client</p>
-              <p className="text-white/40 text-xs">ATLAS COMMERCE SARL · IF: 12345678</p>
+              <p className="text-white/40 text-xs">ZAFIRIX COMMERCE SARL · IF: 12345678</p>
             </div>
           </div>
           <button onClick={() => setAuthenticated(false)} className="text-white/50 hover:text-white text-sm transition-colors">
