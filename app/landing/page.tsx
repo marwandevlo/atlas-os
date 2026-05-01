@@ -18,26 +18,38 @@ export default function LandingPage() {
     () => [
       {
         icon: FileText,
-        title: t('Déclaration TVA automatique', 'تصريح TVA تلقائي'),
-        desc: t("Importez vos factures et l'IA génère votre déclaration TVA en un clic", 'استورد فواتيرك وسيقوم الذكاء الاصطناعي بإعداد تصريح TVA بنقرة واحدة'),
+        title: t('Aide à la déclaration TVA', 'مساعدة على تصريح TVA'),
+        desc: t(
+          'Centralisez vos factures et préparez votre déclaration TVA avec des contrôles clairs',
+          'جمّع فواتيرك وأعد تصريح TVA مع تحققات واضحة',
+        ),
         color: 'bg-blue-500',
       },
       {
         icon: Brain,
         title: t('Consultant IA 24/7', 'مستشار ذكي 24/7'),
-        desc: t('Posez vos questions fiscales بالعربية أو الفرنسية، مع جواب فوري وواضح', 'اطرح أسئلتك الجبائية بالعربية أو الفرنسية وستحصل على جواب فوري وواضح'),
+        desc: t(
+          'Posez vos questions fiscales en français ou en arabe, avec une réponse structurée et pédagogique',
+          'اطرح أسئلتك الجبائية بالفرنسية أو العربية مع إجابة منظّمة وواضحة',
+        ),
         color: 'bg-purple-500',
       },
       {
         icon: Upload,
         title: t('OCR intelligent', 'OCR ذكي للوثائق'),
-        desc: t('صوّر فواتيرك وسيتم استخراج البيانات تلقائياً بدقة', 'صوّر فواتيرك وسيتم استخراج البيانات تلقائياً بدقة'),
+        desc: t(
+          'Numérisez vos factures pour extraire les champs utiles et limiter la saisie manuelle',
+          'رقّم فواتيرك لاستخراج الحقول المفيدة وتقليل الإدخال اليدوي',
+        ),
         color: 'bg-rose-500',
       },
       {
         icon: TrendingUp,
-        title: t('IS & IR automatisés', 'حساب IS و IR تلقائياً'),
-        desc: t("حساب تلقائي لIS وIR الأجور وفقاً للسلم المغربي", 'حساب تلقائي لضريبة الشركات IS وضريبة الدخل IR للأجور وفقاً للسلم المغربي'),
+        title: t('IS & IR assistés', 'IS و IR بمساعدة آلية'),
+        desc: t(
+          'Cadres de calcul et barèmes marocains pour structurer vos éléments IS/IR et vos masses salariales',
+          'إطارات حساب وسلالم مغربية لتنظيم عناصر IS/IR وكتلة الأجور',
+        ),
         color: 'bg-green-500',
       },
       {
@@ -62,8 +74,8 @@ export default function LandingPage() {
         name: t('Karim Benjelloun', 'كريم بنجلّون'),
         role: t('Gérant PME, Casablanca', 'مسير شركة، الدار البيضاء'),
         text: t(
-          "ZAFIRIX PRO m'a fait gagner 3 jours par mois sur ma comptabilité. La TVA est déclarée automatiquement !",
-          'ZAFIRIX PRO وفر عليّ 3 أيام في الشهر في المحاسبة. تصريح TVA أصبح تلقائياً.',
+          'ZAFIRIX PRO nous aide à structurer la TVA et à réduire les tâches répétitives au quotidien.',
+          'ZAFIRIX PRO يساعدنا على تنظيم TVA وتقليل المهام المتكررة يومياً.',
         ),
         stars: 5,
       },
@@ -170,10 +182,13 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid grid-cols-4 gap-6 text-center">
             {[
-              { value: '500+', label: t('Entreprises actives', 'شركة نشطة') },
-              { value: '98%', label: t('Satisfaction client', 'رضا العملاء') },
-              { value: '3h', label: t('Gagnées par semaine', 'توفير أسبوعي') },
-              { value: '100%', label: t('Conforme DGI', 'متوافق مع DGI') },
+              { value: t('Simple', 'بسيط'), label: t('Au quotidien', 'يومياً') },
+              { value: t('Clair', 'واضح'), label: t('Suivi clair', 'متابعة واضحة') },
+              { value: t('Temps', 'الوقت'), label: t('Gestion simplifiée', 'إدارة مبسّطة') },
+              {
+                value: t('Maroc', 'المغرب'),
+                label: t('Conforme aux besoins du marché marocain', 'ملائم لاحتياجات السوق المغربي'),
+              },
             ].map((s, i) => (
               <div key={i}>
                 <p className="text-3xl font-bold text-[#1B2A4A]">{s.value}</p>
@@ -213,7 +228,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-3 gap-4">
             {[
               { label: t('Conforme TVA Maroc', 'متوافق مع TVA بالمغرب'), atlas: true, other: false },
-              { label: t('CNSS / AMO automatique', 'CNSS / AMO تلقائياً'), atlas: true, other: false },
+              { label: t('Cadres CNSS / AMO', 'إطارات CNSS / AMO'), atlas: true, other: false },
               { label: t('Barème IR marocain', 'سلم IR المغربي'), atlas: true, other: false },
               { label: t('Interface en Darija/FR', 'واجهة بالعربية/الفرنسية'), atlas: true, other: false },
               { label: t('Prix adapté Maroc', 'سعر مناسب للمغرب'), atlas: true, other: false },
@@ -256,9 +271,14 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="bg-amber-400 py-16 px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-[#1B2A4A] mb-4">{t('Prêt à automatiser votre comptabilité?', 'هل أنت مستعد لأتمتة محاسبتك؟')}</h2>
+          <h2 className="text-3xl font-bold text-[#1B2A4A] mb-4">
+            {t('Simplifiez votre gestion comptable et fiscale', 'بسّط إدارتك المحاسبية والجبائية')}
+          </h2>
           <p className="text-[#1B2A4A]/70 mb-8">
-            {t('Rejoignez 500+ entreprises marocaines qui font confiance à ZAFIRIX PRO', 'انضم إلى +500 شركة مغربية تثق في ZAFIRIX PRO')}
+            {t(
+              'Une approche structurée, un suivi plus clair et moins de tâches répétitives — adaptée au contexte marocain.',
+              'نهج منظم، متابعة أوضح ومهام متكررة أقل — ملائم للسياق المغربي.',
+            )}
           </p>
           <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-10 py-4 bg-[#1B2A4A] text-white rounded-xl text-base font-bold hover:bg-[#243660] transition-colors mx-auto">
             {t('Démarrer maintenant', 'ابدأ الآن')} <ArrowRight size={18} />
