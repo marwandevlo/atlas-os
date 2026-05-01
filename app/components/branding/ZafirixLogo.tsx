@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 export function ZafirixLogo(props: {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
@@ -9,7 +7,6 @@ export function ZafirixLogo(props: {
   subtitleClassName?: string;
 }) {
   const size = props.size ?? 'md';
-  const icon = size === 'sm' ? 28 : size === 'lg' ? 44 : 40;
   const text =
     size === 'sm'
       ? { z: 'text-base', pro: 'text-[10px]' }
@@ -23,15 +20,7 @@ export function ZafirixLogo(props: {
   return (
     <div className={props.className}>
       <div className="flex items-center gap-3">
-        <Image
-          src="/icon-192.png"
-          alt="ZAFIRIX PRO"
-          width={40}
-          height={40}
-          className="shrink-0"
-          style={{ width: icon, height: icon }}
-          priority
-        />
+        <img src="/icon-192.png" alt="ZAFIRIX" className="h-9 w-9 object-contain shrink-0" />
         <div className="leading-none">
           <div className="flex items-baseline">
             <span
