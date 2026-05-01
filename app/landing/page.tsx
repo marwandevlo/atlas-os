@@ -103,7 +103,7 @@ export default function LandingPage() {
               alt="ZAFIRIX PRO"
               width={140}
               height={40}
-              className="h-7 w-auto sm:h-8"
+              className="h-9 w-auto sm:h-10"
               priority
             />
             <span className="text-white/40 text-xs ml-1">ZAFIRIX GROUP</span>
