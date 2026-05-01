@@ -10,6 +10,7 @@ import type { AtlasCompany } from '@/app/types/atlas-company';
 import { readCompaniesFromLocalStorage, writeCompaniesToLocalStorage } from '@/app/lib/atlas-companies-repository';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 
 type UserProfile = {
   fullName: string;
@@ -188,10 +189,14 @@ export default function SignUpPage() {
         return;
       }
 
-      // Local temp persistence for profile/subscription.
-      storeUserProfile();
-      createCompanyProfile();
-      assignFreeTrial();
+      // Demo/localStorage seeding must never run in production (prevents accidental "Pro" defaults).
+      // In Supabase mode, Free Trial is assigned server-side (DB trigger) and companies live in DB.
+      const allowDemoSeed = process.env.NODE_ENV === 'development';
+      if (allowDemoSeed && !isAtlasSupabaseDataEnabled()) {
+        storeUserProfile();
+        createCompanyProfile();
+        assignFreeTrial();
+      }
 
       setSuccess('Compte créé. Redirection…');
       router.push('/subscription');

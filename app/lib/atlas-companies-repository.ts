@@ -55,7 +55,8 @@ export async function listAtlasCompanies(): Promise<AtlasCompany[]> {
 
   if (error) {
     console.error('atlas_companies list error', error.message);
-    return readCompaniesFromLocalStorage();
+    // In Supabase mode, localStorage must not become a production fallback source of truth.
+    return process.env.NODE_ENV === 'development' ? readCompaniesFromLocalStorage() : [];
   }
 
   return (data ?? [])

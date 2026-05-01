@@ -30,6 +30,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (isPublicPath(pathname)) return NextResponse.next();
 
+  // Production safety: if Supabase isn't enabled for any reason, do NOT allow access
+  // to private routes. Send visitors to the public landing page.
+  if (process.env.NODE_ENV === 'production' && atlasDataBackend() !== 'supabase') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/landing';
+    url.searchParams.delete('next');
+    return NextResponse.redirect(url);
+  }
+
   // Admin pages must never fall back to client-side "demo" behavior.
   // If the backend isn't Supabase, deny access to /admin entirely.
   if (pathname.startsWith('/admin') && atlasDataBackend() !== 'supabase') {
@@ -74,7 +83,8 @@ export async function middleware(request: NextRequest) {
   // Require login for private pages
   if (!user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    // Public entry point should be the landing page in production.
+    url.pathname = '/landing';
     url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }
