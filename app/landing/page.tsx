@@ -1,29 +1,96 @@
 'use client';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle, Zap, Shield, Brain, FileText, TrendingUp, Upload, ArrowRight, Star } from 'lucide-react';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
-const features = [
-  { icon: FileText, title: 'Déclaration TVA automatique', desc: 'Import vos factures et l\'IA génère votre déclaration TVA en un clic', color: 'bg-blue-500' },
-  { icon: Brain, title: 'Consultant IA 24/7', desc: 'Posez vos questions fiscales en arabe ou français, réponse instantanée', color: 'bg-purple-500' },
-  { icon: Upload, title: 'OCR intelligent', desc: 'Photographiez vos factures, l\'IA extrait automatiquement toutes les données', color: 'bg-rose-500' },
-  { icon: TrendingUp, title: 'IS & IR automatisés', desc: 'Calcul automatique de l\'impôt sur sociétés et IR salaires selon le barème marocain', color: 'bg-green-500' },
-  { icon: Shield, title: 'Conforme DGI Maroc', desc: 'Mis à jour en temps réel selon les circulaires de la Direction Générale des Impôts', color: 'bg-amber-500' },
-  { icon: Zap, title: 'Export & télédéclaration', desc: 'Exportez vos déclarations au format DGI et télédéclarez directement', color: 'bg-cyan-500' },
-];
-
-const testimonials = [
-  { name: 'Karim Benjelloun', role: 'Gérant PME, Casablanca', text: 'ZAFIRIX PRO m\'a fait gagner 3 jours par mois sur ma comptabilité. La TVA est déclarée automatiquement!', stars: 5 },
-  { name: 'Fatima Zahra Alami', role: 'Expert-comptable, Rabat', text: 'Enfin un logiciel marocain qui comprend vraiment notre fiscalité. Bien supérieur aux solutions étrangères.', stars: 5 },
-  { name: 'Youssef Tazi', role: 'Auto-entrepreneur, Marrakech', text: 'Simple, rapide et conforme. Je recommande à tous les entrepreneurs marocains.', stars: 5 },
-];
+type Lang = 'fr' | 'ar';
 
 export default function LandingPage() {
   const router = useRouter();
+  const [lang, setLang] = useState<Lang>('fr');
+  const isAr = lang === 'ar';
+
+  const t = (fr: string, ar: string) => (isAr ? ar : fr);
+
+  const features = useMemo(
+    () => [
+      {
+        icon: FileText,
+        title: t('Déclaration TVA automatique', 'تصريح TVA تلقائي'),
+        desc: t("Importez vos factures et l'IA génère votre déclaration TVA en un clic", 'استورد فواتيرك وسيقوم الذكاء الاصطناعي بإعداد تصريح TVA بنقرة واحدة'),
+        color: 'bg-blue-500',
+      },
+      {
+        icon: Brain,
+        title: t('Consultant IA 24/7', 'مستشار ذكي 24/7'),
+        desc: t('Posez vos questions fiscales بالعربية أو الفرنسية، مع جواب فوري وواضح', 'اطرح أسئلتك الجبائية بالعربية أو الفرنسية وستحصل على جواب فوري وواضح'),
+        color: 'bg-purple-500',
+      },
+      {
+        icon: Upload,
+        title: t('OCR intelligent', 'OCR ذكي للوثائق'),
+        desc: t('صوّر فواتيرك وسيتم استخراج البيانات تلقائياً بدقة', 'صوّر فواتيرك وسيتم استخراج البيانات تلقائياً بدقة'),
+        color: 'bg-rose-500',
+      },
+      {
+        icon: TrendingUp,
+        title: t('IS & IR automatisés', 'حساب IS و IR تلقائياً'),
+        desc: t("حساب تلقائي لIS وIR الأجور وفقاً للسلم المغربي", 'حساب تلقائي لضريبة الشركات IS وضريبة الدخل IR للأجور وفقاً للسلم المغربي'),
+        color: 'bg-green-500',
+      },
+      {
+        icon: Shield,
+        title: t('Conforme DGI Maroc', 'متوافق مع DGI المغرب'),
+        desc: t("تحديثات مستمرة حسب دوريات المديرية العامة للضرائب", 'تحديثات مستمرة حسب دوريات المديرية العامة للضرائب'),
+        color: 'bg-amber-500',
+      },
+      {
+        icon: Zap,
+        title: t('Export & télédéclaration', 'تصدير وتصريح إلكتروني'),
+        desc: t('صدّر التصاريح بصيغة مناسبة وسهّل عملية التصريح', 'صدّر التصاريح بصيغة مناسبة وسهّل عملية التصريح الإلكتروني'),
+        color: 'bg-cyan-500',
+      },
+    ],
+    [lang],
+  );
+
+  const testimonials = useMemo(
+    () => [
+      {
+        name: t('Karim Benjelloun', 'كريم بنجلّون'),
+        role: t('Gérant PME, Casablanca', 'مسير شركة، الدار البيضاء'),
+        text: t(
+          "ZAFIRIX PRO m'a fait gagner 3 jours par mois sur ma comptabilité. La TVA est déclarée automatiquement !",
+          'ZAFIRIX PRO وفر عليّ 3 أيام في الشهر في المحاسبة. تصريح TVA أصبح تلقائياً.',
+        ),
+        stars: 5,
+      },
+      {
+        name: t('Fatima Zahra Alami', 'فاطمة الزهراء العلمي'),
+        role: t('Expert-comptable, Rabat', 'خبيرة محاسبة، الرباط'),
+        text: t(
+          'Enfin une solution qui comprend vraiment la fiscalité marocaine. Très pratique pour les cabinets.',
+          'أخيراً حل يفهم فعلاً الجباية المغربية. عملي جداً للمكاتب المحاسبية.',
+        ),
+        stars: 5,
+      },
+      {
+        name: t('Youssef Tazi', 'يوسف تازي'),
+        role: t('Auto-entrepreneur, Marrakech', 'مقاول ذاتي، مراكش'),
+        text: t(
+          'Simple, rapide et conforme. Je recommande à tous les entrepreneurs marocains.',
+          'سهل وسريع ومتوافق. أنصح به كل رواد الأعمال في المغرب.',
+        ),
+        stars: 5,
+      },
+    ],
+    [lang],
+  );
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Navbar */}
       <nav className="bg-[#1B2A4A] text-white sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -35,10 +102,30 @@ export default function LandingPage() {
             <span className="text-white/40 text-xs ml-1">ZAFIRIX GROUP</span>
           </div>
           <div className="flex items-center gap-6">
-            <button onClick={() => router.push('/pricing')} className="text-white/70 hover:text-white text-sm transition-colors">Tarifs</button>
-            <button onClick={() => router.push('/login')} className="text-white/70 hover:text-white text-sm transition-colors">Connexion</button>
+            <div className="hidden sm:flex items-center gap-1 rounded-lg bg-white/10 p-1">
+              <button
+                type="button"
+                onClick={() => setLang('fr')}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${!isAr ? 'bg-white text-[#1B2A4A]' : 'text-white/70 hover:text-white'}`}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                onClick={() => setLang('ar')}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${isAr ? 'bg-white text-[#1B2A4A]' : 'text-white/70 hover:text-white'}`}
+              >
+                AR
+              </button>
+            </div>
+            <button onClick={() => router.push('/pricing')} className="text-white/70 hover:text-white text-sm transition-colors">
+              {t('Tarifs', 'الأسعار')}
+            </button>
+            <button onClick={() => router.push('/login')} className="text-white/70 hover:text-white text-sm transition-colors">
+              {t('Connexion', 'تسجيل الدخول')}
+            </button>
             <button onClick={() => router.push('/signup')} className="px-4 py-2 bg-amber-400 text-[#1B2A4A] rounded-lg text-sm font-bold hover:bg-amber-300 transition-colors">
-              Essai gratuit 7j
+              {t('Essai gratuit 7j', 'تجربة مجانية 7 أيام')}
             </button>
           </div>
         </div>
@@ -49,24 +136,30 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center px-6">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-sm mb-6">
             <Zap size={14} className="text-amber-400" />
-            <span>La première solution comptable IA pour le Maroc</span>
+            <span>{t('La première solution comptable IA pour le Maroc', 'أول منصة محاسبة بالذكاء الاصطناعي للمغرب')}</span>
           </div>
           <h1 className="text-5xl font-bold leading-tight mb-6">
-            La comptabilité marocaine,<br />
-            <span className="text-amber-400">automatisée par l'IA</span>
+            {t('La comptabilité marocaine,', 'المحاسبة المغربية،')}
+            <br />
+            <span className="text-amber-400">{t("automatisée par l'IA", 'مؤتمتة بالذكاء الاصطناعي')}</span>
           </h1>
           <p className="text-white/60 text-xl mb-10 max-w-2xl mx-auto">
-            TVA, IS, IR, CNSS, AMO — ZAFIRIX PRO gère toute votre fiscalité marocaine automatiquement. Conforme DGI, simple, rapide.
+            {t(
+              'TVA, IS, IR, CNSS, AMO — ZAFIRIX PRO gère toute votre fiscalité marocaine automatiquement. Conforme DGI, simple, rapide.',
+              'TVA، IS، IR، CNSS، AMO — ZAFIRIX PRO يدير جبائتك المغربية تلقائياً. متوافق مع DGI، بسيط وسريع.',
+            )}
           </p>
           <div className="flex items-center justify-center gap-4">
             <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-8 py-4 bg-amber-400 text-[#1B2A4A] rounded-xl text-base font-bold hover:bg-amber-300 transition-colors">
-              Commencer gratuitement <ArrowRight size={18} />
+              {t('Commencer gratuitement', 'ابدأ مجاناً')} <ArrowRight size={18} />
             </button>
             <button onClick={() => router.push('/pricing')} className="px-8 py-4 border border-white/20 rounded-xl text-base hover:bg-white/10 transition-colors">
-              Voir les tarifs
+              {t('Voir les tarifs', 'اطّلع على الأسعار')}
             </button>
           </div>
-          <p className="text-white/30 text-sm mt-4">14 jours gratuits · Sans carte bancaire · Annulez à tout moment</p>
+          <p className="text-white/30 text-sm mt-4">
+            {t('7 jours gratuits · Sans carte bancaire · Annulez à tout moment', '7 أيام مجاناً · بدون بطاقة بنكية · يمكنك الإلغاء في أي وقت')}
+          </p>
         </div>
       </section>
 
@@ -75,10 +168,10 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid grid-cols-4 gap-6 text-center">
             {[
-              { value: '500+', label: 'Entreprises actives' },
-              { value: '98%', label: 'Satisfaction client' },
-              { value: '3h', label: 'Gagnées par semaine' },
-              { value: '100%', label: 'Conforme DGI' },
+              { value: '500+', label: t('Entreprises actives', 'شركة نشطة') },
+              { value: '98%', label: t('Satisfaction client', 'رضا العملاء') },
+              { value: '3h', label: t('Gagnées par semaine', 'توفير أسبوعي') },
+              { value: '100%', label: t('Conforme DGI', 'متوافق مع DGI') },
             ].map((s, i) => (
               <div key={i}>
                 <p className="text-3xl font-bold text-[#1B2A4A]">{s.value}</p>
@@ -93,8 +186,8 @@ export default function LandingPage() {
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Tout ce dont vous avez besoin</h2>
-            <p className="text-gray-400 text-lg">Une solution complète pour la fiscalité et comptabilité marocaine</p>
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">{t('Tout ce dont vous avez besoin', 'كل ما تحتاجه')}</h2>
+            <p className="text-gray-400 text-lg">{t('Une solution complète pour la fiscalité et comptabilité marocaine', 'حل متكامل للجباية والمحاسبة بالمغرب')}</p>
           </div>
           <div className="grid grid-cols-3 gap-6">
             {features.map((f, i) => (
@@ -113,16 +206,16 @@ export default function LandingPage() {
       {/* Vs Competition */}
       <section className="bg-[#1B2A4A] text-white py-16 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">Pourquoi ZAFIRIX PRO ?</h2>
-          <p className="text-white/60 mb-10">Comparé aux solutions génériques non adaptées au Maroc</p>
+          <h2 className="text-3xl font-bold mb-4">{t('Pourquoi ZAFIRIX PRO ?', 'لماذا ZAFIRIX PRO؟')}</h2>
+          <p className="text-white/60 mb-10">{t('Comparé aux solutions génériques non adaptées au Maroc', 'مقارنةً بالحلول العامة غير الملائمة للمغرب')}</p>
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Conforme TVA Maroc', atlas: true, other: false },
-              { label: 'CNSS / AMO automatique', atlas: true, other: false },
-              { label: 'Barème IR marocain', atlas: true, other: false },
-              { label: 'Interface en Darija/FR', atlas: true, other: false },
-              { label: 'Prix adapté Maroc', atlas: true, other: false },
-              { label: 'Support local', atlas: true, other: false },
+              { label: t('Conforme TVA Maroc', 'متوافق مع TVA بالمغرب'), atlas: true, other: false },
+              { label: t('CNSS / AMO automatique', 'CNSS / AMO تلقائياً'), atlas: true, other: false },
+              { label: t('Barème IR marocain', 'سلم IR المغربي'), atlas: true, other: false },
+              { label: t('Interface en Darija/FR', 'واجهة بالعربية/الفرنسية'), atlas: true, other: false },
+              { label: t('Prix adapté Maroc', 'سعر مناسب للمغرب'), atlas: true, other: false },
+              { label: t('Support local', 'دعم محلي'), atlas: true, other: false },
             ].map((r, i) => (
               <div key={i} className="bg-white/10 rounded-xl p-4 flex items-center justify-between">
                 <span className="text-sm text-white/80">{r.label}</span>
@@ -139,7 +232,7 @@ export default function LandingPage() {
       <section className="py-20 px-6 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Ils nous font confiance</h2>
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">{t('Ils nous font confiance', 'يثقون بنا')}</h2>
           </div>
           <div className="grid grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
@@ -161,10 +254,12 @@ export default function LandingPage() {
       {/* CTA */}
       <section className="bg-amber-400 py-16 px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-[#1B2A4A] mb-4">Prêt à automatiser votre comptabilité?</h2>
-          <p className="text-[#1B2A4A]/70 mb-8">Rejoignez 500+ entreprises marocaines qui font confiance à ZAFIRIX PRO</p>
+          <h2 className="text-3xl font-bold text-[#1B2A4A] mb-4">{t('Prêt à automatiser votre comptabilité?', 'هل أنت مستعد لأتمتة محاسبتك؟')}</h2>
+          <p className="text-[#1B2A4A]/70 mb-8">
+            {t('Rejoignez 500+ entreprises marocaines qui font confiance à ZAFIRIX PRO', 'انضم إلى +500 شركة مغربية تثق في ZAFIRIX PRO')}
+          </p>
           <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-10 py-4 bg-[#1B2A4A] text-white rounded-xl text-base font-bold hover:bg-[#243660] transition-colors mx-auto">
-            Démarrer maintenant <ArrowRight size={18} />
+            {t('Démarrer maintenant', 'ابدأ الآن')} <ArrowRight size={18} />
           </button>
         </div>
       </section>

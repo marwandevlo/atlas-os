@@ -860,6 +860,17 @@ function ModificationsForm({ companies }: { companies: Company[] }) {
   const [step, setStep] = useState<'select_type' | 'select_company' | 'form' | 'generating' | 'done'>('select_type');
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [generatedContent, setGeneratedContent] = useState('');
+  const [companyMode, setCompanyMode] = useState<'existing' | 'manual'>('existing');
+  const [manualCompany, setManualCompany] = useState<Partial<Company>>({
+    raisonSociale: '',
+    ice: '',
+    if_fiscal: '',
+    cnss: '',
+    adresse: '',
+    ville: '',
+    rc: '',
+    formeJuridique: '',
+  });
   const filtered = companies.filter(c => c.raisonSociale.toLowerCase().includes(search.toLowerCase()));
 
   const modTypes = [
@@ -989,7 +1000,7 @@ EN-TETE: ${header}
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {modTypes.map(m => (
-          <button key={m.id} onClick={() => { setModType(m.id as ModType); setStep('select_company'); }}
+          <button key={m.id} onClick={() => { setModType(m.id as ModType); setSelectedCompany(null); setCompanyMode('existing'); setStep('select_company'); }}
             className="w-full text-left p-4 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all bg-white">
             <div className="flex items-center gap-3">
               <span className="text-2xl">{m.icon}</span>
@@ -1006,27 +1017,121 @@ EN-TETE: ${header}
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center gap-3">
         <button onClick={() => setStep('select_type')} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={16} /></button>
-        <div><h2 className="font-bold text-gray-800">{modTypes.find(m => m.id === modType)?.label}</h2><p className="text-xs text-gray-400">Sélectionnez la société</p></div>
-      </div>
-      <div className="px-4 py-3 border-b border-gray-100">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+        <div>
+          <h2 className="font-bold text-gray-800">{modTypes.find(m => m.id === modType)?.label}</h2>
+          <p className="text-xs text-gray-400">Utiliser une société existante ou saisir manuellement</p>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {filtered.map(c => (
-          <button key={c.id} onClick={() => { setSelectedCompany(c); setStep('form'); }}
-            className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#1B2A4A] rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">{c.raisonSociale.charAt(0)}</div>
-              <div className="flex-1 min-w-0"><p className="font-semibold text-gray-800 text-sm truncate">{c.raisonSociale}</p><p className="text-xs text-gray-400">{c.ville} · {c.formeJuridique}</p></div>
-              <ChevronRight size={14} className="text-gray-300" />
-            </div>
+      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+        <div className="inline-flex rounded-lg bg-white p-1 border border-gray-200">
+          <button
+            type="button"
+            onClick={() => setCompanyMode('existing')}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold ${companyMode === 'existing' ? 'bg-[#1B2A4A] text-white' : 'text-gray-600 hover:text-gray-800'}`}
+          >
+            Utiliser une société
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setCompanyMode('manual')}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold ${companyMode === 'manual' ? 'bg-[#1B2A4A] text-white' : 'text-gray-600 hover:text-gray-800'}`}
+          >
+            Saisie manuelle
+          </button>
+        </div>
       </div>
+
+      {companyMode === 'existing' ? (
+        <>
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {filtered.map(c => (
+              <button key={c.id} onClick={() => { setSelectedCompany(c); setStep('form'); }}
+                className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-blue-300 hover:bg-blue-50 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-[#1B2A4A] rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0">{c.raisonSociale.charAt(0)}</div>
+                  <div className="flex-1 min-w-0"><p className="font-semibold text-gray-800 text-sm truncate">{c.raisonSociale}</p><p className="text-xs text-gray-400">{c.ville} · {c.formeJuridique}</p></div>
+                  <ChevronRight size={14} className="text-gray-300" />
+                </div>
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="text-center py-10 text-sm text-gray-400">
+                Aucune société trouvée. Vous pouvez utiliser la saisie manuelle.
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <p className="text-sm font-semibold text-gray-800">Société (manuel)</p>
+            <p className="text-xs text-gray-500 mt-0.5">Ces champs sont optionnels, mais le nom de la société est recommandé pour générer les documents.</p>
+          </div>
+
+          {[
+            { key: 'raisonSociale', label: 'Nom de la société', placeholder: 'Ex: Cabinet XYZ SARL' },
+            { key: 'formeJuridique', label: 'Forme juridique', placeholder: 'Ex: SARL' },
+            { key: 'adresse', label: 'Adresse', placeholder: 'Ex: 10 Rue ...' },
+            { key: 'ville', label: 'Ville', placeholder: 'Ex: Casablanca' },
+            { key: 'rc', label: 'RC', placeholder: 'Ex: 12345' },
+            { key: 'ice', label: 'ICE', placeholder: 'Ex: 001234567890123' },
+            { key: 'if_fiscal', label: 'IF', placeholder: 'Ex: 1234567' },
+            { key: 'cnss', label: 'CNSS', placeholder: 'Ex: 1234567' },
+          ].map((f) => (
+            <div key={f.key}>
+              <label className="text-xs font-semibold text-gray-600 mb-1 block">{f.label}</label>
+              <input
+                value={String((manualCompany as any)[f.key] ?? '')}
+                onChange={(e) => setManualCompany((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                placeholder={f.placeholder}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
+              />
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => {
+              const name = String(manualCompany.raisonSociale ?? '').trim();
+              if (!name) {
+                // keep UX friendly: require only the minimum needed for legal docs
+                return;
+              }
+              const c: Company = {
+                id: -Date.now(),
+                raisonSociale: name,
+                formeJuridique: String(manualCompany.formeJuridique ?? '').trim(),
+                if_fiscal: String(manualCompany.if_fiscal ?? '').trim(),
+                ice: String(manualCompany.ice ?? '').trim(),
+                rc: String(manualCompany.rc ?? '').trim(),
+                cnss: String(manualCompany.cnss ?? '').trim(),
+                adresse: String(manualCompany.adresse ?? '').trim(),
+                ville: String(manualCompany.ville ?? '').trim(),
+                telephone: '',
+                email: '',
+                activite: '',
+                regimeTVA: '',
+                actif: false,
+              };
+              setSelectedCompany(c);
+              setStep('form');
+            }}
+            className="w-full py-3 bg-[#1B2A4A] text-white rounded-xl font-semibold text-sm hover:bg-[#243660] transition-all"
+          >
+            Continuer
+          </button>
+          {!String(manualCompany.raisonSociale ?? '').trim() && (
+            <p className="text-xs text-red-600">Le nom de la société est requis pour continuer.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 

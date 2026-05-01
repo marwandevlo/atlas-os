@@ -138,6 +138,15 @@ export default function RHPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [searchCompany, setSearchCompany] = useState('');
   const [phase, setPhase] = useState<'select_company' | 'doc'>('select_company');
+  const [companyMode, setCompanyMode] = useState<'existing' | 'manual' | 'none'>('existing');
+  const [manualCompany, setManualCompany] = useState<Partial<Company>>({
+    raisonSociale: '',
+    ice: '',
+    if_fiscal: '',
+    cnss: '',
+    adresse: '',
+    ville: '',
+  });
   const [docReady, setDocReady] = useState(false);
   const [docContent, setDocContent] = useState('');
   const [docInstanceId, setDocInstanceId] = useState<string>('');
@@ -164,6 +173,15 @@ export default function RHPage() {
     setSelectedCompany(null);
     setSearchCompany('');
     setPhase('select_company');
+    setCompanyMode('existing');
+    setManualCompany({
+      raisonSociale: '',
+      ice: '',
+      if_fiscal: '',
+      cnss: '',
+      adresse: '',
+      ville: '',
+    });
     setDocInstanceId(crypto.randomUUID());
     setLinkCompanyId('');
     setLinkStatus('');
@@ -187,6 +205,48 @@ export default function RHPage() {
     setMessages(prev => [...prev,
       { role: 'user', content: '➡️ Sans société (standalone)' },
       { role: 'assistant', content: `${fieldLabels[selectedDoc!.fields[0]]} ?` }
+    ]);
+  };
+
+  const useManualCompany = () => {
+    const c: Company = {
+      id: -Date.now(),
+      raisonSociale: (manualCompany.raisonSociale ?? '').trim(),
+      formeJuridique: '',
+      if_fiscal: (manualCompany.if_fiscal ?? '').trim(),
+      ice: (manualCompany.ice ?? '').trim(),
+      rc: '',
+      cnss: (manualCompany.cnss ?? '').trim(),
+      adresse: (manualCompany.adresse ?? '').trim(),
+      ville: (manualCompany.ville ?? '').trim(),
+      telephone: '',
+      email: '',
+      activite: '',
+      regimeTVA: '',
+      actif: false,
+    };
+
+    const hasAny =
+      Boolean(c.raisonSociale) ||
+      Boolean(c.ice) ||
+      Boolean(c.if_fiscal) ||
+      Boolean(c.cnss) ||
+      Boolean(c.adresse) ||
+      Boolean(c.ville);
+
+    // If user chose manual but left everything empty, treat as standalone.
+    if (!hasAny) {
+      skipCompany();
+      return;
+    }
+
+    setSelectedCompany(c);
+    setPhase('doc');
+    setStep(0);
+    setMessages(prev => [
+      ...prev,
+      { role: 'user', content: `📝 ${c.raisonSociale || 'Société (manuel)'}` },
+      { role: 'assistant', content: `${fieldLabels[selectedDoc!.fields[0]]} ?` },
     ]);
   };
 
@@ -421,7 +481,11 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                 </div>
                 <div>
                   <p className="font-semibold text-gray-800 text-sm">{selectedDoc.name}</p>
-                  <p className="text-xs text-gray-400">{selectedCompany ? selectedCompany.raisonSociale : 'Sélectionnez une société'}</p>
+                  <p className="text-xs text-gray-400">
+                    {selectedCompany
+                      ? selectedCompany.raisonSociale || '(société manuelle)'
+                      : 'Société : optionnelle'}
+                  </p>
                 </div>
               </div>
               {docReady && (
@@ -495,50 +559,115 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                     <p className="text-xs text-gray-400">{companies.length} sociétés disponibles</p>
                   </div>
                   <div className="px-3 py-2 border-b border-gray-100">
-                    <button
-                      type="button"
-                      onClick={skipCompany}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium hover:bg-gray-50"
-                    >
-                      Continuer sans société (standalone)
-                    </button>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCompanyMode('existing')}
+                        className={`px-2 py-2 rounded-lg text-xs font-semibold border transition-colors ${companyMode === 'existing' ? 'bg-[#1B2A4A] text-white border-[#1B2A4A]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                      >
+                        Utiliser
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCompanyMode('manual')}
+                        className={`px-2 py-2 rounded-lg text-xs font-semibold border transition-colors ${companyMode === 'manual' ? 'bg-[#1B2A4A] text-white border-[#1B2A4A]' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                      >
+                        Manuel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setCompanyMode('none'); skipCompany(); }}
+                        className="px-2 py-2 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      >
+                        Aucun
+                      </button>
+                    </div>
                     <p className="mt-2 text-[11px] text-gray-400">
-                      Vous pourrez lier à une société plus tard (optionnel).
+                      Optionnel. Choisissez une société, saisissez-la manuellement, ou continuez sans.
                     </p>
                   </div>
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <div className="relative">
-                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input value={searchCompany} onChange={e => setSearchCompany(e.target.value)}
-                        placeholder="Rechercher..." className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-400" />
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                    {filteredCompanies.map(c => (
-                      <button key={c.id} onClick={() => chooseCompany(c)}
-                        className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-green-300 hover:bg-green-50 transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${c.actif ? 'bg-green-500' : 'bg-[#1B2A4A]'}`}>
-                            {c.raisonSociale.charAt(0)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-800 text-sm truncate">{c.raisonSociale}</p>
-                            <p className="text-xs text-gray-400">{c.ville} · {c.formeJuridique}</p>
-                            {c.if_fiscal && <p className="text-xs text-gray-300 font-mono">IF: {c.if_fiscal}</p>}
-                          </div>
-                          {c.actif && <span className="text-xs text-green-500 font-medium shrink-0">Active</span>}
+                  {companyMode === 'existing' ? (
+                    <>
+                      <div className="px-3 py-2 border-b border-gray-100">
+                        <div className="relative">
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                          <input
+                            value={searchCompany}
+                            onChange={e => setSearchCompany(e.target.value)}
+                            placeholder="Rechercher..."
+                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-400"
+                          />
                         </div>
-                      </button>
-                    ))}
-                    {filteredCompanies.length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-gray-400 text-sm">Aucune société trouvée</p>
-                        <button onClick={() => router.push('/companies')} className="mt-2 text-xs text-green-500 hover:underline">
-                          + Ajouter une société
-                        </button>
                       </div>
-                    )}
-                  </div>
+                      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                        {filteredCompanies.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => chooseCompany(c)}
+                            className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-green-300 hover:bg-green-50 transition-all"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${c.actif ? 'bg-green-500' : 'bg-[#1B2A4A]'}`}>
+                                {c.raisonSociale.charAt(0)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-gray-800 text-sm truncate">{c.raisonSociale}</p>
+                                <p className="text-xs text-gray-400">{c.ville} · {c.formeJuridique}</p>
+                                {c.if_fiscal && <p className="text-xs text-gray-300 font-mono">IF: {c.if_fiscal}</p>}
+                              </div>
+                              {c.actif && <span className="text-xs text-green-500 font-medium shrink-0">Active</span>}
+                            </div>
+                          </button>
+                        ))}
+                        {filteredCompanies.length === 0 && (
+                          <div className="text-center py-8">
+                            <p className="text-gray-400 text-sm">Aucune société trouvée</p>
+                            <button onClick={() => router.push('/companies')} className="mt-2 text-xs text-green-500 hover:underline">
+                              + Ajouter une société
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : companyMode === 'manual' ? (
+                    <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                      <div className="rounded-xl border border-gray-100 p-3">
+                        <p className="text-xs font-semibold text-gray-700">Société (manuel)</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">Optionnel. Remplissez seulement ce que vous avez.</p>
+                      </div>
+
+                      {[
+                        { key: 'raisonSociale', label: 'Nom de la société', placeholder: 'Ex: ZAFIRIX GROUP' },
+                        { key: 'ice', label: 'ICE', placeholder: 'Ex: 001234567890123' },
+                        { key: 'if_fiscal', label: 'IF', placeholder: 'Ex: 1234567' },
+                        { key: 'cnss', label: 'CNSS', placeholder: 'Ex: 1234567' },
+                        { key: 'adresse', label: 'Adresse', placeholder: 'Ex: 10 Rue ...' },
+                        { key: 'ville', label: 'Ville', placeholder: 'Ex: Casablanca' },
+                      ].map((f) => (
+                        <div key={f.key}>
+                          <label className="text-xs text-gray-500 mb-1 block">{f.label}</label>
+                          <input
+                            value={String((manualCompany as any)[f.key] ?? '')}
+                            onChange={(e) => setManualCompany((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                            placeholder={f.placeholder}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-400"
+                          />
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={useManualCompany}
+                        className="w-full px-3 py-2.5 rounded-lg bg-[#1B2A4A] text-white text-xs font-semibold hover:bg-[#243660]"
+                      >
+                        Continuer
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex-1 p-4 text-xs text-gray-400">
+                      Continuez sans société.
+                    </div>
+                  )}
                 </div>
               )}
             </div>

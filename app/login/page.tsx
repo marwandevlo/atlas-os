@@ -101,6 +101,18 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {mode === 'login' && (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => router.push('/forgot-password')}
+                  className="text-xs font-semibold text-blue-500 hover:text-blue-700"
+                >
+                  Mot de passe oublié ? / نسيت كلمة المرور؟
+                </button>
+              </div>
+            )}
+
             <button
               onClick={handleSubmit}
               disabled={loading}

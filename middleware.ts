@@ -7,6 +7,8 @@ const PUBLIC_PATHS = new Set([
   '/pricing',
   '/login',
   '/signup',
+  '/forgot-password',
+  '/reset-password',
   '/terms',
   '/privacy',
   '/access-denied',
