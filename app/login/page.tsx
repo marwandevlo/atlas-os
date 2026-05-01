@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { PublicFooter } from '@/app/components/public/PublicFooter';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,16 +34,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1B2A4A] flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#1B2A4A] flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-12 h-12 bg-amber-400 rounded-xl flex items-center justify-center">
             <Building2 size={28} className="text-[#1B2A4A]" />
           </div>
           <div>
-            <p className="text-white font-bold text-2xl leading-tight">Atlas OS</p>
-            <p className="text-white/40 text-sm">Enterprise · Maroc</p>
+            <BrandWordmark size="lg" />
+            <p className="text-white/40 text-sm">ZAFIRIX GROUP · Maroc</p>
           </div>
         </div>
 
@@ -51,7 +54,7 @@ export default function LoginPage() {
             {mode === 'login' ? 'Connexion' : 'Créer un compte'}
           </h1>
           <p className="text-sm text-gray-400 mb-6">
-            {mode === 'login' ? 'Accédez à votre espace Atlas OS' : 'Commencez votre essai gratuit'}
+            {mode === 'login' ? 'Accédez à votre espace ZAFIRIX PRO' : 'Commencez votre essai gratuit'}
           </p>
 
           {error && (
@@ -123,7 +126,10 @@ export default function LoginPage() {
           <span className="text-white/20">·</span>
           <span className="text-white/30 text-xs">RGPD</span>
         </div>
+        </div>
       </div>
+
+      <PublicFooter />
     </div>
   );
 }

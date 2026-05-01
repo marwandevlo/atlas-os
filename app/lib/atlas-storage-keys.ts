@@ -6,4 +6,9 @@ export const ATLAS_STORAGE_KEYS = {
   clients: 'atlas_clients',
   invoices: 'atlas_invoices',
   supplierInvoices: 'atlas_supplier_invoices',
+  payments: 'atlas_payments',
+  documents: 'atlas_documents',
+  employees: 'atlas_employees',
+  projects: 'atlas_projects',
+  links: 'atlas_links',
 } as const;

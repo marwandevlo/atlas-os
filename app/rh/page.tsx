@@ -3,6 +3,9 @@ import { fetchAi } from '../lib/fetch-ai';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck, Search, Share2 } from 'lucide-react';
+import { createAtlasLink } from '@/app/lib/atlas-links-repository';
+import { createDocument } from '@/app/lib/atlas-documents-repository';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 type Company = {
   id: number;
@@ -137,6 +140,10 @@ export default function RHPage() {
   const [phase, setPhase] = useState<'select_company' | 'doc'>('select_company');
   const [docReady, setDocReady] = useState(false);
   const [docContent, setDocContent] = useState('');
+  const [docInstanceId, setDocInstanceId] = useState<string>('');
+  const [linking, setLinking] = useState(false);
+  const [linkCompanyId, setLinkCompanyId] = useState<number | ''>('');
+  const [linkStatus, setLinkStatus] = useState<string>('');
 
   useEffect(() => {
     const saved = localStorage.getItem('atlas_companies');
@@ -157,6 +164,9 @@ export default function RHPage() {
     setSelectedCompany(null);
     setSearchCompany('');
     setPhase('select_company');
+    setDocInstanceId(crypto.randomUUID());
+    setLinkCompanyId('');
+    setLinkStatus('');
     setMessages([{ role: 'assistant', content: `📄 ${doc.name} — ${doc.nameAr}\n\n${doc.description}\n\nPour quelle société souhaitez-vous ce document ?\nChoisissez dans la liste.` }]);
   };
 
@@ -167,6 +177,16 @@ export default function RHPage() {
     setMessages(prev => [...prev,
       { role: 'user', content: `✅ ${company.raisonSociale}` },
       { role: 'assistant', content: `✅ Société : ${company.raisonSociale}\nIF : ${company.if_fiscal} | CNSS : ${company.cnss} | ${company.ville}\n\n${fieldLabels[selectedDoc!.fields[0]]} ?` }
+    ]);
+  };
+
+  const skipCompany = () => {
+    setSelectedCompany(null);
+    setPhase('doc');
+    setStep(0);
+    setMessages(prev => [...prev,
+      { role: 'user', content: '➡️ Sans société (standalone)' },
+      { role: 'assistant', content: `${fieldLabels[selectedDoc!.fields[0]]} ?` }
     ]);
   };
 
@@ -194,14 +214,14 @@ export default function RHPage() {
 
   const generateDoc = async (data: Record<string, string>) => {
     try {
-      const company = selectedCompany!;
+      const company = selectedCompany;
       const res = await fetchAi({
         type: 'consultant',
         systemPrompt: `Tu es un expert RH et juridique spécialisé en droit du travail marocain (Loi 65-99). Tu rédiges des documents RH clairs, en français, sans tableaux ASCII ni HTML.`,
         message: `Genere le document: ${selectedDoc?.name}
 
 SOCIETE EMPLOYEUR:
-- Raison sociale: ${company.raisonSociale}
+${company ? `- Raison sociale: ${company.raisonSociale}
 - Forme juridique: ${company.formeJuridique}
 - Adresse: ${company.adresse} ${company.ville}
 - Tel: ${company.telephone}
@@ -209,7 +229,7 @@ SOCIETE EMPLOYEUR:
 - ICE: ${company.ice}
 - RC: ${company.rc}
 - CNSS: ${company.cnss}
-- Activite: ${company.activite}
+- Activite: ${company.activite}` : `- (non spécifiée)`}
 
 DONNEES:
 ${Object.entries(data).map(([k, v]) => `${fieldLabels[k] || k}: ${v}`).join('\n')}
@@ -220,9 +240,9 @@ REGLES STRICTES:
 - Ecris tout en texte simple avec tirets et numeros
 
 EXIGENCES:
-1. En-tete: nom societe, adresse, tel, IF, ICE, RC, CNSS
+1. En-tete: si société fournie, inclure nom societe, adresse, tel, IF, ICE, RC, CNSS; sinon en-tête générique \"EMPLOYEUR\".
 2. Titre en majuscules
-3. "Fait a ${company.ville}, le [date]"
+3. "Fait a ${company?.ville ?? '[Ville]'}, le [date]"
 4. Articles numerotes (ARTICLE 1, ARTICLE 2...)
 5. Conforme Code du travail (Loi 65-99)
 6. Pour contrats: minimum 12 articles
@@ -238,7 +258,24 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
       }
       setDocContent(responseData.response);
       setDocReady(true);
-      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document généré.\n\n📄 ${selectedDoc?.name}\n🏢 ${company.raisonSociale}\n\n📥 Téléchargez en PDF ou Word →` }]);
+
+      // Persist into Documents library
+      await createDocument({
+        type: 'rh',
+        title: selectedDoc?.name ?? 'Document RH',
+        content: {
+          text: responseData.response,
+          fields: data,
+          templateId: selectedDoc?.id,
+        },
+        metadata: {
+          docType: selectedDoc?.id,
+          companyName: company?.raisonSociale ?? null,
+        },
+        source: 'generated',
+      });
+
+      setMessages(prev => [...prev, { role: 'assistant', content: `✅ Document généré.\n\n📄 ${selectedDoc?.name}\n🏢 ${company?.raisonSociale ?? '(sans société)'}\n\n📥 Téléchargez en PDF ou Word →` }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Une erreur est survenue. Réessayez.' }]);
     }
@@ -264,7 +301,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
       doc.text(line, 15, y);
       y += 5.5;
     });
-    doc.save(`${selectedDoc?.id}_${selectedCompany?.raisonSociale.replace(/ /g, '_')}.pdf`);
+    doc.save(`${selectedDoc?.id}_${(selectedCompany?.raisonSociale ?? 'standalone').replace(/ /g, '_')}.pdf`);
   };
 
   const downloadWord = async () => {
@@ -286,13 +323,13 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${selectedDoc?.id}_${selectedCompany?.raisonSociale.replace(/ /g, '_')}.docx`;
+    a.download = `${selectedDoc?.id}_${(selectedCompany?.raisonSociale ?? 'standalone').replace(/ /g, '_')}.docx`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const shareDocument = async () => {
-    const text = `${selectedDoc?.name}\n${selectedCompany?.raisonSociale}\n\n${docContent.substring(0, 500)}...`;
+    const text = `${selectedDoc?.name}\n${selectedCompany?.raisonSociale ?? '(sans société)'}\n\n${docContent.substring(0, 500)}...`;
     if (navigator.share) {
       await navigator.share({ title: selectedDoc?.name, text });
     } else {
@@ -312,8 +349,8 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
@@ -458,6 +495,18 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                     <p className="text-xs text-gray-400">{companies.length} sociétés disponibles</p>
                   </div>
                   <div className="px-3 py-2 border-b border-gray-100">
+                    <button
+                      type="button"
+                      onClick={skipCompany}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs font-medium hover:bg-gray-50"
+                    >
+                      Continuer sans société (standalone)
+                    </button>
+                    <p className="mt-2 text-[11px] text-gray-400">
+                      Vous pourrez lier à une société plus tard (optionnel).
+                    </p>
+                  </div>
+                  <div className="px-3 py-2 border-b border-gray-100">
                     <div className="relative">
                       <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input value={searchCompany} onChange={e => setSearchCompany(e.target.value)}
@@ -493,6 +542,62 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                 </div>
               )}
             </div>
+
+            {docReady && (
+              <div className="border-t border-gray-200 bg-white px-6 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Lier à une société (optionnel)</p>
+                    <p className="text-xs text-gray-400">Crée un lien flexible dans `atlas_links` (non requis).</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLinking((v) => !v)}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    {linking ? 'Masquer' : 'Afficher'}
+                  </button>
+                </div>
+
+                {linking && (
+                  <div className="mt-3 grid grid-cols-3 gap-3 items-end">
+                    <div className="col-span-2">
+                      <label className="text-xs text-gray-500 mb-1 block">Société</label>
+                      <select
+                        value={linkCompanyId}
+                        onChange={(e) => setLinkCompanyId(e.target.value ? Number(e.target.value) : '')}
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                      >
+                        <option value="">— Choisir —</option>
+                        {companies.map((c) => (
+                          <option key={c.id} value={c.id}>{c.raisonSociale}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!linkCompanyId}
+                      onClick={async () => {
+                        setLinkStatus('');
+                        const res = await createAtlasLink({
+                          fromType: 'rh_document',
+                          fromId: docInstanceId,
+                          toType: 'company',
+                          toId: String(linkCompanyId),
+                          relation: 'attached_to',
+                          metadata: { docType: selectedDoc?.id },
+                        });
+                        setLinkStatus(res.ok ? 'Lien créé.' : `Erreur: ${res.error}`);
+                      }}
+                      className="px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] disabled:opacity-40"
+                    >
+                      Lier
+                    </button>
+                    {linkStatus && <p className="col-span-3 text-xs text-gray-500">{linkStatus}</p>}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex-1 hidden lg:flex items-center justify-center bg-gray-50">

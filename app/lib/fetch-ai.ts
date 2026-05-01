@@ -1,5 +1,5 @@
 type FetchAiArgs = {
-  type: 'consultant' | 'juridique' | 'ocr';
+  type: 'consultant' | 'juridique' | 'ocr' | 'assistant';
   message?: string;
   imageBase64?: string;
   systemPrompt?: string;

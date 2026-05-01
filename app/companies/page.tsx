@@ -5,11 +5,13 @@ import { ArrowLeft, Plus, Building2, ChevronRight, Trash2, Edit, CheckCircle, Se
 import type { AtlasCompany } from '@/app/types/atlas-company';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
+import { canCreateCompany, incrementUsage } from '@/app/lib/atlas-usage-limits';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 const defaultCompanies: AtlasCompany[] = [
   {
     id: 1,
-    raisonSociale: 'ATLAS COMMERCE SARL',
+    raisonSociale: 'ZAFIRIX COMMERCE SARL',
     formeJuridique: 'SARL',
     if_fiscal: '12345678',
     ice: '001234567000012',
@@ -18,7 +20,7 @@ const defaultCompanies: AtlasCompany[] = [
     adresse: '123 Rue Mohammed V',
     ville: 'Casablanca',
     telephone: '0522123456',
-    email: 'contact@atlas.ma',
+    email: 'contact@zafirix.group',
     activite: 'Commerce de detail',
     regimeTVA: 'mensuel',
     actif: true,
@@ -68,6 +70,7 @@ export default function CompaniesPage() {
   const [companies, setCompanies] = useState<AtlasCompany[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
+  const [limitNotice, setLimitNotice] = useState('');
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
   const [termsCustomDays, setTermsCustomDays] = useState('45');
   const [form, setForm] = useState({
@@ -97,6 +100,9 @@ export default function CompaniesPage() {
 
   const addCompany = () => {
     if (!form.raisonSociale) return;
+    const decision = canCreateCompany();
+    if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+
     const { balance, ...payload } = form;
     const paymentTerms: AtlasPaymentTerms =
       termsKind === 'custom'
@@ -111,6 +117,7 @@ export default function CompaniesPage() {
       balance: Number.parseFloat(form.balance || '0') || 0,
     };
     saveCompanies([...companies, newCompany]);
+    incrementUsage('companies', 1);
     setForm({ raisonSociale: '', formeJuridique: 'SARL', if_fiscal: '', ice: '', rc: '', cnss: '', adresse: '', ville: 'Casablanca', telephone: '', email: '', activite: '', regimeTVA: 'mensuel', balance: '0' });
     setTermsKind('30');
     setTermsCustomDays('45');
@@ -145,8 +152,8 @@ export default function CompaniesPage() {
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
@@ -174,19 +181,31 @@ export default function CompaniesPage() {
             <h1 className="text-xl font-bold text-gray-800">Gestion des sociétés</h1>
             <p className="text-xs text-gray-400 mt-0.5">Gérez toutes vos sociétés depuis un seul espace</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)} disabled={companies.length >= maxCompanies}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors disabled:opacity-50">
+          <button
+            onClick={() => {
+              // Soft-limit: do not hard-block creation at 100%, only show notice.
+              const decision = canCreateCompany();
+              if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+              setShowForm(!showForm);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors"
+          >
             <Plus size={16} /> Nouvelle société
           </button>
         </header>
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+          {limitNotice && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+              {limitNotice}
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <p className="text-xs text-gray-400">Total sociétés</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">{companies.length}</p>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-green-200 bg-green-50">
+            <div className="rounded-xl p-5 shadow-sm border border-green-200 bg-green-50">
               <p className="text-xs text-gray-400">Societe active</p>
               <p className="text-sm font-bold text-green-600 mt-1 truncate">{activeCompany?.raisonSociale || 'Aucune'}</p>
             </div>

@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
+import { listAtlasPayments } from '@/app/lib/atlas-payments-repository';
+import type { AtlasPayment } from '@/app/types/atlas-payment';
+import { fetchAi } from '@/app/lib/fetch-ai';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 type Ecriture = {
   id: number;
@@ -19,6 +23,7 @@ export default function ComptabilitePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'journal' | 'grandlivre' | 'bilan'>('journal');
   const [invoices, setInvoices] = useState<AtlasInvoice[]>([]);
+  const [payments, setPayments] = useState<AtlasPayment[]>([]);
   const [ecritures, setEcritures] = useState<Ecriture[]>([
     { id: 1, date: '2026-04-01', libelle: 'Vente Client Alpha', compte: '3421', debit: 18000, credit: 0 },
     { id: 2, date: '2026-04-01', libelle: 'TVA collectee', compte: '4455', debit: 0, credit: 3000 },
@@ -30,16 +35,14 @@ export default function ComptabilitePage() {
 
   const [form, setForm] = useState({ date: '', libelle: '', compte: '', debit: '', credit: '' });
   const [showForm, setShowForm] = useState(false);
+  const [insight, setInsight] = useState<{ loading: boolean; text: string }>({ loading: false, text: '' });
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const inv = await listAtlasInvoices();
-      if (!cancelled) setInvoices(inv);
-    })();
-    return () => {
-      cancelled = true;
+    const load = async () => {
+      setInvoices(await listAtlasInvoices());
+      setPayments(await listAtlasPayments());
     };
+    void load();
   }, []);
 
   const totalDebit = ecritures.reduce((s, e) => s + e.debit, 0);
@@ -47,8 +50,21 @@ export default function ComptabilitePage() {
 
   const accountingKpis = useMemo(() => {
     const totalFacture = invoices.reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
-    const totalPaye = invoices.filter((inv) => inv.status === 'paid').reduce((sum, inv) => sum + (inv.paidAmount ?? inv.totalTTC ?? 0), 0);
-    const resteAPayer = invoices.filter((inv) => inv.status !== 'paid').reduce((sum, inv) => sum + (inv.totalTTC || 0), 0);
+
+    const paymentsByInvoice = new Map<string, number>();
+    for (const p of payments) {
+      const key = String(p.invoiceId);
+      paymentsByInvoice.set(key, (paymentsByInvoice.get(key) ?? 0) + (p.paidAmount || 0));
+    }
+
+    const paidForInvoice = (inv: AtlasInvoice): number => {
+      const key = String(inv.id);
+      const sum = paymentsByInvoice.get(key) ?? 0;
+      return sum > 0 ? sum : (inv.paidAmount ?? 0);
+    };
+
+    const totalPaye = invoices.reduce((sum, inv) => sum + paidForInvoice(inv), 0);
+    const resteAPayer = invoices.reduce((sum, inv) => sum + Math.max(0, (inv.totalTTC || 0) - paidForInvoice(inv)), 0);
 
     const balanceClient = resteAPayer;
     const balanceFournisseur = 0; // reserved for supplier invoices (atlas_supplier_invoices)
@@ -56,7 +72,10 @@ export default function ComptabilitePage() {
 
     const now = todayYmd();
     const overdue = invoices
-      .filter((inv) => inv.status !== 'paid' && isOverdue(inv.dueDate, false, now))
+      .filter((inv) => {
+        const remaining = Math.max(0, (inv.totalTTC || 0) - paidForInvoice(inv));
+        return remaining > 0 && isOverdue(inv.dueDate, false, now);
+      })
       .sort((a, b) => (a.dueDate || '').localeCompare(b.dueDate || ''));
 
     return {
@@ -68,7 +87,41 @@ export default function ComptabilitePage() {
       soldeGlobal,
       overdue,
     };
-  }, [invoices]);
+  }, [invoices, payments]);
+
+  useEffect(() => {
+    if (accountingKpis.overdue.length === 0) {
+      setInsight({ loading: false, text: '' });
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      setInsight({ loading: true, text: '' });
+      const top = accountingKpis.overdue.slice(0, 5).map((inv) => `- ${inv.number} (${inv.clientName}) · échéance ${inv.dueDate} · TTC ${Math.round(inv.totalTTC || 0).toLocaleString()} MAD`).join('\n');
+      const fallback =
+        `Factures en retard: ${accountingKpis.overdue.length}.\n` +
+        `Recommandation: relance rapide (mail + appel), puis proposition d’échéancier, et suivi hebdomadaire.\n\n` +
+        `Top:\n${top}`;
+
+      try {
+        const res = await fetchAi({
+          type: 'consultant',
+          systemPrompt: 'Tu es un assistant comptable. Réponds en français, concis, orienté action. Pas de tableaux.',
+          message:
+            `Résume les factures en retard et propose une action simple.\n` +
+            `Factures (top):\n${top}\n\n` +
+            `Format:\n1) Résumé (1 phrase)\n2) Recommandation (2 bullets)\n3) Prochaine action (1 phrase)`,
+        });
+        const data = await res.json().catch(() => ({} as any));
+        const text = typeof data?.response === 'string' && data.response.trim() ? data.response : fallback;
+        if (!cancelled) setInsight({ loading: false, text });
+      } catch {
+        if (!cancelled) setInsight({ loading: false, text: fallback });
+      }
+    };
+    void run();
+    return () => { cancelled = true; };
+  }, [accountingKpis.overdue]);
 
   const addEcriture = () => {
     if (!form.libelle || !form.compte) return;
@@ -88,8 +141,8 @@ export default function ComptabilitePage() {
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
@@ -153,6 +206,20 @@ export default function ComptabilitePage() {
                 <span className="text-xs text-red-700 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full font-medium">
                   {accountingKpis.overdue.length} en retard
                 </span>
+              </div>
+              <div className="px-6 py-4 border-b border-red-100 bg-white">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Insight IA</p>
+                    <p className="text-xs text-gray-400">Résumé et recommandation sur les retards</p>
+                  </div>
+                  {insight.loading && <p className="text-xs text-gray-400">Analyse…</p>}
+                </div>
+                {insight.text && (
+                  <div className="mt-3 rounded-xl border border-red-100 bg-red-50/30 p-4">
+                    <pre className="text-xs text-gray-700 whitespace-pre-wrap wrap-break-word">{insight.text}</pre>
+                  </div>
+                )}
               </div>
               <table className="w-full text-sm">
                 <thead>

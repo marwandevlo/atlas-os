@@ -1,0 +1,67 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { atlasDataBackend } from '@/app/lib/atlas-data-source';
+import { getAtlasPlanById } from '@/app/lib/atlas-pricing-plans';
+import { checkPaymentRateLimit } from '@/app/lib/payment-rate-limit';
+
+type ManualProvider = 'cashplus' | 'wafacash' | 'western_union';
+
+function requireBearer(request: NextRequest): string | null {
+  const auth = request.headers.get('authorization') ?? '';
+  if (!auth.toLowerCase().startsWith('bearer ')) return null;
+  const token = auth.slice(7).trim();
+  return token || null;
+}
+
+export async function POST(request: NextRequest) {
+  if (atlasDataBackend() !== 'supabase') {
+    return NextResponse.json({ error: 'not_enabled' }, { status: 400 });
+  }
+
+  const token = requireBearer(request);
+  if (!token) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
+
+  const rate = checkPaymentRateLimit(`payreq:${auth.user.id}`);
+  if (!rate.ok) {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } });
+  }
+
+  const body = (await request.json().catch(() => null)) as null | { planId?: string; provider?: ManualProvider };
+  const planId = (body?.planId ?? '').trim();
+  const provider = body?.provider;
+
+  const plan = getAtlasPlanById(planId);
+  if (!plan) return NextResponse.json({ error: 'invalid_plan' }, { status: 400 });
+  if (!provider || !['cashplus', 'wafacash', 'western_union'].includes(provider)) {
+    return NextResponse.json({ error: 'invalid_provider' }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from('atlas_payment_requests')
+    .insert({
+      user_id: auth.user.id,
+      plan_id: plan.id,
+      amount_mad: plan.price,
+      currency: plan.currency,
+      billing_period: plan.billingPeriod,
+      payment_method: 'manual',
+      manual_provider: provider,
+      status: 'pending',
+      metadata: {},
+    })
+    .select('id')
+    .single();
+
+  if (error) return NextResponse.json({ error: 'db_error' }, { status: 500 });
+  return NextResponse.json({ id: data.id });
+}
+

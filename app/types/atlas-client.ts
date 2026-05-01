@@ -1,7 +1,8 @@
 import type { AtlasPaymentTerms } from '@/app/types/atlas-payment-terms';
 
 export type AtlasClient = {
-  id: number;
+  /** Local demo uses number; Supabase uses UUID string. */
+  id: number | string;
   name: string;
   email?: string;
   phone?: string;

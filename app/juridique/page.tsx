@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Scale, Search, Building2, RefreshCw, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
 import { fetchAi } from '../lib/fetch-ai';
+import { createAtlasLink } from '@/app/lib/atlas-links-repository';
+import { createDocument } from '@/app/lib/atlas-documents-repository';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 type Company = {
   id: number; raisonSociale: string; formeJuridique: string; if_fiscal: string;
@@ -464,11 +467,30 @@ function CreationForm({ companies }: { companies: Company[] }) {
   const [step, setStep] = useState<'select' | 'form' | 'generating' | 'done'>('select');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [search, setSearch] = useState('');
+  const [standaloneCompany, setStandaloneCompany] = useState<Company>({
+    id: 0,
+    raisonSociale: '',
+    formeJuridique: 'SARL',
+    if_fiscal: '',
+    ice: '',
+    rc: '',
+    cnss: '',
+    adresse: '',
+    ville: 'Casablanca',
+    telephone: '',
+    email: '',
+    activite: '',
+    regimeTVA: 'mensuel',
+    actif: false,
+  });
   const [formData, setFormData] = useState<FormData>({
     associes: '', capital: '', activite: '', gerant: '', cin_gerant: '',
     adresse_gerant: '', date_naissance_gerant: '', date: new Date().toLocaleDateString('fr-FR'),
   });
   const [generatedDocs, setGeneratedDocs] = useState<GeneratedDoc[]>([]);
+  const [generationId] = useState<string>(() => crypto.randomUUID());
+  const [linkStatus, setLinkStatus] = useState<string>('');
+  const [linkCompanyId, setLinkCompanyId] = useState<number | ''>('');
 
   const filtered = companies.filter(c => c.raisonSociale.toLowerCase().includes(search.toLowerCase()));
   const docsToGenerate = [
@@ -480,11 +502,11 @@ function CreationForm({ companies }: { companies: Company[] }) {
   ];
 
   const generateAll = async () => {
-    if (!selectedCompany) return;
+    const c = selectedCompany ?? standaloneCompany;
+    if (!c.raisonSociale) return;
     setStep('generating');
     const docs: GeneratedDoc[] = docsToGenerate.map(d => ({ ...d, content: '', status: 'pending' as const }));
     setGeneratedDocs(docs);
-    const c = selectedCompany;
     const f = formData;
     const base = `SOCIETE: ${c.raisonSociale} | SARL | Capital: ${f.capital} DH
 IF: ${c.if_fiscal} | ICE: ${c.ice} | RC: ${c.rc} | CNSS: ${c.cnss}
@@ -553,16 +575,58 @@ ARTICLE I CADRE LEGAL - ARTICLE II OBJET - ARTICLE III DUREE (1 an tacite recond
     setGeneratedDocs(prev => prev.map(d => d.id === 'rc_declaration' ? { ...d, status: 'done' as const, content: 'WORD_TABLE' } : d));
 
     setStep('done');
+
+    // Persist generated textual docs into Documents library (Word-only items stored as references)
+    const toPersist = [
+      { id: 'statuts', name: 'Statuts SARL' },
+      { id: 'pv_constitution', name: 'PV Constitution' },
+      { id: 'domiciliation', name: 'Contrat Domiciliation' },
+      { id: 'depot_legal', name: 'Dépôt Légal RC' },
+      { id: 'rc_declaration', name: 'Déclaration RC (Modèle 2)' },
+    ];
+
+    const persisted = new Map<string, string>();
+    for (const d of toPersist) {
+      const content = docs.find((x) => x.id === d.id)?.content ?? '';
+      const res = await createDocument({
+        type: 'juridique',
+        title: d.name,
+        content: d.id === 'depot_legal' || d.id === 'rc_declaration'
+          ? { kind: 'word_generated', template: d.id }
+          : { text: content, template: d.id },
+        metadata: {
+          companyName: c.raisonSociale,
+          city: c.ville,
+        },
+        source: 'generated',
+      });
+      if (res.ok) persisted.set(d.id, res.id);
+    }
+
+    // If user selected a company, auto-link all persisted docs to that company
+    if (selectedCompany) {
+      for (const docId of persisted.values()) {
+        await createAtlasLink({
+          fromType: 'document',
+          fromId: docId,
+          toType: 'company',
+          toId: String(selectedCompany.id),
+          relation: 'attached_to',
+          metadata: { source: 'juridique_auto' },
+        });
+      }
+    }
   };
 
   const handleDownload = async (doc: GeneratedDoc) => {
-    if (!selectedCompany) return;
+    const c = selectedCompany ?? standaloneCompany;
+    if (!c.raisonSociale) return;
     if (doc.id === 'depot_legal') {
-      await generateDepotLegalWord(selectedCompany, formData, formData.gerant);
+      await generateDepotLegalWord(c, formData, formData.gerant);
     } else if (doc.id === 'rc_declaration') {
-      await generateRCWord(selectedCompany, formData);
+      await generateRCWord(c, formData);
     } else {
-      await generateWordDoc(doc.content, `${doc.id}_${selectedCompany.raisonSociale.replace(/ /g, '_')}.docx`);
+      await generateWordDoc(doc.content, `${doc.id}_${c.raisonSociale.replace(/ /g, '_')}.docx`);
     }
   };
 
@@ -579,7 +643,16 @@ ARTICLE I CADRE LEGAL - ARTICLE II OBJET - ARTICLE III DUREE (1 an tacite recond
     <div className="flex-1 flex flex-col overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 bg-white">
         <h2 className="font-bold text-gray-800">Dossier de Création</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Sélectionnez la société à constituer</p>
+        <p className="text-xs text-gray-400 mt-0.5">Sélectionnez une société (optionnel) ou continuez en standalone</p>
+      </div>
+      <div className="px-4 py-3 border-b border-gray-100 bg-white">
+        <button
+          type="button"
+          onClick={() => { setSelectedCompany(null); setStep('form'); }}
+          className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50"
+        >
+          Continuer sans société (standalone)
+        </button>
       </div>
       <div className="px-4 py-3 border-b border-gray-100">
         <div className="relative">
@@ -612,11 +685,53 @@ ARTICLE I CADRE LEGAL - ARTICLE II OBJET - ARTICLE III DUREE (1 an tacite recond
       <div className="px-6 py-4 border-b border-gray-100 bg-white flex items-center gap-3">
         <button onClick={() => setStep('select')} className="text-gray-400 hover:text-gray-600"><ArrowLeft size={16} /></button>
         <div>
-          <h2 className="font-bold text-gray-800">{selectedCompany?.raisonSociale}</h2>
-          <p className="text-xs text-gray-400">Données de constitution</p>
+          <h2 className="font-bold text-gray-800">{selectedCompany?.raisonSociale ?? (standaloneCompany.raisonSociale || 'Standalone')}</h2>
+          <p className="text-xs text-gray-400">Données de constitution (société optionnelle)</p>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {!selectedCompany && (
+          <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <p className="text-xs font-semibold text-gray-700 mb-3">Société (standalone)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-xs text-gray-400 mb-1 block">Raison sociale *</label>
+                <input value={standaloneCompany.raisonSociale} onChange={(e) => setStandaloneCompany({ ...standaloneCompany, raisonSociale: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Ville</label>
+                <input value={standaloneCompany.ville} onChange={(e) => setStandaloneCompany({ ...standaloneCompany, ville: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Adresse</label>
+                <input value={standaloneCompany.adresse} onChange={(e) => setStandaloneCompany({ ...standaloneCompany, adresse: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">IF</label>
+                <input value={standaloneCompany.if_fiscal} onChange={(e) => setStandaloneCompany({ ...standaloneCompany, if_fiscal: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">ICE</label>
+                <input value={standaloneCompany.ice} onChange={(e) => setStandaloneCompany({ ...standaloneCompany, ice: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">RC</label>
+                <input value={standaloneCompany.rc} onChange={(e) => setStandaloneCompany({ ...standaloneCompany, rc: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">CNSS</label>
+                <input value={standaloneCompany.cnss} onChange={(e) => setStandaloneCompany({ ...standaloneCompany, cnss: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono" />
+              </div>
+            </div>
+          </div>
+        )}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
           <p className="text-xs text-blue-600 font-medium mb-2">Documents Word générés automatiquement</p>
           <div className="flex flex-wrap gap-2">
@@ -691,6 +806,43 @@ ARTICLE I CADRE LEGAL - ARTICLE II OBJET - ARTICLE III DUREE (1 an tacite recond
           <button onClick={downloadAll} className="w-full py-3 bg-green-600 text-white rounded-xl font-semibold text-sm hover:bg-green-700 transition-all flex items-center justify-center gap-2 mt-2">
             <Download size={16} /> Télécharger tout le dossier (5 Word)
           </button>
+        )}
+
+        {step === 'done' && companies.length > 0 && (
+          <div className="bg-white border border-gray-100 rounded-xl p-4">
+            <p className="text-sm font-semibold text-gray-800">Lier à une société (optionnel)</p>
+            <p className="text-xs text-gray-400 mt-0.5">Crée un lien flexible dans `atlas_links` (non requis).</p>
+            <div className="mt-3 grid grid-cols-3 gap-3 items-end">
+              <div className="col-span-2">
+                <label className="text-xs text-gray-400 mb-1 block">Société</label>
+                <select value={linkCompanyId} onChange={(e) => setLinkCompanyId(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                  <option value="">— Choisir —</option>
+                  {companies.map((c) => <option key={c.id} value={c.id}>{c.raisonSociale}</option>)}
+                </select>
+              </div>
+              <button
+                type="button"
+                disabled={!linkCompanyId}
+                onClick={async () => {
+                  setLinkStatus('');
+                  const res = await createAtlasLink({
+                    fromType: 'juridique_generation',
+                    fromId: generationId,
+                    toType: 'company',
+                    toId: String(linkCompanyId),
+                    relation: 'attached_to',
+                    metadata: { kind: 'creation_dossier' },
+                  });
+                  setLinkStatus(res.ok ? 'Lien créé.' : `Erreur: ${res.error}`);
+                }}
+                className="px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] disabled:opacity-40"
+              >
+                Lier
+              </button>
+              {linkStatus && <p className="col-span-3 text-xs text-gray-500">{linkStatus}</p>}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -951,8 +1103,8 @@ export default function JuridiquePage() {
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">

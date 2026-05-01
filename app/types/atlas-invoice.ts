@@ -3,7 +3,8 @@ import type { AtlasPaymentTerms } from '@/app/types/atlas-payment-terms';
 export type AtlasInvoiceStatus = 'draft' | 'sent' | 'paid' | 'cancelled';
 
 export type AtlasInvoice = {
-  id: number;
+  /** Local demo uses number; Supabase uses UUID string. */
+  id: number | string;
   number: string;
   clientName: string;
   issueDate: string; // YYYY-MM-DD

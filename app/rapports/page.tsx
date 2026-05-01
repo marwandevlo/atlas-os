@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Download, FileText, TrendingUp, Calculator, Users, Receipt } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 export default function RapportsPage() {
   const router = useRouter();
@@ -23,10 +24,10 @@ export default function RapportsPage() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('ATLAS OS ENTERPRISE', 15, 15);
+    doc.text('ZAFIRIX PRO', 15, 15);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Logiciel de comptabilite et fiscalite - Maroc', 15, 22);
+    doc.text('Plateforme SaaS - Maroc', 15, 22);
     doc.text(`Date: ${dateStr}`, 15, 29);
 
     if (type === 'tva') {
@@ -179,7 +180,7 @@ export default function RapportsPage() {
       doc.rect(0, 285, 210, 12, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(7);
-      doc.text('Atlas OS Enterprise - Logiciel de comptabilite Maroc - www.atlas-os-topaz.vercel.app', 15, 292);
+      doc.text('ZAFIRIX PRO - Logiciel de comptabilite Maroc - www.zafirix.group', 15, 292);
       doc.text(`Page ${i}/${pageCount}`, 185, 292);
     }
 
@@ -198,8 +199,8 @@ export default function RapportsPage() {
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">

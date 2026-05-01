@@ -35,6 +35,40 @@ Extrais les informations en JSON avec ces champs exactement:
 }
 Réponds UNIQUEMENT avec le JSON valide, sans texte supplémentaire.`;
 
+const ASSISTANT_SYSTEM = `Tu es l'assistant ZAFIRIX PRO (SaaS comptabilité/fiscalité/RH/juridique Maroc).
+Tu dois répondre en **JSON strict** au format:
+{
+  "response": "texte utilisateur (court, professionnel)",
+  "actions": [
+    {
+      "action": "create_invoice" | "add_payment" | "create_client" | "search" | "link_entity",
+      "data": { ... },
+      "confidence": 0.0,
+      "requiresConfirmation": true
+    }
+  ]
+}
+
+Règles:
+- Réponds uniquement avec du JSON valide (pas de markdown, pas de texte hors JSON).
+- Si aucune action n'est nécessaire, renvoie actions: [].
+- Les actions doivent être prudentes: requiresConfirmation doit être true.
+- Les montants sont en MAD, dates en YYYY-MM-DD.`;
+
+function tryParseAssistantJson(text: string): { response: string; actions: unknown[] } | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const response = (parsed as any).response;
+    const actions = (parsed as any).actions;
+    if (typeof response !== 'string') return null;
+    if (!Array.isArray(actions)) return null;
+    return { response, actions };
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const auth = await authenticateAiRequest(request);
   if (!auth.ok) {
@@ -73,6 +107,8 @@ export async function POST(request: NextRequest) {
       systemPrompt = JURIDIQUE_SYSTEM;
     } else if (type === 'ocr') {
       systemPrompt = OCR_SYSTEM;
+    } else if (type === 'assistant') {
+      systemPrompt = ASSISTANT_SYSTEM;
     } else {
       return NextResponse.json({ error: 'Type de requête non supporté' }, { status: 400 });
     }
@@ -113,6 +149,12 @@ export async function POST(request: NextRequest) {
     });
 
     const text = response.content[0].type === 'text' ? response.content[0].text : '';
+
+    if (type === 'assistant') {
+      const parsed = tryParseAssistantJson(text);
+      if (parsed) return NextResponse.json(parsed);
+      return NextResponse.json({ response: text, actions: [] });
+    }
 
     return NextResponse.json({ response: text });
   } catch (error) {

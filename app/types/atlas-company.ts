@@ -1,5 +1,5 @@
 /**
- * Canonical company shape used across Atlas OS (localStorage today, Supabase JSON tomorrow).
+ * Canonical company shape used across ZAFIRIX PRO (localStorage today, Supabase JSON tomorrow).
  */
 import type { AtlasPaymentTerms } from '@/app/types/atlas-payment-terms';
 

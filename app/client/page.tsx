@@ -37,7 +37,7 @@ export default function ClientPortalPage() {
               <Building2 size={28} className="text-[#0F1F3D]" />
             </div>
             <div>
-              <p className="text-white font-bold text-2xl">Atlas OS</p>
+              <p className="text-white font-bold text-2xl">ZAFIRIX PRO</p>
               <p className="text-white/40 text-sm">Espace Client</p>
             </div>
           </div>
@@ -87,7 +87,7 @@ export default function ClientPortalPage() {
               <Building2 size={18} className="text-[#0F1F3D]" />
             </div>
             <div>
-              <p className="font-bold">Atlas OS — Espace Client</p>
+              <p className="font-bold">ZAFIRIX PRO — Espace Client</p>
               <p className="text-white/40 text-xs">ATLAS COMMERCE SARL · IF: 12345678</p>
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function ClientPortalPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400">
-          Propulse par Atlas OS Enterprise · Votre comptable: contact@comptable.ma
+          Propulsé par ZAFIRIX PRO · Votre comptable: contact@comptable.ma
         </p>
       </div>
     </div>

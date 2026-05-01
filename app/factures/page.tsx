@@ -1,15 +1,23 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Trash2, Download, Send, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Download, Send, FileText, ReceiptText, CheckCircle2, Wallet, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { addDaysYmd, isOverdue, todayYmd } from '@/app/lib/atlas-dates';
-import { deleteAtlasInvoice, listAtlasInvoices, shouldSeedDemoInvoices, upsertAtlasInvoice } from '@/app/lib/atlas-invoices-repository';
+import { deleteAtlasInvoice, listAtlasInvoices, upsertAtlasInvoice, writeInvoicesToLocalStorage } from '@/app/lib/atlas-invoices-repository';
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import type { AtlasPayment } from '@/app/types/atlas-payment';
+import { listAtlasPayments, upsertAtlasPayment } from '@/app/lib/atlas-payments-repository';
+import { fetchAi } from '@/app/lib/fetch-ai';
+import { readActiveCompanyFromLocalStorage } from '@/app/lib/atlas-companies-repository';
+import { createInvoicePdfDoc, downloadInvoicePdf, invoicePdfFilename } from '@/app/lib/atlas-invoice-pdf';
+import { canPerformOperation, incrementUsage } from '@/app/lib/atlas-usage-limits';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 type FactureRow = {
-  id: number;
+  id: AtlasInvoice['id'];
   numero: string;
   client: string;
   date: string;
@@ -18,101 +26,98 @@ type FactureRow = {
   montantHT: number;
   tva: number;
   ttc: number;
+  paye: number;
+  reste: number;
   statut: 'payée' | 'en attente' | 'en retard';
 };
 
 export default function FacturesPage() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<AtlasInvoice[]>([]);
-  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [payments, setPayments] = useState<AtlasPayment[]>([]);
+  const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
+  const [insight, setInsight] = useState<{ loading: boolean; text: string }>({ loading: false, text: '' });
+  const [limitNotice, setLimitNotice] = useState('');
 
   const [showForm, setShowForm] = useState(false);
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
   const [termsCustomDays, setTermsCustomDays] = useState('45');
   const [form, setForm] = useState({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
+  const [paymentForm, setPaymentForm] = useState<{ openFor: AtlasInvoice['id'] | null; amount: string; paidAt: string }>({
+    openFor: null,
+    amount: '',
+    paidAt: todayYmd(),
+  });
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoadingInvoices(true);
-      const existing = await listAtlasInvoices();
-      if (cancelled) return;
-      if (existing.length) {
-        setInvoices(existing);
-        setLoadingInvoices(false);
-        return;
-      }
-
-      if (!shouldSeedDemoInvoices()) {
-        setInvoices([]);
-        setLoadingInvoices(false);
-        return;
-      }
-
-      // Seed only for local backend (demo mode).
-      const seed: AtlasInvoice[] = [
-      {
-        id: 1,
-        number: 'F-2026-001',
-        clientName: 'Société Alpha',
-        issueDate: '2026-04-01',
-        amountHT: 15000,
-        vatRate: 0.2,
-        vatAmount: 3000,
-        totalTTC: 18000,
-        paymentTerms: { kind: 'preset', days: 30 },
-        dueDate: addDaysYmd('2026-04-01', 30),
-        status: 'paid',
-        paidAt: '2026-04-15',
-        paidAmount: 18000,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        number: 'F-2026-002',
-        clientName: 'Entreprise Beta',
-        issueDate: '2026-04-05',
-        amountHT: 8500,
-        vatRate: 0.2,
-        vatAmount: 1700,
-        totalTTC: 10200,
-        paymentTerms: { kind: 'preset', days: 60 },
-        dueDate: addDaysYmd('2026-04-05', 60),
-        status: 'sent',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 3,
-        number: 'F-2026-003',
-        clientName: 'Client Gamma',
-        issueDate: '2026-03-20',
-        amountHT: 5000,
-        vatRate: 0.2,
-        vatAmount: 1000,
-        totalTTC: 6000,
-        paymentTerms: { kind: 'preset', days: 30 },
-        dueDate: addDaysYmd('2026-03-20', 30),
-        status: 'sent',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-      // Persist seed via repo (localStorage mode will store, Supabase mode will simply load empty).
-      if (!cancelled) {
+    const load = async () => {
+      const inv = await listAtlasInvoices();
+      if (!inv.length && !isAtlasSupabaseDataEnabled()) {
+        const seed: AtlasInvoice[] = [
+          {
+            id: 1,
+            number: 'F-2026-001',
+            clientName: 'Société Alpha',
+            issueDate: '2026-04-01',
+            amountHT: 15000,
+            vatRate: 0.2,
+            vatAmount: 3000,
+            totalTTC: 18000,
+            paymentTerms: { kind: 'preset', days: 30 },
+            dueDate: addDaysYmd('2026-04-01', 30),
+            status: 'paid',
+            paidAt: '2026-04-15',
+            paidAmount: 18000,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: 2,
+            number: 'F-2026-002',
+            clientName: 'Entreprise Beta',
+            issueDate: '2026-04-05',
+            amountHT: 8500,
+            vatRate: 0.2,
+            vatAmount: 1700,
+            totalTTC: 10200,
+            paymentTerms: { kind: 'preset', days: 60 },
+            dueDate: addDaysYmd('2026-04-05', 60),
+            status: 'sent',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: 3,
+            number: 'F-2026-003',
+            clientName: 'Client Gamma',
+            issueDate: '2026-03-20',
+            amountHT: 5000,
+            vatRate: 0.2,
+            vatAmount: 1000,
+            totalTTC: 6000,
+            paymentTerms: { kind: 'preset', days: 30 },
+            dueDate: addDaysYmd('2026-03-20', 30),
+            status: 'sent',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ];
         setInvoices(seed);
-        await Promise.all(seed.map((inv) => upsertAtlasInvoice(inv)));
+        writeInvoicesToLocalStorage(seed);
+      } else {
+        setInvoices(inv);
       }
-      setLoadingInvoices(false);
-    })();
-    return () => {
-      cancelled = true;
+
+      const pay = await listAtlasPayments();
+      setPayments(pay);
     };
+    void load();
   }, []);
 
-  const addFacture = async () => {
+  const addFacture = () => {
     if (!form.numero || !form.client || !form.montantHT) return;
+    const decision = canPerformOperation();
+    if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
 
     const issueDate = form.date || todayYmd();
     const ht = Number.parseFloat(form.montantHT);
@@ -147,7 +152,8 @@ export default function FacturesPage() {
 
     const updated = [...invoices, next];
     setInvoices(updated);
-    await upsertAtlasInvoice(next);
+    void upsertAtlasInvoice(next);
+    incrementUsage('operations', 1);
 
     setForm({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
     setTermsKind('30');
@@ -165,26 +171,49 @@ export default function FacturesPage() {
     return addDaysYmd(issueDate, normalized.days);
   }, [form.date, termsKind, termsCustomDays]);
 
+  const paymentsByInvoiceId = useMemo(() => {
+    const m = new Map<string, AtlasPayment[]>();
+    for (const p of payments) {
+      const arr = m.get(p.invoiceId) ?? [];
+      arr.push(p);
+      m.set(p.invoiceId, arr);
+    }
+    return m;
+  }, [payments]);
+
+  const paidForInvoice = (inv: AtlasInvoice): number => {
+    const invKey = String(inv.id);
+    const sum = (paymentsByInvoiceId.get(invKey) ?? []).reduce((s, p) => s + (p.paidAmount || 0), 0);
+    return sum > 0 ? sum : (inv.paidAmount ?? 0);
+  };
+
   const rows: FactureRow[] = useMemo(() => {
     const now = todayYmd();
     return invoices.map((inv) => {
-      const paid = inv.status === 'paid';
-      const overdue = isOverdue(inv.dueDate, paid, now);
+      const normalizedTerms = normalizePaymentTerms(inv.paymentTerms ?? { kind: 'preset', days: 30 });
+      const computedDueDate = addDaysYmd(inv.issueDate, normalizedTerms.days);
+      const dueDate = inv.dueDate || computedDueDate;
+      const paidAmount = paidForInvoice(inv);
+      const remaining = Math.max(0, (inv.totalTTC || 0) - paidAmount);
+      const paid = remaining <= 0;
+      const overdue = isOverdue(dueDate, paid, now) && remaining > 0;
       const statut: FactureRow['statut'] = paid ? 'payée' : overdue ? 'en retard' : 'en attente';
       return {
         id: inv.id,
         numero: inv.number,
         client: inv.clientName,
         date: inv.issueDate,
-        delai: paymentTermsLabel(inv.paymentTerms),
-        echeance: inv.dueDate,
+        delai: paymentTermsLabel(normalizedTerms),
+        echeance: dueDate,
         montantHT: inv.amountHT,
         tva: inv.vatAmount,
         ttc: inv.totalTTC,
+        paye: paidAmount,
+        reste: remaining,
         statut,
       };
     });
-  }, [invoices]);
+  }, [invoices, paymentsByInvoiceId]);
 
   const overdueUnpaid = useMemo(() => rows.filter((r) => r.statut === 'en retard'), [rows]);
 
@@ -196,42 +225,179 @@ export default function FacturesPage() {
 
   const totals = useMemo(() => {
     const totalFacture = rows.reduce((sum, r) => sum + r.ttc, 0);
-    const totalUnpaid = rows.filter((r) => r.statut !== 'payée').reduce((sum, r) => sum + r.ttc, 0);
-    const totalOverdue = rows.filter((r) => r.statut === 'en retard').reduce((sum, r) => sum + r.ttc, 0);
+    const totalPaye = rows.reduce((sum, r) => sum + (r.paye || 0), 0);
+    const totalUnpaid = rows.reduce((sum, r) => sum + (r.reste || 0), 0);
+    const totalOverdue = rows.filter((r) => r.statut === 'en retard').reduce((sum, r) => sum + (r.reste || 0), 0);
     const overdueCount = rows.filter((r) => r.statut === 'en retard').length;
-    return { totalFacture, totalUnpaid, totalOverdue, overdueCount };
+    return { totalFacture, totalPaye, totalUnpaid, totalOverdue, overdueCount };
   }, [rows]);
 
-  const markPaid = async (id: number) => {
-    const nowYmd = todayYmd();
-    const updated = invoices.map((inv) => {
-      if (inv.id !== id) return inv;
-      const next: AtlasInvoice = {
-        ...inv,
-        status: 'paid',
-        paidAt: nowYmd,
-        paidAmount: inv.totalTTC,
-        updatedAt: new Date().toISOString(),
-      };
-      return next;
-    });
-    setInvoices(updated);
-    const inv = updated.find((i) => i.id === id);
-    if (inv) await upsertAtlasInvoice(inv);
+  const filteredRows = useMemo(() => {
+    if (filter === 'paid') return rows.filter((r) => r.statut === 'payée');
+    if (filter === 'pending') return rows.filter((r) => r.statut === 'en attente');
+    if (filter === 'overdue') return rows.filter((r) => r.statut === 'en retard');
+    return rows;
+  }, [filter, rows]);
+
+  const sendReminder = (r: FactureRow) => {
+    const decision = canPerformOperation();
+    if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+
+    const subject = `Relance facture ${r.numero} — échéance ${r.echeance}`;
+    const body =
+      `Bonjour,\\n\\n` +
+      `Sauf erreur de notre part, la facture ${r.numero} (émise le ${r.date}) est arrivée à échéance le ${r.echeance}.\\n` +
+      `Montant TTC: ${Math.round(r.ttc).toLocaleString()} MAD\\n` +
+      `Reste à régler: ${Math.round(r.reste).toLocaleString()} MAD\\n\\n` +
+      `Pouvez-vous nous confirmer la date de règlement ?\\n\\n` +
+      `Merci d'avance,\\n` +
+      `— ZAFIRIX PRO`;
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    incrementUsage('operations', 1);
   };
 
-  const removeInvoice = async (id: number) => {
+  const downloadPdf = (r: FactureRow) => {
+    const company = readActiveCompanyFromLocalStorage();
+    downloadInvoicePdf({
+      company,
+      invoice: {
+        numero: r.numero,
+        client: r.client,
+        montantTtc: r.ttc,
+        dateEmission: r.date,
+        dateEcheance: r.echeance,
+        statut: r.statut === 'en retard' ? 'En retard' : r.statut,
+      },
+    });
+  };
+
+  const sendInvoiceEmail = async (r: FactureRow) => {
+    const decision = canPerformOperation();
+    if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+
+    const subject = 'Facture';
+    const body =
+      `Bonjour,\\n\\n` +
+      `Veuillez trouver ci-joint la facture ${r.numero}.\\n` +
+      `Montant TTC: ${Math.round(r.ttc).toLocaleString()} MAD\\n` +
+      `Date d'échéance: ${r.echeance}\\n\\n` +
+      `Merci,\\n` +
+      `— ZAFIRIX PRO\\n\\n` +
+      `Note: si la pièce jointe ne s'ajoute pas automatiquement, merci de télécharger le PDF depuis ZAFIRIX PRO et l'ajouter à cet email.`;
+
+    const company = readActiveCompanyFromLocalStorage();
+    const pdfData = {
+      numero: r.numero,
+      client: r.client,
+      montantTtc: r.ttc,
+      dateEmission: r.date,
+      dateEcheance: r.echeance,
+      statut: r.statut === 'en retard' ? 'En retard' : r.statut,
+    };
+
+    try {
+      if (typeof navigator !== 'undefined' && 'canShare' in navigator && 'share' in navigator) {
+        const doc = createInvoicePdfDoc({ company, invoice: pdfData });
+        const blob = doc.output('blob') as Blob;
+        const file = new File([blob], invoicePdfFilename(r.numero), { type: 'application/pdf' });
+        const canShareFiles = (navigator as any).canShare?.({ files: [file] });
+        if (canShareFiles) {
+          await (navigator as any).share({
+            title: `Facture ${r.numero}`,
+            text: `Facture ${r.numero} — ${Math.round(r.ttc).toLocaleString()} MAD — échéance ${r.echeance}`,
+            files: [file],
+          });
+          return;
+        }
+      }
+    } catch {
+      // fall back to mailto
+    }
+
+    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    incrementUsage('operations', 1);
+  };
+
+  useEffect(() => {
+    if (totals.overdueCount <= 0) {
+      setInsight({ loading: false, text: '' });
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      setInsight({ loading: true, text: '' });
+      const top = overdueUnpaid
+        .slice(0, 5)
+        .map((r) => `- ${r.numero} (${r.client}) · échéance ${r.echeance} · reste ${Math.round(r.reste).toLocaleString()} MAD`)
+        .join('\\n');
+
+      const fallback =
+        `Vous avez ${totals.overdueCount} facture(s) en retard pour ${Math.round(totals.totalOverdue).toLocaleString()} MAD.\\n` +
+        `Recommandation: relancez d’abord les 3 plus anciennes, proposez un échéancier, puis bloquez toute nouvelle livraison en cas d’absence de réponse.\\n\\n` +
+        `Top retards:\\n${top}`;
+
+      try {
+        const res = await fetchAi({
+          type: 'consultant',
+          systemPrompt: 'Tu es un assistant comptable. Réponds en français, concis, orienté action. Pas de tableaux.',
+          message:
+            `Analyse les factures en retard et donne une recommandation simple.\\n` +
+            `Contexte:\\n- Total en retard: ${totals.totalOverdue} MAD\\n- Nombre: ${totals.overdueCount}\\n` +
+            `Factures (top):\\n${top}\\n\\n` +
+            `Format attendu:\\n1) Résumé (1 phrase)\\n2) Recommandation (2-3 bullets)\\n3) Prochaine action (1 phrase)`,
+        });
+        const data = await res.json().catch(() => ({} as any));
+        const text = typeof data?.response === 'string' && data.response.trim() ? data.response : fallback;
+        if (!cancelled) setInsight({ loading: false, text });
+      } catch {
+        if (!cancelled) setInsight({ loading: false, text: fallback });
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [overdueUnpaid, totals.overdueCount, totals.totalOverdue]);
+
+  const addPayment = async () => {
+    if (!paymentForm.openFor) return;
+    const decision = canPerformOperation();
+    if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+    const invoiceId = String(paymentForm.openFor);
+    const amount = Number.parseFloat(paymentForm.amount || '0') || 0;
+    if (amount <= 0) return;
+
+    const next: AtlasPayment = {
+      id: crypto.randomUUID(),
+      invoiceId,
+      paidAmount: amount,
+      paidAt: paymentForm.paidAt || todayYmd(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updated = [...payments, next];
+    setPayments(updated);
+    await upsertAtlasPayment(next);
+    incrementUsage('operations', 1);
+
+    setPaymentForm({ openFor: null, amount: '', paidAt: todayYmd() });
+  };
+
+  const removeInvoice = (id: AtlasInvoice['id']) => {
     const updated = invoices.filter((inv) => inv.id !== id);
     setInvoices(updated);
-    await deleteAtlasInvoice(id);
+    void deleteAtlasInvoice(id);
   };
 
   return (
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
@@ -254,30 +420,92 @@ export default function FacturesPage() {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
-          {loadingInvoices && (
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-sm text-gray-500">
-              Chargement des factures…
+        <div className="shrink-0 px-8 pt-6 space-y-4">
+          <div className="grid grid-cols-4 gap-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-medium text-gray-500">Total facturé</p>
+                  <p className="text-2xl font-semibold text-blue-700 mt-1 tracking-tight">{totals.totalFacture.toLocaleString()} MAD</p>
+                </div>
+                <div className="shrink-0 rounded-xl bg-blue-50 border border-blue-100 p-2.5 text-blue-700">
+                  <ReceiptText size={18} />
+                </div>
+              </div>
+              <div className="mt-3 h-1 w-full rounded-full bg-blue-50">
+                <div className="h-1 rounded-full bg-blue-400 w-1/2" />
+              </div>
             </div>
-          )}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400">Total facturé</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{totals.totalFacture.toLocaleString()} MAD</p>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-medium text-gray-500">Total payé</p>
+                  <p className="text-2xl font-semibold text-green-700 mt-1 tracking-tight">{totals.totalPaye.toLocaleString()} MAD</p>
+                </div>
+                <div className="shrink-0 rounded-xl bg-green-50 border border-green-100 p-2.5 text-green-700">
+                  <CheckCircle2 size={18} />
+                </div>
+              </div>
+              <div className="mt-3 h-1 w-full rounded-full bg-green-50">
+                <div className="h-1 rounded-full bg-green-400 w-1/2" />
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400">Reste à encaisser</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{totals.totalUnpaid.toLocaleString()} MAD</p>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-medium text-gray-500">Reste à encaisser</p>
+                  <p className="text-2xl font-semibold text-orange-700 mt-1 tracking-tight">{totals.totalUnpaid.toLocaleString()} MAD</p>
+                </div>
+                <div className="shrink-0 rounded-xl bg-orange-50 border border-orange-100 p-2.5 text-orange-700">
+                  <Wallet size={18} />
+                </div>
+              </div>
+              <div className="mt-3 h-1 w-full rounded-full bg-orange-50">
+                <div className="h-1 rounded-full bg-orange-400 w-1/2" />
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-400">Retards de paiement</p>
-              <p className="text-2xl font-bold text-red-600 mt-1">{totals.overdueCount}</p>
+            <div className={`bg-white rounded-2xl p-5 shadow-sm border ${totals.totalOverdue > 0 ? 'border-red-200' : 'border-gray-100'} hover:shadow-md transition-shadow`}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-medium text-gray-500">En retard</p>
+                  <p className={`text-2xl font-semibold mt-1 tracking-tight ${totals.totalOverdue > 0 ? 'text-red-700' : 'text-gray-800'}`}>{totals.totalOverdue.toLocaleString()} MAD</p>
+                </div>
+                <div className={`shrink-0 rounded-xl border p-2.5 ${totals.totalOverdue > 0 ? 'bg-red-50 border-red-100 text-red-700' : 'bg-gray-50 border-gray-100 text-gray-600'}`}>
+                  <AlertTriangle size={18} />
+                </div>
+              </div>
+              <div className={`mt-3 h-1 w-full rounded-full ${totals.totalOverdue > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+                <div className={`h-1 rounded-full w-1/2 ${totals.totalOverdue > 0 ? 'bg-red-400' : 'bg-gray-300'}`} />
+              </div>
             </div>
           </div>
+          {limitNotice && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+              {limitNotice}
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-8 pb-6 pt-6 space-y-6">
 
           {totals.overdueCount > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
               <span className="font-semibold">Alerte paiements :</span> {totals.overdueCount} facture(s) en retard — {totals.totalOverdue.toLocaleString()} MAD.
+            </div>
+          )}
+
+          {totals.overdueCount > 0 && (
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Insight IA</p>
+                  <p className="text-xs text-gray-400">Résumé et recommandation sur les retards</p>
+                </div>
+                {insight.loading && <p className="text-xs text-gray-400">Analyse…</p>}
+              </div>
+              <div className="mt-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <pre className="text-xs text-gray-700 whitespace-pre-wrap wrap-break-word">{insight.text}</pre>
+              </div>
             </div>
           )}
 
@@ -297,16 +525,29 @@ export default function FacturesPage() {
                     <th className="px-6 py-3">Date émission</th>
                     <th className="px-6 py-3">Date échéance</th>
                     <th className="px-6 py-3 text-right">TTC</th>
+                    <th className="px-6 py-3 text-right"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {overdueUnpaid.map((f) => (
-                    <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
-                      <td className="px-6 py-3 font-medium text-gray-700">{f.numero}</td>
+                    <tr key={f.id} className="border-b border-red-50 bg-red-50/30 hover:bg-red-50/50">
+                      <td className="px-6 py-3 font-medium text-gray-700">
+                        <div className="flex items-center gap-2">
+                          <span>{f.numero}</span>
+                          <span className="text-[10px] uppercase tracking-wide bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full font-semibold">
+                            En retard
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-6 py-3 text-gray-600">{f.client}</td>
                       <td className="px-6 py-3 text-gray-500">{f.date}</td>
                       <td className="px-6 py-3 text-red-700 font-medium">{f.echeance}</td>
                       <td className="px-6 py-3 text-right font-medium text-gray-800">{f.ttc.toLocaleString()} MAD</td>
+                      <td className="px-6 py-3 text-right">
+                        <button onClick={() => sendReminder(f)} className="text-xs font-semibold text-red-700 hover:text-red-800">
+                          Relancer
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -370,6 +611,23 @@ export default function FacturesPage() {
           )}
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-gray-700">Liste des factures</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setFilter('all')} className={`text-xs font-medium px-2.5 py-1 rounded-full border ${filter === 'all' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                  Toutes
+                </button>
+                <button onClick={() => setFilter('paid')} className={`text-xs font-medium px-2.5 py-1 rounded-full border ${filter === 'paid' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                  Payées
+                </button>
+                <button onClick={() => setFilter('pending')} className={`text-xs font-medium px-2.5 py-1 rounded-full border ${filter === 'pending' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                  En attente
+                </button>
+                <button onClick={() => setFilter('overdue')} className={`text-xs font-medium px-2.5 py-1 rounded-full border ${filter === 'overdue' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>
+                  En retard
+                </button>
+              </div>
+            </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-400 border-b border-gray-100 bg-gray-50">
@@ -381,33 +639,71 @@ export default function FacturesPage() {
                   <th className="px-4 py-3 text-right">Montant HT</th>
                   <th className="px-4 py-3 text-right">TVA</th>
                   <th className="px-4 py-3 text-right">TTC</th>
+                  <th className="px-4 py-3 text-right">Payé</th>
+                  <th className="px-4 py-3 text-right">Reste</th>
                   <th className="px-4 py-3">Statut</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map(f => (
-                  <tr key={f.id} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-700">{f.numero}</td>
+                {filteredRows.map(f => (
+                  <tr key={f.id} className={`border-b border-gray-50 hover:bg-gray-50 ${f.statut === 'en retard' ? 'bg-red-50/30' : ''}`}>
+                    <td className="px-4 py-3 font-medium text-gray-700">
+                      <div className="flex items-center gap-2">
+                        <span>{f.numero}</span>
+                        {f.statut === 'en retard' && (
+                          <span className="text-[10px] uppercase tracking-wide bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full font-semibold">
+                            Action requise
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-gray-600">{f.client}</td>
                     <td className="px-4 py-3 text-gray-500">{f.date}</td>
                     <td className="px-4 py-3 text-gray-500">{f.delai}</td>
-                    <td className="px-4 py-3 text-gray-500">{f.echeance}</td>
+                    <td className={`px-4 py-3 ${f.statut === 'en retard' ? 'text-red-700 font-medium' : 'text-gray-500'}`}>{f.echeance}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{f.montantHT.toLocaleString()} MAD</td>
                     <td className="px-4 py-3 text-right text-blue-600">{f.tva.toLocaleString()} MAD</td>
                     <td className="px-4 py-3 text-right font-medium">{f.ttc.toLocaleString()} MAD</td>
+                    <td className="px-4 py-3 text-right text-green-700">{Math.round(f.paye).toLocaleString()} MAD</td>
+                    <td className={`px-4 py-3 text-right font-medium ${f.reste > 0 ? 'text-amber-700' : 'text-gray-500'}`}>{Math.round(f.reste).toLocaleString()} MAD</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statutColor(f.statut)}`}>{f.statut}</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statutColor(f.statut)}`}>
+                        {f.statut === 'en retard' ? 'En retard' : f.statut}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end">
-                        {f.statut !== 'payée' && (
-                          <button onClick={() => markPaid(f.id)} className="text-gray-300 hover:text-green-600 transition-colors text-xs font-medium">
-                            Marquer payée
+                        {f.reste > 0 && (
+                          <button
+                            onClick={() => setPaymentForm({ openFor: f.id, amount: String(Math.round(f.reste)), paidAt: todayYmd() })}
+                            className="text-gray-300 hover:text-emerald-600 transition-colors text-xs font-medium"
+                          >
+                            + Paiement
                           </button>
                         )}
-                        <button className="text-gray-300 hover:text-blue-500 transition-colors"><Download size={14} /></button>
-                        <button className="text-gray-300 hover:text-green-500 transition-colors"><Send size={14} /></button>
+                        {f.statut === 'en retard' && (
+                          <button
+                            onClick={() => sendReminder(f)}
+                            className="text-gray-300 hover:text-red-600 transition-colors text-xs font-medium"
+                          >
+                            Relancer
+                          </button>
+                        )}
+                        <button
+                          onClick={() => downloadPdf(f)}
+                          className="text-gray-300 hover:text-blue-500 transition-colors"
+                          title="Télécharger le PDF"
+                        >
+                          <Download size={14} />
+                        </button>
+                        <button
+                          onClick={() => void sendInvoiceEmail(f)}
+                          className="text-gray-300 hover:text-emerald-600 transition-colors"
+                          title="Envoyer la facture (email pré-rempli)"
+                        >
+                          <Send size={14} />
+                        </button>
                         <button onClick={() => removeInvoice(f.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
                       </div>
                     </td>
@@ -416,6 +712,38 @@ export default function FacturesPage() {
               </tbody>
             </table>
           </div>
+
+          {paymentForm.openFor !== null && (
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-emerald-200">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Ajouter un paiement</p>
+                  <p className="text-xs text-gray-400">Confirmation explicite avant exécution (paiement ajouté uniquement après validation)</p>
+                </div>
+                <button onClick={() => setPaymentForm({ openFor: null, amount: '', paidAt: todayYmd() })} className="text-xs text-gray-400 hover:text-gray-600">
+                  Fermer
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Montant payé (MAD)</label>
+                  <input value={paymentForm.amount} onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })} type="number" min={0} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Date de paiement</label>
+                  <input value={paymentForm.paidAt} onChange={(e) => setPaymentForm({ ...paymentForm, paidAt: e.target.value })} type="date" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-400" />
+                </div>
+                <div className="flex items-end gap-2">
+                  <button onClick={() => void addPayment()} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition-colors">
+                    Confirmer
+                  </button>
+                  <button onClick={() => setPaymentForm({ openFor: null, amount: '', paidAt: todayYmd() })} className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

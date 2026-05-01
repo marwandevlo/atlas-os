@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Building2, Save, CheckCircle } from 'lucide-react';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -44,8 +45,8 @@ export default function SettingsPage() {
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
@@ -94,7 +95,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h2 className="font-semibold text-gray-700 mb-4 text-blue-600">Identifiants fiscaux et sociaux</h2>
+            <h2 className="font-semibold mb-4 text-blue-600">Identifiants fiscaux et sociaux</h2>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">Identifiant Fiscal (IF) *</label>
@@ -164,7 +165,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="text-xs text-gray-400 mb-1 block">RIB / IBAN</label>
-                <input value={company.ribBancaire} onChange={e => setCompany({...company, ribBancaire: e.target.value})} placeholder="Ex: 007 780 0001234567890123 26" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono text-xs" />
+                <input value={company.ribBancaire} onChange={e => setCompany({...company, ribBancaire: e.target.value})} placeholder="Ex: 007 780 0001234567890123 26" className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 font-mono text-xs" />
               </div>
             </div>
           </div>

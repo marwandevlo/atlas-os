@@ -1,6 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle, Zap, Shield, Brain, FileText, TrendingUp, Upload, ArrowRight, Star } from 'lucide-react';
+import { PublicFooter } from '@/app/components/public/PublicFooter';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 const features = [
   { icon: FileText, title: 'Déclaration TVA automatique', desc: 'Import vos factures et l\'IA génère votre déclaration TVA en un clic', color: 'bg-blue-500' },
@@ -12,7 +14,7 @@ const features = [
 ];
 
 const testimonials = [
-  { name: 'Karim Benjelloun', role: 'Gérant PME, Casablanca', text: 'Atlas OS m\'a fait gagner 3 jours par mois sur ma comptabilité. La TVA est déclarée automatiquement!', stars: 5 },
+  { name: 'Karim Benjelloun', role: 'Gérant PME, Casablanca', text: 'ZAFIRIX PRO m\'a fait gagner 3 jours par mois sur ma comptabilité. La TVA est déclarée automatiquement!', stars: 5 },
   { name: 'Fatima Zahra Alami', role: 'Expert-comptable, Rabat', text: 'Enfin un logiciel marocain qui comprend vraiment notre fiscalité. Bien supérieur aux solutions étrangères.', stars: 5 },
   { name: 'Youssef Tazi', role: 'Auto-entrepreneur, Marrakech', text: 'Simple, rapide et conforme. Je recommande à tous les entrepreneurs marocains.', stars: 5 },
 ];
@@ -21,7 +23,7 @@ export default function LandingPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Navbar */}
       <nav className="bg-[#1B2A4A] text-white sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -29,14 +31,14 @@ export default function LandingPage() {
             <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center">
               <Building2 size={18} className="text-[#1B2A4A]" />
             </div>
-            <span className="font-bold text-lg">Atlas OS</span>
-            <span className="text-white/40 text-xs ml-1">Enterprise</span>
+            <BrandWordmark size="md" />
+            <span className="text-white/40 text-xs ml-1">ZAFIRIX GROUP</span>
           </div>
           <div className="flex items-center gap-6">
             <button onClick={() => router.push('/pricing')} className="text-white/70 hover:text-white text-sm transition-colors">Tarifs</button>
             <button onClick={() => router.push('/login')} className="text-white/70 hover:text-white text-sm transition-colors">Connexion</button>
-            <button onClick={() => router.push('/login')} className="px-4 py-2 bg-amber-400 text-[#1B2A4A] rounded-lg text-sm font-bold hover:bg-amber-300 transition-colors">
-              Essai gratuit 14j
+            <button onClick={() => router.push('/signup')} className="px-4 py-2 bg-amber-400 text-[#1B2A4A] rounded-lg text-sm font-bold hover:bg-amber-300 transition-colors">
+              Essai gratuit 7j
             </button>
           </div>
         </div>
@@ -54,7 +56,7 @@ export default function LandingPage() {
             <span className="text-amber-400">automatisée par l'IA</span>
           </h1>
           <p className="text-white/60 text-xl mb-10 max-w-2xl mx-auto">
-            TVA, IS, IR, CNSS, AMO — Atlas OS gère toute votre fiscalité marocaine automatiquement. Conforme DGI, simple, rapide.
+            TVA, IS, IR, CNSS, AMO — ZAFIRIX PRO gère toute votre fiscalité marocaine automatiquement. Conforme DGI, simple, rapide.
           </p>
           <div className="flex items-center justify-center gap-4">
             <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-8 py-4 bg-amber-400 text-[#1B2A4A] rounded-xl text-base font-bold hover:bg-amber-300 transition-colors">
@@ -111,7 +113,7 @@ export default function LandingPage() {
       {/* Vs Competition */}
       <section className="bg-[#1B2A4A] text-white py-16 px-6">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">Pourquoi Atlas OS ?</h2>
+          <h2 className="text-3xl font-bold mb-4">Pourquoi ZAFIRIX PRO ?</h2>
           <p className="text-white/60 mb-10">Comparé aux solutions génériques non adaptées au Maroc</p>
           <div className="grid grid-cols-3 gap-4">
             {[
@@ -160,7 +162,7 @@ export default function LandingPage() {
       <section className="bg-amber-400 py-16 px-6">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-[#1B2A4A] mb-4">Prêt à automatiser votre comptabilité?</h2>
-          <p className="text-[#1B2A4A]/70 mb-8">Rejoignez 500+ entreprises marocaines qui font confiance à Atlas OS</p>
+          <p className="text-[#1B2A4A]/70 mb-8">Rejoignez 500+ entreprises marocaines qui font confiance à ZAFIRIX PRO</p>
           <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-10 py-4 bg-[#1B2A4A] text-white rounded-xl text-base font-bold hover:bg-[#243660] transition-colors mx-auto">
             Démarrer maintenant <ArrowRight size={18} />
           </button>
@@ -168,10 +170,9 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#1B2A4A] text-white/40 py-8 px-6 text-center text-sm">
-        <p>© 2026 Atlas OS Enterprise · Maroc · Tous droits réservés</p>
-        <p className="mt-1">Conforme DGI · CNSS · AMO · Code Général des Impôts Maroc</p>
-      </footer>
+      <div className="mt-auto">
+        <PublicFooter />
+      </div>
     </div>
   );
 }

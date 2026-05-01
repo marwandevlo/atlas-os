@@ -12,6 +12,9 @@ import {
 import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
+import { GlobalSearchButton } from '@/app/components/search/GlobalSearchButton';
+import { UsageWidget } from '@/app/components/usage/UsageWidget';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 const modules = [
   { id: 'tva', label: 'TVA', labelAr: 'الضريبة على القيمة المضافة', icon: Receipt, color: 'bg-blue-500', href: '/tva', deadline: '20 Mai', urgent: true },
@@ -125,8 +128,8 @@ export default function Home() {
               <Building2 size={20} className="text-[#0F1F3D]" />
             </div>
             <div>
-              <p className="text-white font-bold text-base leading-tight">Atlas OS</p>
-              <p className="text-white/40 text-xs">Enterprise · المغرب</p>
+              <BrandWordmark size="md" />
+              <p className="text-white/40 text-xs">ZAFIRIX GROUP · المغرب</p>
             </div>
           </div>
           <button onClick={() => setMenuOpen(false)} className="lg:hidden text-white/50 hover:text-white">
@@ -185,6 +188,7 @@ export default function Home() {
               <Brain size={16} />
               <span className="hidden md:inline">{t('Consultant IA', 'المستشار')}</span>
             </button>
+            <GlobalSearchButton />
             <button className="relative p-2 rounded-lg hover:bg-gray-100">
               <Bell size={18} className="text-gray-500" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -298,6 +302,13 @@ export default function Home() {
                 </button>
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+            <div className="lg:col-span-1">
+              <UsageWidget />
+            </div>
+            <div className="lg:col-span-2" />
           </div>
         </div>
       </main>

@@ -1,7 +1,9 @@
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { ATLAS_STORAGE_KEYS } from '@/app/lib/atlas-storage-keys';
-import { supabase } from '@/app/lib/supabase';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { supabase } from '@/app/lib/supabase';
+import { requireSupabaseUser } from '@/app/lib/atlas-supabase-guard';
+import { asRecord } from '@/app/lib/atlas-json';
 
 export function readInvoicesFromLocalStorage(): AtlasInvoice[] {
   if (typeof window === 'undefined') return [];
@@ -20,75 +22,44 @@ export function writeInvoicesToLocalStorage(invoices: AtlasInvoice[]): void {
   localStorage.setItem(ATLAS_STORAGE_KEYS.invoices, JSON.stringify(invoices));
 }
 
-export function shouldSeedDemoInvoices(): boolean {
-  return !isAtlasSupabaseDataEnabled();
-}
-
-type AtlasInvoicesRow = {
-  legacy_local_id: number | null;
-  montant: number | string | null;
-  statut: string | null;
-  date_emission: string | null;
-  date_echeance: string | null;
-  invoice_json: unknown;
-};
-
-function asAtlasInvoice(row: AtlasInvoicesRow): AtlasInvoice | null {
-  const j = row.invoice_json as AtlasInvoice | null;
-  if (j && typeof j === 'object' && typeof (j as any).id === 'number') return j;
-  if (typeof row.legacy_local_id !== 'number') return null;
-
-  const totalTTC = typeof row.montant === 'number' ? row.montant : Number.parseFloat(String(row.montant ?? '0')) || 0;
-  const issueDate = row.date_emission ?? '';
-  const dueDate = row.date_echeance ?? '';
-  const status = (row.statut ?? 'sent') as AtlasInvoice['status'];
-  const now = new Date().toISOString();
-
-  return {
-    id: row.legacy_local_id,
-    number: `F-${row.legacy_local_id}`,
-    clientName: '',
-    issueDate,
-    paymentTerms: { kind: 'preset', days: 30 },
-    dueDate,
-    status,
-    amountHT: totalTTC,
-    vatRate: 0,
-    vatAmount: 0,
-    totalTTC,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-/**
- * Lists invoices for the signed-in user. When `NEXT_PUBLIC_ATLAS_DATA_BACKEND=supabase`,
- * reads from `public.atlas_invoices`; otherwise returns localStorage snapshot.
- */
 export async function listAtlasInvoices(): Promise<AtlasInvoice[]> {
-  if (!isAtlasSupabaseDataEnabled()) {
-    return readInvoicesFromLocalStorage();
-  }
+  if (!isAtlasSupabaseDataEnabled()) return readInvoicesFromLocalStorage();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  const auth = await requireSupabaseUser();
+  if (!auth.ok) return [];
 
   const { data, error } = await supabase
     .from('atlas_invoices')
-    .select('legacy_local_id, montant, statut, date_emission, date_echeance, invoice_json')
-    .order('date_emission', { ascending: true });
+    .select('*')
+    .order('issue_date', { ascending: false });
 
   if (error) {
     console.error('atlas_invoices list error', error.message);
     return readInvoicesFromLocalStorage();
   }
 
-  return (data ?? [])
-    .map((row) => asAtlasInvoice(row as AtlasInvoicesRow))
-    .filter((inv): inv is AtlasInvoice => inv !== null);
+  return (data ?? []).map((row: any) => {
+    const metadata = asRecord(row.metadata);
+    return {
+      id: String(row.id),
+      number: String(row.number ?? ''),
+      clientName: String(row.client_name ?? ''),
+      issueDate: String(row.issue_date),
+      paymentTerms: { kind: 'custom', days: Number(row.payment_terms_days ?? 30) },
+      dueDate: String(row.due_date),
+      status: (row.status ?? 'sent') as AtlasInvoice['status'],
+      amountHT: Number(row.amount_ht ?? 0),
+      vatRate: Number(row.vat_rate ?? 0),
+      vatAmount: Number(row.vat_amount ?? 0),
+      totalTTC: Number(row.total_ttc ?? 0),
+      createdAt: row.created_at ?? new Date().toISOString(),
+      updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
+      ...(metadata ? { metadata } as any : {}),
+    } satisfies AtlasInvoice;
+  });
 }
 
-export async function upsertAtlasInvoice(invoice: AtlasInvoice): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function upsertAtlasInvoice(invoice: AtlasInvoice, opts?: { companyId?: string | null; clientId?: string | null }): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isAtlasSupabaseDataEnabled()) {
     const existing = readInvoicesFromLocalStorage();
     const next = existing.some((i) => i.id === invoice.id)
@@ -98,42 +69,44 @@ export async function upsertAtlasInvoice(invoice: AtlasInvoice): Promise<{ ok: t
     return { ok: true };
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'not_authenticated' };
+  const auth = await requireSupabaseUser();
+  if (!auth.ok) return { ok: false, error: 'auth_required' };
 
-  const { error } = await supabase
-    .from('atlas_invoices')
-    .upsert({
-      user_id: user.id,
-      legacy_local_id: invoice.id,
-      montant: invoice.totalTTC ?? 0,
-      statut: invoice.status ?? 'sent',
-      date_emission: invoice.issueDate || null,
-      date_echeance: invoice.dueDate || null,
-      invoice_json: invoice,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,legacy_local_id' });
+  const id = typeof invoice.id === 'string' ? invoice.id : undefined;
+  const { error } = await supabase.from('atlas_invoices').upsert({
+    ...(id ? { id } : {}),
+    user_id: auth.userId,
+    company_id: opts?.companyId ?? null,
+    client_id: opts?.clientId ?? null,
+    number: invoice.number,
+    client_name: invoice.clientName,
+    issue_date: invoice.issueDate,
+    payment_terms_days: invoice.paymentTerms.days ?? 30,
+    due_date: invoice.dueDate,
+    amount_ht: invoice.amountHT,
+    vat_rate: invoice.vatRate,
+    vat_amount: invoice.vatAmount,
+    total_ttc: invoice.totalTTC,
+    status: invoice.status,
+    metadata: (invoice as any).metadata ?? {},
+    updated_at: new Date().toISOString(),
+  });
 
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
 
-export async function deleteAtlasInvoice(legacyLocalId: number): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteAtlasInvoice(id: AtlasInvoice['id']): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!isAtlasSupabaseDataEnabled()) {
-    const next = readInvoicesFromLocalStorage().filter((i) => i.id !== legacyLocalId);
-    writeInvoicesToLocalStorage(next);
+    writeInvoicesToLocalStorage(readInvoicesFromLocalStorage().filter((inv) => inv.id !== id));
     return { ok: true };
   }
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'not_authenticated' };
+  const auth = await requireSupabaseUser();
+  if (!auth.ok) return { ok: false, error: 'auth_required' };
 
-  const { error } = await supabase
-    .from('atlas_invoices')
-    .delete()
-    .eq('user_id', user.id)
-    .eq('legacy_local_id', legacyLocalId);
-
+  if (typeof id !== 'string') return { ok: false, error: 'invalid_id' };
+  const { error } = await supabase.from('atlas_invoices').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

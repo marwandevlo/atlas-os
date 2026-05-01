@@ -1,7 +1,7 @@
 {
-  "name": "Atlas OS Enterprise",
-  "short_name": "Atlas OS",
-  "description": "Logiciel de comptabilite et fiscalite Maroc",
+  "name": "ZAFIRIX PRO",
+  "short_name": "ZAFIRIX",
+  "description": "Plateforme SaaS moderne pour la gestion d'entreprise, facturation et comptabilité",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F1F3D",

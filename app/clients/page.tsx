@@ -6,6 +6,7 @@ import type { AtlasClient } from '@/app/types/atlas-client';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
 import { readClientsFromLocalStorage, writeClientsToLocalStorage } from '@/app/lib/atlas-clients-repository';
+import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 const seedClients: AtlasClient[] = [
   {
@@ -37,7 +38,7 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<AtlasClient[]>([]);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<AtlasClient['id'] | null>(null);
 
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
   const [termsCustomDays, setTermsCustomDays] = useState('45');
@@ -138,7 +139,7 @@ export default function ClientsPage() {
     setShowForm(false);
   };
 
-  const removeClient = (id: number) => {
+  const removeClient = (id: AtlasClient['id']) => {
     saveClients(clients.filter((c) => c.id !== id));
   };
 
@@ -148,8 +149,8 @@ export default function ClientsPage() {
     <div className="flex h-screen bg-gray-50">
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
-          <p className="text-white font-bold text-base">Atlas OS</p>
-          <p className="text-white/40 text-xs">Enterprise</p>
+          <BrandWordmark size="md" />
+          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           <button
