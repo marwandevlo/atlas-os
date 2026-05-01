@@ -19,7 +19,8 @@ export const metadata: Metadata = {
   description: "Plateforme SaaS moderne pour la gestion d'entreprise, facturation et comptabilité",
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon-192.png",
+    shortcut: "/icon-192.png",
     apple: "/icon-192.png",
   },
 };
@@ -40,7 +41,8 @@ export default function RootLayout({
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon-192.png" />
+        <link rel="shortcut icon" href="/icon-192.png" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="theme-color" content="#0F1F3D" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
