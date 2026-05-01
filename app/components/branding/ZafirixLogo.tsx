@@ -7,6 +7,7 @@ export function ZafirixLogo(props: {
   subtitleClassName?: string;
 }) {
   const size = props.size ?? 'md';
+  const iconClass = size === 'sm' ? 'h-8 w-8' : size === 'lg' ? 'h-11 w-11' : 'h-9 w-9';
   const text =
     size === 'sm'
       ? { z: 'text-base', pro: 'text-[10px]' }
@@ -20,7 +21,23 @@ export function ZafirixLogo(props: {
   return (
     <div className={props.className}>
       <div className="flex items-center gap-3">
-        <img src="/icon-192.png" alt="ZAFIRIX" className="h-9 w-9 object-contain shrink-0" />
+        <span
+          aria-hidden="true"
+          className={`${iconClass} shrink-0 rounded-xl bg-linear-to-br from-sky-500 via-indigo-500 to-violet-500 shadow-sm ring-1 ring-black/10 flex items-center justify-center`}
+        >
+          <svg viewBox="0 0 40 40" className="h-[70%] w-[70%]" role="img" aria-label="Z">
+            <defs>
+              <linearGradient id="zafirix_z" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#ffffff" stopOpacity="1" />
+                <stop offset="1" stopColor="#E9ECFF" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M11 10h18v4L18 26h11v4H11v-4l11-12H11z"
+              fill="url(#zafirix_z)"
+            />
+          </svg>
+        </span>
         <div className="leading-none">
           <div className="flex items-baseline">
             <span
