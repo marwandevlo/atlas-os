@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Globe, Image, BriefcaseBusiness, Mail, Phone, MessageCircle } from 'lucide-react';
-import NextImage from 'next/image';
+import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 
 export function PublicFooter() {
   return (
@@ -8,13 +8,7 @@ export function PublicFooter() {
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
-            <NextImage
-              src="/zafirix-logo.png"
-              alt="ZAFIRIX PRO"
-              width={140}
-              height={40}
-              className="h-9 w-auto"
-            />
+            <ZafirixLogo size="md" subtitle={false} />
             <p className="text-sm text-gray-500 mt-2 max-w-md">
               Plateforme SaaS de comptabilité, facturation et fiscalité au Maroc — pensée pour les PME, cabinets et groupes.
               تجربة حديثة، سهلة، ومهنية.

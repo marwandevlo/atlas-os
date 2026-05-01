@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import Image from 'next/image';
 import { supabase } from '../lib/supabase';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
+import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,15 +42,7 @@ export default function LoginPage() {
           <div className="w-12 h-12 bg-amber-400 rounded-xl flex items-center justify-center">
             <Building2 size={28} className="text-[#1B2A4A]" />
           </div>
-          <Image
-            src="/zafirix-logo.png"
-            alt="ZAFIRIX PRO"
-            width={140}
-            height={40}
-            className="h-10 w-auto"
-            priority
-          />
-          <p className="text-white/40 text-sm">ZAFIRIX GROUP · Maroc</p>
+          <ZafirixLogo size="md" subtitle subtitleText="ZAFIRIX GROUP · Maroc" subtitleClassName="text-white/40" className="flex justify-center" />
         </div>
 
         {/* Card */}

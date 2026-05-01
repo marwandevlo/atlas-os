@@ -2,8 +2,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle, Zap, Shield, Brain, FileText, TrendingUp, Upload, ArrowRight, Star } from 'lucide-react';
-import Image from 'next/image';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
+import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 
 type Lang = 'fr' | 'ar';
 
@@ -95,18 +95,7 @@ export default function LandingPage() {
       <nav className="bg-[#1B2A4A] text-white sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center">
-              <Building2 size={18} className="text-[#1B2A4A]" />
-            </div>
-            <Image
-              src="/zafirix-logo.png"
-              alt="ZAFIRIX PRO"
-              width={140}
-              height={40}
-              className="h-9 w-auto sm:h-10"
-              priority
-            />
-            <span className="text-white/40 text-xs ml-1">ZAFIRIX GROUP</span>
+            <ZafirixLogo size="sm" subtitle subtitleText="ZAFIRIX GROUP" subtitleClassName="text-white/40" />
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="hidden sm:flex items-center gap-1 rounded-lg bg-white/10 p-1">
