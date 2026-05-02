@@ -18,19 +18,19 @@ export default function LandingPage() {
     () => [
       {
         icon: FileText,
-        title: t('Aide à la déclaration TVA', 'مساعدة على تصريح TVA'),
+        title: t('Aide à la déclaration de TVA', 'مساعدة على إقرار TVA'),
         desc: t(
-          'Centralisez vos factures et préparez votre déclaration TVA avec des contrôles clairs',
-          'جمّع فواتيرك وأعد تصريح TVA مع تحققات واضحة',
+          'Centralisez vos factures et préparez votre déclaration de TVA grâce à des contrôles explicites.',
+          'جمّع فواتيرك وأعدّ إقرار TVA بفضل ضوابط وتدقيق واضحين.',
         ),
         color: 'bg-blue-500',
       },
       {
         icon: Brain,
-        title: t('Consultant IA 24/7', 'مستشار ذكي 24/7'),
+        title: t('Consultant IA 24/7', 'مستشار الذكاء الاصطناعي (AI) — على مدار الساعة'),
         desc: t(
-          'Posez vos questions fiscales en français ou en arabe, avec une réponse structurée et pédagogique',
-          'اطرح أسئلتك الجبائية بالفرنسية أو العربية مع إجابة منظّمة وواضحة',
+          'Posez vos questions fiscales en français ou en arabe : réponses structurées et pédagogiques.',
+          'اطرح أسئلتك الضريبية بالفرنسية أو بالعربية، مع إجابات منظّمة وواضحة.',
         ),
         color: 'bg-purple-500',
       },
@@ -38,30 +38,36 @@ export default function LandingPage() {
         icon: Upload,
         title: t('OCR intelligent', 'OCR ذكي للوثائق'),
         desc: t(
-          'Numérisez vos factures pour extraire les champs utiles et limiter la saisie manuelle',
-          'رقّم فواتيرك لاستخراج الحقول المفيدة وتقليل الإدخال اليدوي',
+          'Numérisez vos factures pour en extraire les données utiles et réduire la saisie manuelle.',
+          'حوّل فواتيرك إلى نسخ رقمية لاستخراج الحقول المفيدة وتقليل الإدخال اليدوي.',
         ),
         color: 'bg-rose-500',
       },
       {
         icon: TrendingUp,
-        title: t('IS & IR assistés', 'IS و IR بمساعدة آلية'),
+        title: t('IS et IR assistés', 'IS و IR بمساعدة منظّمة'),
         desc: t(
-          'Cadres de calcul et barèmes marocains pour structurer vos éléments IS/IR et vos masses salariales',
-          'إطارات حساب وسلالم مغربية لتنظيم عناصر IS/IR وكتلة الأجور',
+          'Cadres de calcul et barèmes marocains pour structurer vos éléments IS et IR ainsi que vos masses salariales.',
+          'إطارات حساب وسلالم مغربية لترتيب عناصر IS وIR وكتل الأجور.',
         ),
         color: 'bg-green-500',
       },
       {
         icon: Shield,
-        title: t('Conforme DGI Maroc', 'متوافق مع DGI المغرب'),
-        desc: t("تحديثات مستمرة حسب دوريات المديرية العامة للضرائب", 'تحديثات مستمرة حسب دوريات المديرية العامة للضرائب'),
+        title: t('Conformité DGI (Maroc)', 'متوافق مع متطلبات المديرية العامة للضرائب'),
+        desc: t(
+          'Évolutions régulières alignées sur les circulaires et orientations de la DGI.',
+          'تحديثات دورية تتماشى مع التعاميم والتوجيهات الصادرة عن المديرية العامة للضرائب.',
+        ),
         color: 'bg-amber-500',
       },
       {
         icon: Zap,
-        title: t('Export & télédéclaration', 'تصدير وتصريح إلكتروني'),
-        desc: t('صدّر التصاريح بصيغة مناسبة وسهّل عملية التصريح', 'صدّر التصاريح بصيغة مناسبة وسهّل عملية التصريح الإلكتروني'),
+        title: t('Export et télédéclaration', 'التصدير والتصريح الإلكتروني'),
+        desc: t(
+          'Exportez vos déclarations dans des formats adaptés et facilitez vos démarches de télédéclaration.',
+          'صدّر التصاريح بصيغ مناسبة، وسهّل مسار التصريح الإلكتروني.',
+        ),
         color: 'bg-cyan-500',
       },
     ],
@@ -75,16 +81,16 @@ export default function LandingPage() {
         role: t('Gérant PME, Casablanca', 'مسير شركة، الدار البيضاء'),
         text: t(
           'ZAFIRIX PRO nous aide à structurer la TVA et à réduire les tâches répétitives au quotidien.',
-          'ZAFIRIX PRO يساعدنا على تنظيم TVA وتقليل المهام المتكررة يومياً.',
+          'ZAFIRIX PRO يساعدنا على تنظيم إقرار TVA وتقليل المهام المتكررة يومياً.',
         ),
         stars: 5,
       },
       {
         name: t('Fatima Zahra Alami', 'فاطمة الزهراء العلمي'),
-        role: t('Expert-comptable, Rabat', 'خبيرة محاسبة، الرباط'),
+        role: t('Experte-comptable, Rabat', 'خبيرة معتمدة للمحاسبة، الرباط'),
         text: t(
-          'Enfin une solution qui comprend vraiment la fiscalité marocaine. Très pratique pour les cabinets.',
-          'أخيراً حل يفهم فعلاً الجباية المغربية. عملي جداً للمكاتب المحاسبية.',
+          'Une solution qui cadre bien avec la fiscalité marocaine — très pratique pour les cabinets.',
+          'حل يتماشى جيداً مع السياق الضريبي المغربي — عملي جداً للمكاتب المحاسبية.',
         ),
         stars: 5,
       },
@@ -92,8 +98,8 @@ export default function LandingPage() {
         name: t('Youssef Tazi', 'يوسف تازي'),
         role: t('Auto-entrepreneur, Marrakech', 'مقاول ذاتي، مراكش'),
         text: t(
-          'Simple, rapide et conforme. Je recommande à tous les entrepreneurs marocains.',
-          'سهل وسريع ومتوافق. أنصح به كل رواد الأعمال في المغرب.',
+          'Simple, rapide et conforme aux attentes : utile pour les entreprises et les auto-entrepreneurs au Maroc.',
+          'سهل وسريع ومتوافق مع المطلوب — مفيد للشركات وللمقاولين الذاتيين في المغرب.',
         ),
         stars: 5,
       },
@@ -139,7 +145,7 @@ export default function LandingPage() {
               {t('Connexion', 'تسجيل الدخول')}
             </button>
             <button onClick={() => router.push('/signup')} className="px-4 py-2 bg-amber-400 text-[#1B2A4A] rounded-lg text-sm font-bold hover:bg-amber-300 transition-colors">
-              {t('Essai gratuit 7j', 'تجربة مجانية 7 أيام')}
+              {t('Essai gratuit 7 j', 'تجربة مجانية 7 أيام')}
             </button>
           </div>
         </div>
@@ -150,17 +156,22 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center px-6">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-sm mb-6">
             <Zap size={14} className="text-amber-400" />
-            <span>{t('Comptabilité & fiscalité au Maroc — plus simples au quotidien', 'المحاسبة والجباية بالمغرب — أبسط في العمل اليومي')}</span>
+            <span>
+              {t(
+                'Comptabilité et fiscalité au Maroc : plus simples au quotidien',
+                'المحاسبة والضرائب في المغرب: أبسط في الممارسة اليومية',
+              )}
+            </span>
           </div>
           <h1 className="text-5xl font-bold leading-tight mb-6">
-            {t('Pilotez votre gestion,', 'دبّر تسييرك،')}
+            {t('Pilotez votre gestion,', 'تحكّم في إدارتك،')}
             <br />
-            <span className="text-amber-400">{t('avec des outils pensés pour le Maroc', 'بأدوات مصممة للمغرب')}</span>
+            <span className="text-amber-400">{t('avec des outils conçus pour le Maroc', 'بأدوات مصممة للمغرب')}</span>
           </h1>
           <p className="text-white/60 text-xl mb-10 max-w-2xl mx-auto">
             {t(
-              "Centralisez vos factures, suivez vos échéances et préparez vos déclarations (TVA, IS, IR) avec une expérience claire — pour PME et cabinets.",
-              'نظّم فواتيرك، تتبع آجالك، وحضّر تصاريحك (TVA، IS، IR) بتجربة واضحة — للشركات والمكاتب المحاسبية.',
+              'Centralisez vos factures, suivez vos échéances et préparez vos déclarations (TVA, IS, IR) dans une interface claire — pour les PME et les cabinets.',
+              'جمّع فواتيرك، تابع آجالك، وحضّر تصاريحك (TVA، IS، IR) عبر واجهة واضحة — للشركات الصغرى والمتوسطة وللمكاتب المحاسبية.',
             )}
           </p>
           <div className="flex items-center justify-center gap-4">
@@ -204,7 +215,12 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">{t('Tout ce dont vous avez besoin', 'كل ما تحتاجه')}</h2>
-            <p className="text-gray-400 text-lg">{t('Une solution complète pour la fiscalité et comptabilité marocaine', 'حل متكامل للجباية والمحاسبة بالمغرب')}</p>
+            <p className="text-gray-400 text-lg">
+              {t(
+                'Une solution complète pour la fiscalité et la comptabilité au Maroc',
+                'حل متكامل للمحاسبة والضرائب في المغرب',
+              )}
+            </p>
           </div>
           <div className="grid grid-cols-3 gap-6">
             {features.map((f, i) => (
@@ -224,14 +240,19 @@ export default function LandingPage() {
       <section className="bg-[#1B2A4A] text-white py-16 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">{t('Pourquoi ZAFIRIX PRO ?', 'لماذا ZAFIRIX PRO؟')}</h2>
-          <p className="text-white/60 mb-10">{t('Comparé aux solutions génériques non adaptées au Maroc', 'مقارنةً بالحلول العامة غير الملائمة للمغرب')}</p>
+          <p className="text-white/60 mb-10">
+            {t(
+              'Par rapport aux solutions génériques peu adaptées au contexte marocain',
+              'مقارنةً بالحلول العامة التي لا تراعي السياق المغربي بما يكفي',
+            )}
+          </p>
           <div className="grid grid-cols-3 gap-4">
             {[
               { label: t('Conforme TVA Maroc', 'متوافق مع TVA بالمغرب'), atlas: true, other: false },
               { label: t('Cadres CNSS / AMO', 'إطارات CNSS / AMO'), atlas: true, other: false },
               { label: t('Barème IR marocain', 'سلم IR المغربي'), atlas: true, other: false },
-              { label: t('Interface en Darija/FR', 'واجهة بالعربية/الفرنسية'), atlas: true, other: false },
-              { label: t('Prix adapté Maroc', 'سعر مناسب للمغرب'), atlas: true, other: false },
+              { label: t('Interface en français et en arabe', 'واجهة بالفرنسية والعربية'), atlas: true, other: false },
+              { label: t('Tarification adaptée au Maroc', 'تسعير ملائم للسوق المغربي'), atlas: true, other: false },
               { label: t('Support local', 'دعم محلي'), atlas: true, other: false },
             ].map((r, i) => (
               <div key={i} className="bg-white/10 rounded-xl p-4 flex items-center justify-between">
@@ -276,8 +297,8 @@ export default function LandingPage() {
           </h2>
           <p className="text-[#1B2A4A]/70 mb-8">
             {t(
-              'Une approche structurée, un suivi plus clair et moins de tâches répétitives — adaptée au contexte marocain.',
-              'نهج منظم، متابعة أوضح ومهام متكررة أقل — ملائم للسياق المغربي.',
+              'Une approche structurée, un suivi plus lisible et moins de tâches répétitives — adaptée au contexte marocain.',
+              'نهج منظم، ومتابعة أوضح، ومهام متكررة أقل — بما يلائم السياق المغربي.',
             )}
           </p>
           <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-10 py-4 bg-[#1B2A4A] text-white rounded-xl text-base font-bold hover:bg-[#243660] transition-colors mx-auto">
