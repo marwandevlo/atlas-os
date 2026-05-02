@@ -19,6 +19,8 @@ function isPublicPath(pathname: string): boolean {
   // allow next internals + static
   if (pathname.startsWith('/_next')) return true;
   if (pathname.startsWith('/favicon')) return true;
+  if (pathname.startsWith('/icon-')) return true;
+  if (pathname === '/manifest.json') return true;
   if (pathname.startsWith('/robots.txt')) return true;
   if (pathname.startsWith('/sitemap')) return true;
   return false;
