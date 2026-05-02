@@ -1,13 +1,14 @@
 /**
- * Regenerates ZAFIRIX PRO app icons from the same geometric "Z" as ZafirixLogo
- * (rounded square, sky→indigo→violet gradient, white Z with purple stroke).
- * Run from repo root: node scripts/generate-zafirix-icons.mjs
+ * Regenerates ZAFIRIX PRO icons (cache-busting filenames):
+ * - public/zafirix-favicon.png (48×48, tab / generic icon)
+ * - public/zafirix-icon-192.png
+ * - public/zafirix-icon-512.png
+ * Same geometric "Z" + gradient as ZafirixLogo.
+ * Run: node scripts/generate-zafirix-icons.mjs
  */
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-import pngToIco from 'png-to-ico';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,14 +44,13 @@ const pub = path.join(root, 'public');
 async function main() {
   const buf = Buffer.from(svg);
 
-  await sharp(buf).resize(512, 512).png({ compressionLevel: 9 }).toFile(path.join(pub, 'icon-512.png'));
+  await sharp(buf).resize(48, 48).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-favicon.png'));
 
-  await sharp(buf).resize(192, 192).png({ compressionLevel: 9 }).toFile(path.join(pub, 'icon-192.png'));
+  await sharp(buf).resize(192, 192).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-icon-192.png'));
 
-  const icoBuffer = await pngToIco(path.join(pub, 'icon-512.png'));
-  fs.writeFileSync(path.join(pub, 'favicon.ico'), icoBuffer);
+  await sharp(buf).resize(512, 512).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-icon-512.png'));
 
-  console.log('Wrote public/icon-512.png, public/icon-192.png, public/favicon.ico');
+  console.log('Wrote public/zafirix-favicon.png, public/zafirix-icon-192.png, public/zafirix-icon-512.png');
 }
 
 main().catch((e) => {
