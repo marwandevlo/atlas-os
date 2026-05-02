@@ -17,11 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ZAFIRIX PRO — Gestion d'entreprise",
   description: "Plateforme SaaS moderne pour la gestion d'entreprise, facturation et comptabilité",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=3",
   icons: {
-    icon: "/zafirix-favicon.png",
-    shortcut: "/zafirix-favicon.png",
-    apple: "/zafirix-icon-192.png",
+    icon: [{ url: "/zafirix-favicon.png?v=3", type: "image/png" }],
+    shortcut: "/zafirix-favicon.png?v=3",
+    apple: "/zafirix-icon-192.png?v=3",
   },
 };
 
@@ -40,10 +40,10 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/zafirix-favicon.png" />
-        <link rel="shortcut icon" href="/zafirix-favicon.png" />
-        <link rel="apple-touch-icon" href="/zafirix-icon-192.png" />
+        <link rel="manifest" href="/manifest.json?v=3" />
+        <link rel="icon" href="/zafirix-favicon.png?v=3" type="image/png" />
+        <link rel="shortcut icon" href="/zafirix-favicon.png?v=3" />
+        <link rel="apple-touch-icon" href="/zafirix-icon-192.png?v=3" />
         <meta name="theme-color" content="#0F1F3D" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

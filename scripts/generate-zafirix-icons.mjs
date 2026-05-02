@@ -1,14 +1,17 @@
 /**
- * Regenerates ZAFIRIX PRO icons (cache-busting filenames):
- * - public/zafirix-favicon.png (48×48, tab / generic icon)
- * - public/zafirix-icon-192.png
- * - public/zafirix-icon-512.png
- * Same geometric "Z" + gradient as ZafirixLogo.
+ * ZAFIRIX PRO icon set (same SVG as ZafirixLogo: gradient tile + Z mark).
+ * Writes:
+ * - public/zafirix-favicon.png, public/zafirix-icon-192.png, public/zafirix-icon-512.png
+ * - public/favicon.ico (multi-size ICO for /favicon.ico probes)
+ * - app/icon.png (32), app/apple-icon.png (180) for Next.js file-based metadata routes
+ *
  * Run: node scripts/generate-zafirix-icons.mjs
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import pngToIco from 'png-to-ico';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,17 +43,27 @@ const svg = `<?xml version="1.0" encoding="UTF-8"?>
 
 const root = path.join(__dirname, '..');
 const pub = path.join(root, 'public');
+const appDir = path.join(root, 'app');
 
 async function main() {
   const buf = Buffer.from(svg);
 
-  await sharp(buf).resize(48, 48).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-favicon.png'));
+  await sharp(buf).resize(512, 512).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-icon-512.png'));
 
   await sharp(buf).resize(192, 192).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-icon-192.png'));
 
-  await sharp(buf).resize(512, 512).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-icon-512.png'));
+  await sharp(buf).resize(48, 48).png({ compressionLevel: 9 }).toFile(path.join(pub, 'zafirix-favicon.png'));
 
-  console.log('Wrote public/zafirix-favicon.png, public/zafirix-icon-192.png, public/zafirix-icon-512.png');
+  const icoBuffer = await pngToIco(path.join(pub, 'zafirix-icon-512.png'));
+  fs.writeFileSync(path.join(pub, 'favicon.ico'), icoBuffer);
+
+  await sharp(buf).resize(32, 32).png({ compressionLevel: 9 }).toFile(path.join(appDir, 'icon.png'));
+
+  await sharp(buf).resize(180, 180).png({ compressionLevel: 9 }).toFile(path.join(appDir, 'apple-icon.png'));
+
+  console.log(
+    'Wrote public/zafirix-icon-512.png, public/zafirix-icon-192.png, public/zafirix-favicon.png, public/favicon.ico, app/icon.png, app/apple-icon.png',
+  );
 }
 
 main().catch((e) => {

@@ -19,6 +19,7 @@ function isPublicPath(pathname: string): boolean {
   // allow next internals + static
   if (pathname.startsWith('/_next')) return true;
   if (pathname.startsWith('/zafirix-')) return true;
+  if (pathname === '/favicon.ico') return true;
   if (pathname === '/manifest.json') return true;
   if (pathname.startsWith('/robots.txt')) return true;
   if (pathname.startsWith('/sitemap')) return true;
@@ -111,7 +112,7 @@ export const config = {
       - static files
       - image optimization
     */
-    '/((?!_next/static|_next/image|zafirix-favicon\\.png|zafirix-icon-192\\.png|zafirix-icon-512\\.png).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|zafirix-favicon\\.png|zafirix-icon-192\\.png|zafirix-icon-512\\.png).*)',
   ],
 };
 
