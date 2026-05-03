@@ -1,4 +1,5 @@
 'use client';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,7 +19,14 @@ import { TrialOnboardingChecklist } from '@/app/components/trial/TrialOnboarding
 import { DashboardFunnelInsights } from '@/app/components/conversion/DashboardFunnelInsights';
 import { AppSidebar, AppSidebarMobileOverlay } from '@/app/components/shell/AppSidebar';
 import { ReferralDashboardCard } from '@/app/components/referral/ReferralDashboardCard';
-import { ReferralPostOnboardingModal } from '@/app/components/referral/ReferralPostOnboardingModal';
+
+const ReferralPostOnboardingModal = dynamic(
+  () =>
+    import('@/app/components/referral/ReferralPostOnboardingModal').then((m) => ({
+      default: m.ReferralPostOnboardingModal,
+    })),
+  { ssr: false },
+);
 
 const modules = [
   { id: 'tva', label: 'TVA', labelAr: 'الضريبة على القيمة المضافة', icon: Receipt, color: 'bg-blue-500', href: '/tva', deadline: '20 Mai', urgent: true },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { ATLAS_REFERRAL_CONFIG } from '@/app/lib/atlas-referral-config';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
@@ -12,19 +12,25 @@ type Props = {
 
 const KEY = ATLAS_REFERRAL_CONFIG.postOnboardingReferralKey;
 
+function readReferralModalShouldOpen(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (!isAtlasSupabaseDataEnabled()) return false;
+  try {
+    return sessionStorage.getItem(KEY) === 'pending';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Shown after onboarding when `sessionStorage` was set to `pending` (see onboarding `finish`).
+ * Loaded with `dynamic(..., { ssr: false })` from the home page so the lazy initializer runs only in the browser
+ * and can read `sessionStorage` without `setState` in `useEffect`.
+ */
 export function ReferralPostOnboardingModal({ lang }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => readReferralModalShouldOpen());
 
-  useEffect(() => {
-    if (typeof window === 'undefined' || !isAtlasSupabaseDataEnabled()) return;
-    try {
-      if (sessionStorage.getItem(KEY) === 'pending') setOpen(true);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  if (!open) return null;
+  if (!isAtlasSupabaseDataEnabled() || !open) return null;
 
   const dismiss = () => {
     try {
@@ -36,7 +42,7 @@ export function ReferralPostOnboardingModal({ lang }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" role="dialog" aria-modal="true">
       <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] overflow-y-auto">
         <button
           type="button"
