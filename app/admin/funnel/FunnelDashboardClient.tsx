@@ -35,6 +35,10 @@ function aggregateLocal(windowDays: number): FunnelStatsResponse {
     landingToSignupRate,
     signupToOnboardingRate: signups > 0 ? onboardingCompleted / signups : null,
     conversionRateEstimate: landingToSignupRate,
+    referralClicksDb: 0,
+    referralLinkedSignupsDb: 0,
+    referralActivatedDb: 0,
+    referralRewardsGrantedDb: 0,
   };
 }
 

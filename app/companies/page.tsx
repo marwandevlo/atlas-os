@@ -13,8 +13,13 @@ import {
   syncCompanyUsageCount,
 } from '@/app/lib/atlas-usage-limits';
 import { getProCompanyAddonExtraSlots } from '@/app/lib/atlas-company-addons';
+import { getReferralExtraCompanySlots } from '@/app/lib/atlas-referral-bonus-state';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { EmptyStateCta } from '@/app/components/ui/EmptyStateCta';
+import { trackOnboardingMilestoneOnce } from '@/app/lib/atlas-onboarding-milestones';
 import { CompanyLimitProUpsell } from '@/app/components/conversion/CompanyLimitProUpsell';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
+import { useManualSubscription } from '@/app/components/subscription/manual-subscription-context';
 
 const defaultCompanies: AtlasCompany[] = [
   {
@@ -75,6 +80,7 @@ const defaultCompanies: AtlasCompany[] = [
 
 export default function CompaniesPage() {
   const router = useRouter();
+  const { blockPremiumActions } = useManualSubscription();
   const [companies, setCompanies] = useState<AtlasCompany[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
@@ -96,11 +102,14 @@ export default function CompaniesPage() {
       const parsed = JSON.parse(saved) as AtlasCompany[];
       setCompanies(parsed);
       syncCompanyUsageCount(parsed.length);
-    } else {
+    } else if (!isAtlasSupabaseDataEnabled()) {
       setCompanies(defaultCompanies);
       localStorage.setItem('atlas_companies', JSON.stringify(defaultCompanies));
       localStorage.setItem('atlas_company', JSON.stringify(defaultCompanies[0]));
       syncCompanyUsageCount(defaultCompanies.length);
+    } else {
+      setCompanies([]);
+      syncCompanyUsageCount(0);
     }
   }, []);
 
@@ -121,6 +130,12 @@ export default function CompaniesPage() {
 
   const addCompany = () => {
     if (!form.raisonSociale) return;
+    if (blockPremiumActions) {
+      setLimitNotice(
+        'Votre abonnement n’est pas encore activé. Finalisez le paiement manuel ou contactez l’équipe ZAFIRIX PRO sur WhatsApp.',
+      );
+      return;
+    }
     const decision = canCreateCompany();
     if (!decision.allowed) {
       const p = getActivePlan();
@@ -143,9 +158,11 @@ export default function CompaniesPage() {
       paymentTerms: normalized,
       balance: Number.parseFloat(form.balance || '0') || 0,
     };
+    const wasEmpty = companies.length === 0;
     const merged = [...companies, newCompany];
     saveCompanies(merged);
     syncCompanyUsageCount(merged.length);
+    if (wasEmpty) trackOnboardingMilestoneOnce('atlas_ms_first_company', 'onboarding_first_company_created');
     setForm({ raisonSociale: '', formeJuridique: 'SARL', if_fiscal: '', ice: '', rc: '', cnss: '', adresse: '', ville: 'Casablanca', telephone: '', email: '', activite: '', regimeTVA: 'mensuel', balance: '0' });
     setTermsKind('30');
     setTermsCustomDays('45');
@@ -176,10 +193,12 @@ export default function CompaniesPage() {
     const activePlan = getActivePlan();
     const eff = getEffectivePlanLimits(activePlan);
     const base = getPlanLimits(activePlan);
-    const addonExtra = activePlan?.id === 'pro' ? getProCompanyAddonExtraSlots() : 0;
+    const referralExtra = getReferralExtraCompanySlots();
+    const addonExtra =
+      activePlan?.id === 'pro' ? getProCompanyAddonExtraSlots() + referralExtra : referralExtra;
     const max = eff.companies ?? (activePlan ? 999 : 999);
     const proCapReached = activePlan?.id === 'pro' && eff.companies !== null && companies.length >= eff.companies;
-    return { activePlan, eff, base, addonExtra, max, proCapReached };
+    return { activePlan, eff, base, addonExtra, max, proCapReached, referralExtra };
   }, [companies.length, limitRefreshTick]);
 
   const formes = ['SARL', 'SA', 'SNC', 'SARL AU', 'Auto-entrepreneur', 'Personne physique'];
@@ -199,6 +218,9 @@ export default function CompaniesPage() {
               <p className="text-white/40 text-xs">sociétés</p>
               {planMeta.activePlan?.id === 'pro' && planMeta.addonExtra > 0 ? (
                 <p className="text-white/50 text-[10px] mt-1">+{planMeta.addonExtra} extension Pro</p>
+              ) : null}
+              {planMeta.referralExtra > 0 ? (
+                <p className="text-white/50 text-[10px] mt-1">+{planMeta.referralExtra} sociétés (parrainage)</p>
               ) : null}
               <div className="w-full bg-white/10 rounded-full h-1.5 mt-2">
                 <div
@@ -353,6 +375,18 @@ export default function CompaniesPage() {
             </div>
           )}
 
+          {companies.length === 0 ? (
+            <EmptyStateCta
+              lang="fr"
+              title="Aucune société"
+              description="Créez votre première société pour activer la facturation, la TVA et les échéances."
+              primaryLabelFr="Ajouter maintenant"
+              primaryLabelAr="ابدأ الآن"
+              onPrimary={() => setShowForm(true)}
+            />
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-10">Aucun résultat pour cette recherche.</p>
+          ) : (
           <div className="space-y-3">
             {filtered.map(c => (
               <div key={c.id} className={`bg-white rounded-xl p-5 shadow-sm border transition-all ${c.actif ? 'border-green-300 bg-green-50' : 'border-gray-100 hover:border-blue-200'}`}>
@@ -404,6 +438,7 @@ export default function CompaniesPage() {
               </div>
             ))}
           </div>
+          )}
         </div>
       </main>
     </div>

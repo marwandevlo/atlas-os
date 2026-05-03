@@ -10,6 +10,17 @@ export const ANALYTICS_EVENT_NAMES = [
   'view_pricing',
   'upgrade_clicked',
   'trial_banner_clicked',
+  'manual_payment_requested',
+  'referral_link_created',
+  'referral_share_clicked',
+  'referral_signup_started',
+  'referral_signup_completed',
+  'referral_reward_granted',
+  'onboarding_first_company_created',
+  'onboarding_first_client_created',
+  'onboarding_first_invoice_created',
+  'referral_progress',
+  'reward_unlocked',
 ] as const;
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENT_NAMES)[number];

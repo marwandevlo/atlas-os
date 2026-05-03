@@ -2,10 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BadgeCheck, Clock, CreditCard, HelpCircle, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import { BadgeCheck, Clock, CreditCard, HelpCircle, ArrowRight, ArrowLeft, Sparkles, MessageCircle } from 'lucide-react';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { supabase } from '@/app/lib/supabase';
 import { claimAtlasFreeTrialAfterAuth } from '@/app/lib/atlas-trial-claim-client';
+import {
+  buildManualSubscriptionWhatsAppUrl,
+  getManualWhatsAppPhoneDigits,
+  planDisplayName,
+} from '@/app/lib/atlas-manual-subscription';
 
 type PendingPaymentStatus = 'pending' | 'paid' | 'active' | 'rejected';
 type PaymentMethod = 'card' | 'cmi' | 'manual';
@@ -22,6 +27,13 @@ type PendingSubscription = {
   paymentMethod: PaymentMethod;
   manualProvider?: ManualProvider;
   createdAt: string;
+};
+
+type ManualSubscriptionPending = {
+  id: string;
+  plan: string;
+  status: string;
+  created_at: string;
 };
 
 type ActiveSubscription = {
@@ -82,6 +94,8 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [trialNotice, setTrialNotice] = useState('');
+  const [manualPending, setManualPending] = useState<ManualSubscriptionPending | null>(null);
+  const [accountEmail, setAccountEmail] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -93,12 +107,18 @@ export default function SubscriptionPage() {
       try {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token ?? '';
+        const email = data.session?.user?.email?.trim() ?? '';
+        if (!cancelled) setAccountEmail(email);
         if (!token) {
+          if (!cancelled) {
+            setAccountEmail('');
+            setManualPending(null);
+          }
           router.push('/login?next=/subscription');
           return;
         }
 
-        const [reqRes, subRes] = await Promise.all([
+        const [reqRes, subRes, manRes] = await Promise.all([
           supabase
             .from('atlas_payment_requests')
             .select('id, plan_id, amount_mad, currency, billing_period, payment_method, manual_provider, status, created_at')
@@ -111,9 +131,23 @@ export default function SubscriptionPage() {
             .in('status', ['trial', 'active'])
             .order('created_at', { ascending: false })
             .limit(1),
+          supabase
+            .from('subscriptions')
+            .select('id, plan, status, created_at')
+            .eq('status', 'pending_manual')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
         ]);
 
         if (reqRes.error || subRes.error) throw new Error('db_error');
+
+        if (!manRes.error && manRes.data && !cancelled) {
+          const man = manRes.data as ManualSubscriptionPending;
+          setManualPending(man?.id ? man : null);
+        } else if (!cancelled) {
+          setManualPending(null);
+        }
 
         const reqs: PendingSubscription[] = (reqRes.data ?? []).map((r: any) => ({
           id: String(r.id),
@@ -242,6 +276,34 @@ export default function SubscriptionPage() {
             {trialNotice}
           </div>
         )}
+        {manualPending ? (
+          <div className="mb-6 bg-slate-900 text-white rounded-2xl border border-slate-700 overflow-hidden shadow-md">
+            <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-300/90">Paiement manuel</p>
+                <p className="text-base font-bold mt-1">Votre demande est en cours de traitement</p>
+                <p className="text-sm text-white/75 mt-1">
+                  Forfait <strong>{planDisplayName(manualPending.plan)}</strong> · réf. {manualPending.id.slice(0, 8)}…
+                </p>
+              </div>
+              {accountEmail ? (
+                <a
+                  href={buildManualSubscriptionWhatsAppUrl({
+                    phoneDigits: getManualWhatsAppPhoneDigits(),
+                    planLabel: planDisplayName(manualPending.plan),
+                    userEmail: accountEmail,
+                  })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] text-[#0b1428] text-sm font-bold hover:brightness-95 shrink-0"
+                >
+                  <MessageCircle size={18} />
+                  Contacter sur WhatsApp
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         {active ? (
           <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
             <div className="px-8 py-7 bg-emerald-50 border-b border-emerald-100">

@@ -17,6 +17,8 @@ import { TrialUpgradeBanner } from '@/app/components/trial/TrialUpgradeBanner';
 import { TrialOnboardingChecklist } from '@/app/components/trial/TrialOnboardingChecklist';
 import { DashboardFunnelInsights } from '@/app/components/conversion/DashboardFunnelInsights';
 import { AppSidebar, AppSidebarMobileOverlay } from '@/app/components/shell/AppSidebar';
+import { ReferralDashboardCard } from '@/app/components/referral/ReferralDashboardCard';
+import { ReferralPostOnboardingModal } from '@/app/components/referral/ReferralPostOnboardingModal';
 
 const modules = [
   { id: 'tva', label: 'TVA', labelAr: 'الضريبة على القيمة المضافة', icon: Receipt, color: 'bg-blue-500', href: '/tva', deadline: '20 Mai', urgent: true },
@@ -141,7 +143,9 @@ export default function Home() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6">
+          <ReferralPostOnboardingModal lang={lang} />
           <TrialUpgradeBanner />
+          <ReferralDashboardCard lang={lang} />
           <TrialOnboardingChecklist lang={lang} />
           <DashboardFunnelInsights lang={lang} pendingDeclarationsCount={pendingFiscalCount} />
           {invoiceSummary.overdueCount > 0 && (

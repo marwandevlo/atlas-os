@@ -21,6 +21,8 @@ import {
 } from '@/app/lib/atlas-usage-limits';
 import { TrialLimitNudgeModal } from '@/app/components/trial/TrialLimitNudgeModal';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
+import { EmptyStateCta } from '@/app/components/ui/EmptyStateCta';
+import { trackOnboardingMilestoneOnce } from '@/app/lib/atlas-onboarding-milestones';
 
 type FactureRow = {
   id: AtlasInvoice['id'];
@@ -132,6 +134,7 @@ export default function FacturesPage() {
 
   const addFacture = () => {
     if (!form.numero || !form.client || !form.montantHT) return;
+    const wasEmpty = invoices.length === 0;
     const invDecision = canCreateInvoice();
     if (!invDecision.allowed) {
       setLimitNotice(invDecision.messageFr ?? invDecision.messageAr ?? '');
@@ -182,6 +185,7 @@ export default function FacturesPage() {
     void upsertAtlasInvoice(next);
     incrementUsage('operations', 1);
     syncInvoiceUsageCount(updated.length);
+    if (wasEmpty) trackOnboardingMilestoneOnce('atlas_ms_first_invoice', 'onboarding_first_invoice_created');
 
     setForm({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
     setTermsKind('30');
@@ -662,6 +666,16 @@ export default function FacturesPage() {
             </div>
           )}
 
+          {invoices.length === 0 && !showForm ? (
+            <EmptyStateCta
+              lang="fr"
+              title="Aucune facture"
+              description="Créez votre première facture client pour suivre encaissements et relances."
+              primaryLabelFr="Ajouter maintenant"
+              primaryLabelAr="ابدأ الآن"
+              onPrimary={() => setShowForm(true)}
+            />
+          ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
               <p className="text-sm font-semibold text-gray-700">Liste des factures</p>
@@ -764,6 +778,7 @@ export default function FacturesPage() {
               </tbody>
             </table>
           </div>
+          )}
 
           {paymentForm.openFor !== null && (
             <div className="bg-white rounded-xl p-5 shadow-sm border border-emerald-200">

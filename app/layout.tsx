@@ -4,6 +4,7 @@ import "./globals.css";
 import { AssistantOverlay } from "@/app/components/assistant/AssistantOverlay";
 import { GlobalSearchOverlay } from "@/app/components/search/GlobalSearchOverlay";
 import { EmailLifecycleBootstrap } from "@/app/components/lifecycle/EmailLifecycleBootstrap";
+import { AppSubscriptionProviders } from "@/app/components/subscription/AppSubscriptionProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,7 +53,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <EmailLifecycleBootstrap />
-        {children}
+        <AppSubscriptionProviders>{children}</AppSubscriptionProviders>
         {enableGlobalSearchOverlay ? <GlobalSearchOverlay /> : null}
         {enableAssistantOverlay ? <AssistantOverlay /> : null}
       </body>

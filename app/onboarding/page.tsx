@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle2, ChevronRight, FileText, Sparkles, UserCircle2 } from 'lucide-react';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 import { trackEvent } from '@/app/lib/analytics-track';
+import { awaitCompleteReferralSignupWithSession } from '@/app/lib/atlas-referral-client';
+import { ATLAS_REFERRAL_CONFIG } from '@/app/lib/atlas-referral-config';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 
 const SESSION_ONBOARDING = 'zafirix_show_onboarding';
 
@@ -31,6 +34,12 @@ export default function OnboardingPage() {
     }
     trackEvent('onboarding_started');
   }, []);
+
+  useEffect(() => {
+    if (!isAtlasSupabaseDataEnabled()) return;
+    void awaitCompleteReferralSignupWithSession();
+  }, []);
+
   const [companyType, setCompanyType] = useState<string>(COMPANY_TYPES[0]);
   const [selectedNeeds, setSelectedNeeds] = useState<string[]>([]);
 
@@ -59,6 +68,13 @@ export default function OnboardingPage() {
         );
       }
       sessionStorage.setItem(SESSION_ONBOARDING, '1');
+      if (isAtlasSupabaseDataEnabled()) {
+        try {
+          sessionStorage.setItem(ATLAS_REFERRAL_CONFIG.postOnboardingReferralKey, 'pending');
+        } catch {
+          // ignore
+        }
+      }
     }
     trackEvent('onboarding_completed', {
       companyType,
@@ -174,9 +190,25 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div>
             <h1 className="text-xl font-bold text-slate-900">Votre première valeur en moins de 2 minutes</h1>
-            <p className="text-sm text-slate-500 mt-1">Ouvrez ces deux écrans — cochez au fur et à mesure.</p>
+            <p className="text-sm text-slate-500 mt-1">Société → client → facture : ouvrez ces trois écrans dans l’ordre.</p>
 
             <ul className="mt-8 space-y-4">
+              <li className="rounded-2xl border border-slate-200 bg-white p-4 flex gap-4 shadow-sm">
+                <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                  <Building2 size={22} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-900">Créer votre première société</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Raison sociale, IF, ICE — base pour TVA et factures.</p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/companies')}
+                    className="mt-2 text-xs font-bold text-indigo-600 hover:underline"
+                  >
+                    Ouvrir Mes sociétés →
+                  </button>
+                </div>
+              </li>
               <li className="rounded-2xl border border-slate-200 bg-white p-4 flex gap-4 shadow-sm">
                 <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
                   <UserCircle2 size={22} />

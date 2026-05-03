@@ -23,6 +23,7 @@ import {
 import { ATLAS_COMPANY_SLOT_ADDONS } from '@/app/lib/atlas-company-addons';
 import { trackEvent } from '@/app/lib/analytics-track';
 import type { FunnelPlanPresentation } from '@/app/lib/atlas-pricing-funnel';
+import { ManualPaymentModal } from '@/app/components/pricing/ManualPaymentModal';
 
 const planIconById: Record<string, typeof Rocket> = {
   starter: Rocket,
@@ -58,6 +59,7 @@ const FAQ_ITEMS = [
 export default function PricingPage() {
   const router = useRouter();
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
+  const [manualModal, setManualModal] = useState<{ planId: string } | null>(null);
   const funnelPlans = useMemo(() => getFunnelPlanPresentations(), []);
 
   useEffect(() => {
@@ -75,6 +77,13 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {manualModal ? (
+        <ManualPaymentModal
+          open
+          planId={manualModal.planId}
+          onClose={() => setManualModal(null)}
+        />
+      ) : null}
       {/* Hero */}
       <header className="relative overflow-hidden bg-linear-to-br from-[#0b1428] via-[#121f3d] to-[#1a1040] text-white">
         <div
@@ -121,7 +130,13 @@ export default function PricingPage() {
       <section id="plans" className="max-w-6xl mx-auto px-4 sm:px-6 -mt-10 sm:-mt-12 pb-16 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
           {funnelPlans.map((fp) => (
-            <FunnelPlanCard key={fp.plan.id} fp={fp} onTrial={goTrial} onPay={goPay} />
+            <FunnelPlanCard
+              key={fp.plan.id}
+              fp={fp}
+              onTrial={goTrial}
+              onPay={goPay}
+              onManual={() => setManualModal({ planId: fp.plan.id })}
+            />
           ))}
         </div>
 
@@ -248,10 +263,12 @@ function FunnelPlanCard({
   fp,
   onTrial,
   onPay,
+  onManual,
 }: {
   fp: FunnelPlanPresentation;
   onTrial: () => void;
   onPay: (planId: string) => void;
+  onManual: () => void;
 }) {
   const { plan, isMostPopular } = fp;
   const Icon = planIconById[plan.id] ?? Rocket;
@@ -312,6 +329,13 @@ function FunnelPlanCard({
             className="w-full py-3 rounded-xl font-semibold text-sm border border-slate-200 text-slate-800 hover:bg-slate-50 transition-colors"
           >
             Choisir cette offre — payer
+          </button>
+          <button
+            type="button"
+            onClick={onManual}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-dashed border-slate-300 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-400 transition-colors"
+          >
+            💬 Paiement manuel (Maroc)
           </button>
         </div>
       </div>

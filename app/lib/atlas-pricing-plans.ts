@@ -156,3 +156,11 @@ export function getAtlasPlanById(planId: string): AtlasPricingPlan | undefined {
   return ATLAS_PRICING_PLANS.find((p) => p.id === planId);
 }
 
+/** Integer cap for DB snapshots; null when unlimited / fair usage. */
+export function getPlanCompanyCap(planId: string): number | null {
+  const p = getAtlasPlanById(planId);
+  if (!p) return null;
+  if (p.companiesLimit.kind === 'fixed') return p.companiesLimit.value;
+  return null;
+}
+

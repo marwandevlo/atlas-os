@@ -44,6 +44,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Paddle webhooks — verified with PADDLE_WEBHOOK_SECRET inside the route handler.
+  if (pathname === '/api/webhooks/paddle') {
+    return NextResponse.next();
+  }
+
   // Production safety: if Supabase isn't enabled for any reason, do NOT allow access
   // to private routes. Send visitors to the public landing page.
   if (process.env.NODE_ENV === 'production' && atlasDataBackend() !== 'supabase') {

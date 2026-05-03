@@ -30,6 +30,11 @@ export type FunnelStatsResponse = {
   /** Same basis as landingToSignupRate — headline KPI for internal reporting */
   conversionRateEstimate: number | null;
   warnings?: string[];
+  /** From `atlas_referrals` (clicks may exceed unique visitors). */
+  referralClicksDb: number;
+  referralLinkedSignupsDb: number;
+  referralActivatedDb: number;
+  referralRewardsGrantedDb: number;
 };
 
 export async function GET(request: NextRequest) {
@@ -94,6 +99,27 @@ export async function GET(request: NextRequest) {
   const landingToSignupRate = landingViews > 0 ? signups / landingViews : null;
   const signupToOnboardingRate = signups > 0 ? onboardingCompleted / signups : null;
 
+  let referralClicksDb = 0;
+  let referralLinkedSignupsDb = 0;
+  let referralActivatedDb = 0;
+  let referralRewardsGrantedDb = 0;
+  const warnings: string[] = [];
+
+  const { data: refRows, error: refErr } = await admin.from('atlas_referrals').select('status, referred_user_id, referrer_reward_granted_at');
+  if (refErr) {
+    warnings.push(`atlas_referrals: ${refErr.message}`);
+  } else {
+    for (const r of refRows ?? []) {
+      const st = String((r as { status?: string }).status ?? '');
+      const referred = (r as { referred_user_id?: string | null }).referred_user_id;
+      const rewardAt = (r as { referrer_reward_granted_at?: string | null }).referrer_reward_granted_at;
+      if (st === 'clicked') referralClicksDb += 1;
+      if (referred) referralLinkedSignupsDb += 1;
+      if (st === 'activated') referralActivatedDb += 1;
+      if (rewardAt) referralRewardsGrantedDb += 1;
+    }
+  }
+
   const body: FunnelStatsResponse = {
     windowDays,
     counts,
@@ -107,6 +133,11 @@ export async function GET(request: NextRequest) {
     landingToSignupRate,
     signupToOnboardingRate,
     conversionRateEstimate: landingToSignupRate,
+    warnings: warnings.length ? warnings : undefined,
+    referralClicksDb,
+    referralLinkedSignupsDb,
+    referralActivatedDb,
+    referralRewardsGrantedDb,
   };
 
   return NextResponse.json(body);

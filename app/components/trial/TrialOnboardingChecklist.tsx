@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, CheckCircle2, Circle, FileText } from 'lucide-react';
+import { Building2, CheckCircle2, Circle, FileText, Users } from 'lucide-react';
 import { readCompaniesFromLocalStorage } from '@/app/lib/atlas-companies-repository';
 import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
+import { readClientsFromLocalStorage } from '@/app/lib/atlas-clients-repository';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 
 const SESSION_KEY = 'zafirix_show_onboarding';
 
@@ -16,6 +18,7 @@ export function TrialOnboardingChecklist({ lang }: Props) {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [companyOk, setCompanyOk] = useState(false);
+  const [clientOk, setClientOk] = useState(false);
   const [invoiceOk, setInvoiceOk] = useState(false);
 
   const t = useMemo(
@@ -33,11 +36,36 @@ export function TrialOnboardingChecklist({ lang }: Props) {
     (async () => {
       const companies = readCompaniesFromLocalStorage();
       const inv = await listAtlasInvoices();
+      const clients = readClientsFromLocalStorage();
       if (cancelled) return;
       setCompanyOk(companies.length > 0);
+      setClientOk(clients.length > 0);
       setInvoiceOk(inv.length > 0);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [visible]);
+
+  useEffect(() => {
+    if (!companyOk || !clientOk || !invoiceOk) return;
+    if (typeof window === 'undefined') return;
+    try {
+      if (sessionStorage.getItem('atlas_referral_activate_posted') === '1') return;
+      sessionStorage.setItem('atlas_referral_activate_posted', '1');
+    } catch {
+      return;
+    }
+    if (!isAtlasSupabaseDataEnabled()) return;
+    void (async () => {
+      try {
+        const res = await fetch('/api/referral/activate', { method: 'POST', credentials: 'include' });
+        if (res.ok) window.dispatchEvent(new Event('zafirix-referral-refresh'));
+      } catch {
+        // ignore
+      }
+    })();
+  }, [companyOk, clientOk, invoiceOk]);
 
   if (!visible) return null;
 
@@ -52,7 +80,10 @@ export function TrialOnboardingChecklist({ lang }: Props) {
         <div>
           <p className="text-sm font-semibold text-blue-950">{t('Premiers pas', 'الخطوات الأولى')}</p>
           <p className="text-xs text-blue-900/70 mt-0.5">
-            {t('Complétez ces deux actions pour tirer parti de ZAFIRIX PRO.', 'أكمل هذين الإجراءين للاستفادة من ZAFIRIX PRO.')}
+            {t(
+              'Société → client → première facture : débloquez toute la valeur de ZAFIRIX PRO.',
+              'شركة → عميل → أول فاتورة: فعّل كل مزايا ZAFIRIX PRO.',
+            )}
           </p>
         </div>
         <button type="button" onClick={dismiss} className="text-xs font-semibold text-blue-700 hover:text-blue-900 shrink-0">
@@ -65,7 +96,7 @@ export function TrialOnboardingChecklist({ lang }: Props) {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
               <Building2 size={16} className="text-blue-600 shrink-0" />
-              {t('Créer ou vérifier votre société', 'إنشاء أو التحقق من شركتك')}
+              {t('Créer votre première société', 'إنشاء أول شركة')}
             </p>
             {!companyOk && (
               <button
@@ -73,7 +104,25 @@ export function TrialOnboardingChecklist({ lang }: Props) {
                 onClick={() => router.push('/companies')}
                 className="mt-1 text-xs font-semibold text-blue-700 hover:underline"
               >
-                {t('Ouvrir Mes sociétés', 'فتح شركاتي')}
+                {t('Ouvrir Mes sociétés', 'افتح الشركات')}
+              </button>
+            )}
+          </div>
+        </li>
+        <li className="flex items-center gap-3">
+          {clientOk ? <CheckCircle2 className="text-emerald-600 shrink-0" size={20} /> : <Circle className="text-blue-300 shrink-0" size={20} />}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+              <Users size={16} className="text-emerald-600 shrink-0" />
+              {t('Ajouter un premier client', 'إضافة أول عميل')}
+            </p>
+            {!clientOk && (
+              <button
+                type="button"
+                onClick={() => router.push('/clients')}
+                className="mt-1 text-xs font-semibold text-blue-700 hover:underline"
+              >
+                {t('Ouvrir Clients', 'افتح العملاء')}
               </button>
             )}
           </div>
@@ -91,7 +140,7 @@ export function TrialOnboardingChecklist({ lang }: Props) {
                 onClick={() => router.push('/factures')}
                 className="mt-1 text-xs font-semibold text-blue-700 hover:underline"
               >
-                {t('Ouvrir Factures', 'فتح الفواتير')}
+                {t('Ouvrir Factures', 'افتح الفواتير')}
               </button>
             )}
           </div>

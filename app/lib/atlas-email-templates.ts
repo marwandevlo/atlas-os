@@ -88,3 +88,44 @@ export function buildUpgradeEmailHtml(): { subject: string; html: string } {
   );
   return { subject, html };
 }
+
+function shellTransactional(title: string, intro: string, bodyHtml: string): string {
+  const base = getPublicAppUrl();
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${title}</title></head>
+<body style="font-family:system-ui,-apple-system,sans-serif;line-height:1.5;color:#1e293b;background:#f8fafc;padding:24px">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:28px;border:1px solid #e2e8f0">
+    <tr><td><p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase">ZAFIRIX PRO</p>
+    <h1 style="margin:0 0 12px;font-size:22px;color:#0f172a">${title}</h1>
+    <p style="margin:0 0 12px;color:#475569">${intro}</p>
+    ${bodyHtml}
+    <p style="margin:24px 0 0;font-size:13px;color:#94a3b8"><a href="${base}/">${base}/</a></p>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+export function buildManualRequestAcknowledgedEmailHtml(planLabel: string): { subject: string; html: string } {
+  const subject = 'ZAFIRIX PRO — nous avons reçu votre demande';
+  const html = shellTransactional(
+    'Paiement manuel',
+    `Bonjour, nous avons reçu votre demande de souscription au forfait <strong>${planLabel}</strong> (paiement manuel — Maroc). Notre équipe vous recontacte après validation du règlement.`,
+    `<table cellpadding="0" cellspacing="0" style="margin-top:8px">
+      ${ctaRow('Tableau de bord', '/')}
+      ${ctaRow('Suivre mon abonnement', '/subscription')}
+    </table>`,
+  );
+  return { subject, html };
+}
+
+export function buildPaidSubscriptionActivatedEmailHtml(planLabel: string, endYmd: string): { subject: string; html: string } {
+  const subject = 'ZAFIRIX PRO — votre abonnement est activé 🚀';
+  const html = shellTransactional(
+    'Abonnement activé',
+    `Votre abonnement <strong>${planLabel}</strong> est désormais <strong>actif</strong>. Fin de période facturée : <strong>${endYmd}</strong>. Merci de votre confiance.`,
+    `<table cellpadding="0" cellspacing="0" style="margin-top:8px">
+      ${ctaRow('Ouvrir ZAFIRIX PRO', '/')}
+      ${ctaRow('Voir les tarifs', '/pricing')}
+    </table>`,
+  );
+  return { subject, html };
+}

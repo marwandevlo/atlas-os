@@ -6,6 +6,9 @@ import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atl
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
 import { readClientsFromLocalStorage, writeClientsToLocalStorage } from '@/app/lib/atlas-clients-repository';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { EmptyStateCta } from '@/app/components/ui/EmptyStateCta';
+import { trackOnboardingMilestoneOnce } from '@/app/lib/atlas-onboarding-milestones';
 
 const seedClients: AtlasClient[] = [
   {
@@ -55,8 +58,12 @@ export default function ClientsPage() {
       setClients(existing);
       return;
     }
-    setClients(seedClients);
-    writeClientsToLocalStorage(seedClients);
+    if (!isAtlasSupabaseDataEnabled()) {
+      setClients(seedClients);
+      writeClientsToLocalStorage(seedClients);
+      return;
+    }
+    setClients([]);
   }, []);
 
   const filtered = useMemo(() => {
@@ -128,11 +135,13 @@ export default function ClientsPage() {
       updatedAt: now,
     };
 
+    const wasFirst = !editingId && clients.length === 0;
     const next = editingId
       ? clients.map((c) => (c.id === editingId ? payload : c))
       : [...clients, payload];
 
     saveClients(next);
+    if (wasFirst) trackOnboardingMilestoneOnce('atlas_ms_first_client', 'onboarding_first_client_created');
     resetForm();
     setShowForm(false);
   };
@@ -162,6 +171,18 @@ export default function ClientsPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+          {clients.length === 0 ? (
+            <EmptyStateCta
+              lang="fr"
+              title="Aucun client"
+              description="Ajoutez un client pour facturer et suivre les délais de paiement."
+              primaryLabelFr="Ajouter maintenant"
+              primaryLabelAr="ابدأ الآن"
+              onPrimary={() => startCreate()}
+            />
+          ) : null}
+          {clients.length > 0 ? (
+          <>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <p className="text-xs text-gray-400">Total clients</p>
@@ -319,7 +340,14 @@ export default function ClientsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => (
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
+                      Aucun résultat pour cette recherche.
+                    </td>
+                  </tr>
+                ) : (
+                filtered.map((c) => (
                   <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-700">{c.name}</p>
@@ -352,10 +380,13 @@ export default function ClientsPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                ))
+                )}
               </tbody>
             </table>
           </div>
+          </>
+          ) : null}
         </div>
       </main>
     </div>

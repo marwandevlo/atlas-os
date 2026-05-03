@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
 import { addDaysYmd, todayYmd } from '@/app/lib/atlas-dates';
 import { sendWelcomeLifecycleEmail } from '@/app/lib/atlas-lifecycle-email';
+import { applyPendingReferralWelcomeOnTrialGrant } from '@/app/lib/atlas-referral-server';
 
 const FREE_TRIAL_PLAN_ID = 'free-trial';
 const TRIAL_DAYS = 7;
@@ -289,6 +290,12 @@ export async function POST(request: NextRequest) {
       { ok: false, granted: false, reason: 'service_unavailable' as const, message: 'Impossible d’activer l’essai pour le moment.' },
       { status: 500 },
     );
+  }
+
+  try {
+    await applyPendingReferralWelcomeOnTrialGrant(admin, user.id);
+  } catch {
+    // non-blocking
   }
 
   void (async () => {

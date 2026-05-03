@@ -1,6 +1,7 @@
 import { todayYmd } from '@/app/lib/atlas-dates';
 import { readCompaniesFromLocalStorage } from '@/app/lib/atlas-companies-repository';
 import { getProCompanyAddonExtraSlots } from '@/app/lib/atlas-company-addons';
+import { getReferralExtraCompanySlots } from '@/app/lib/atlas-referral-bonus-state';
 import { getAtlasPlanById, type AtlasLimit, type AtlasPricingPlan, type AtlasPricingPlan as Plan } from '@/app/lib/atlas-pricing-plans';
 
 export type AtlasUsage = {
@@ -147,11 +148,21 @@ export function getEffectivePlanLimits(plan: Plan | null = getActivePlan()): {
   invoices: number | null;
 } {
   const base = getPlanLimits(plan);
-  if (!plan || plan.id !== 'pro' || base.companies === null) return base;
-  return {
-    ...base,
-    companies: base.companies + getProCompanyAddonExtraSlots(),
-  };
+  const referralExtra = getReferralExtraCompanySlots();
+  if (!plan || base.companies === null) return base;
+  if (plan.id === 'pro') {
+    return {
+      ...base,
+      companies: base.companies + getProCompanyAddonExtraSlots() + referralExtra,
+    };
+  }
+  if (plan.id === 'free-trial') {
+    return {
+      ...base,
+      companies: base.companies + referralExtra,
+    };
+  }
+  return base;
 }
 
 export function getUsagePercentage(type: AtlasUsageType): number | null {

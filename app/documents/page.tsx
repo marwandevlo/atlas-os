@@ -13,6 +13,7 @@ import { createAtlasLink } from '@/app/lib/atlas-links-repository';
 import { listAtlasCompanies } from '@/app/lib/atlas-companies-repository';
 import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
+import { EmptyStateCta } from '@/app/components/ui/EmptyStateCta';
 
 type Document = {
   id: number;
@@ -241,7 +242,19 @@ export default function DocumentsPage() {
                       </button>
                     ))}
                     {library.length === 0 && (
-                      <div className="p-6 text-center text-sm text-gray-400">Aucun document.</div>
+                      <div className="p-4">
+                        <EmptyStateCta
+                          lang="fr"
+                          title="Aucun document"
+                          description="Importez un PDF ou une image depuis l’onglet OCR pour alimenter votre bibliothèque."
+                          primaryLabelFr="Ajouter maintenant"
+                          primaryLabelAr="ابدأ الآن"
+                          onPrimary={() => {
+                            setTab('ocr');
+                            fileRef.current?.click();
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>

@@ -36,6 +36,10 @@ function aggregateLocal(windowDays: number): FunnelStatsResponse {
     landingToSignupRate,
     signupToOnboardingRate: signups > 0 ? onboardingCompleted / signups : null,
     conversionRateEstimate: landingToSignupRate,
+    referralClicksDb: 0,
+    referralLinkedSignupsDb: 0,
+    referralActivatedDb: 0,
+    referralRewardsGrantedDb: 0,
   };
 }
 
@@ -155,6 +159,37 @@ export default function AnalyticsDashboardClient() {
                 {pct(stats.signupToOnboardingRate)}
               </p>
             </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+            <p className="text-sm font-semibold text-gray-900">Parrainage (atlas_referrals)</p>
+            {stats.warnings?.length ? (
+              <p className="text-xs text-amber-700">{stats.warnings.join(' · ')}</p>
+            ) : null}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="rounded-xl border border-gray-100 p-4">
+                <p className="text-xs text-gray-500">Clics parrain</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{stats.referralClicksDb ?? 0}</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 p-4">
+                <p className="text-xs text-gray-500">Inscrits avec ref</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{stats.referralLinkedSignupsDb ?? 0}</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 p-4">
+                <p className="text-xs text-gray-500">Activations</p>
+                <p className="text-2xl font-bold text-emerald-800 mt-1 tabular-nums">{stats.referralActivatedDb ?? 0}</p>
+              </div>
+              <div className="rounded-xl border border-gray-100 p-4">
+                <p className="text-xs text-gray-500">Récompenses attribuées</p>
+                <p className="text-2xl font-bold text-indigo-800 mt-1 tabular-nums">{stats.referralRewardsGrantedDb ?? 0}</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-400">
+              Événements funnel : referral_link_created {stats.counts.referral_link_created ?? 0} · share{' '}
+              {stats.counts.referral_share_clicked ?? 0} · signup started {stats.counts.referral_signup_started ?? 0} ·
+              completed {stats.counts.referral_signup_completed ?? 0} · reward {stats.counts.referral_reward_granted ?? 0}
+              · progress {stats.counts.referral_progress ?? 0} · reward_unlocked {stats.counts.reward_unlocked ?? 0}
+            </p>
           </div>
 
           <p className="text-sm text-gray-600">

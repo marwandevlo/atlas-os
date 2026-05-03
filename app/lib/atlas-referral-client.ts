@@ -1,0 +1,131 @@
+import { ATLAS_REFERRAL_CONFIG } from '@/app/lib/atlas-referral-config';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { normalizeReferralCode as normalizeReferralCodeUtil } from '@/app/lib/atlas-referral-utils';
+
+export const ATLAS_REFERRAL_PENDING_KEY = ATLAS_REFERRAL_CONFIG.pendingCodeStorageKey;
+
+export function normalizeReferralCode(raw: string | null | undefined): string {
+  return normalizeReferralCodeUtil(raw);
+}
+
+export function storePendingReferralCode(code: string): void {
+  if (typeof window === 'undefined') return;
+  const n = normalizeReferralCode(code);
+  if (!n) return;
+  try {
+    sessionStorage.setItem(ATLAS_REFERRAL_PENDING_KEY, n);
+  } catch {
+    // ignore
+  }
+}
+
+export function readPendingReferralCode(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return normalizeReferralCode(sessionStorage.getItem(ATLAS_REFERRAL_PENDING_KEY));
+  } catch {
+    return '';
+  }
+}
+
+export function clearPendingReferralCode(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(ATLAS_REFERRAL_PENDING_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function buildSignupReferralLink(origin: string, code: string): string {
+  const base = (origin || '').replace(/\/$/, '') || '';
+  const c = normalizeReferralCode(code);
+  if (!base || !c) return '';
+  return `${base}/signup?ref=${encodeURIComponent(c)}`;
+}
+
+/** Await referral attach after trial claim so welcome bonus can extend the new trial row. */
+export async function awaitCompleteReferralSignupWithSession(): Promise<void> {
+  if (!isAtlasSupabaseDataEnabled()) return;
+  const code = readPendingReferralCode();
+  if (!code) return;
+  try {
+    const { supabase } = await import('@/app/lib/supabase');
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return;
+    const res = await fetch('/api/referral/complete-signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ code }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { ok?: boolean; reason?: string };
+    if (res.ok && json?.ok) {
+      clearPendingReferralCode();
+      return;
+    }
+    if (json?.reason === 'self_referral') clearPendingReferralCode();
+  } catch {
+    // non-blocking
+  }
+}
+
+/**
+ * Fire-and-forget: attach pending referral after auth. Never throws; ignores when Supabase off.
+ */
+export function flushPendingReferralSignup(accessToken?: string | null): void {
+  if (!isAtlasSupabaseDataEnabled()) return;
+  const code = readPendingReferralCode();
+  if (!code) return;
+
+  void (async () => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      const { supabase } = await import('@/app/lib/supabase');
+      if (!accessToken) {
+        const { data } = await supabase.auth.getSession();
+        const t = data.session?.access_token;
+        if (t) headers.Authorization = `Bearer ${t}`;
+      }
+      if (!headers.Authorization) return;
+
+      const res = await fetch('/api/referral/complete-signup', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ code }),
+        keepalive: true,
+      });
+      if (res.ok) clearPendingReferralCode();
+    } catch {
+      // non-blocking
+    }
+  })();
+}
+
+export function referralWhatsAppMessage(link: string): string {
+  const safe = link.trim();
+  return `جرب ZAFIRIX PRO مجاناً 7 أيام باش تسهل المحاسبة والفواتير والضرائب ديالك في المغرب: ${safe}`;
+}
+
+/** Moroccan Darija + French for higher conversion on WhatsApp forwards. */
+export function buildReferralShareTextBilingual(link: string): string {
+  const safe = link.trim();
+  return [
+    `جرّب ZAFIRIX PRO دابا باش تسهل المحاسبة، الفواتير والضرائب ديالك فالمغرب — 7 أيام مجانية، بلا كارت بانكير.`,
+    ``,
+    `Essaie ZAFIRIX PRO : compta, factures et fiscalité au Maroc — 7 jours gratuits, sans carte bancaire.`,
+    ``,
+    `Lien · الرابط : ${safe}`,
+  ].join('\n');
+}
+
+export function openWhatsAppReferralShareText(text: string): void {
+  if (typeof window === 'undefined') return;
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+export function openWhatsAppReferralShare(link: string): void {
+  openWhatsAppReferralShareText(buildReferralShareTextBilingual(link));
+}

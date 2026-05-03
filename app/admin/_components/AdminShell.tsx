@@ -4,7 +4,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Building2, CreditCard, LayoutDashboard, ShieldCheck, Users, Boxes, BarChart3 } from 'lucide-react';
+import { Building2, CreditCard, LayoutDashboard, ShieldCheck, Users, Boxes, BarChart3, Banknote, TrendingUp } from 'lucide-react';
 import { atlasDataBackend, isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { supabase } from '@/app/lib/supabase';
 import { AdminTableSkeleton } from '@/app/admin/_components/AdminUi';
@@ -134,12 +134,14 @@ export default function AdminShell(props: { title: string; children: React.React
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 flex flex-col lg:flex-row gap-6">
         <div className="lg:hidden">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex flex-wrap gap-2">
+            <SidebarLink href="/admin/overview" icon={<TrendingUp size={16} />} label="Overview" />
             <SidebarLink href="/admin" icon={<LayoutDashboard size={16} />} label="Dashboard" />
             <SidebarLink href="/admin/subscriptions" icon={<CreditCard size={16} />} label="Subscriptions" />
             <SidebarLink href="/admin/users" icon={<Users size={16} />} label="Users" />
             <SidebarLink href="/admin/companies" icon={<Building2 size={16} />} label="Companies" />
             <SidebarLink href="/admin/plans" icon={<Boxes size={16} />} label="Plans" />
             <SidebarLink href="/admin/payments" icon={<CreditCard size={16} />} label="Payments" />
+            <SidebarLink href="/admin/manual-payments" icon={<Banknote size={16} />} label="Manuel (MA)" />
             <SidebarLink href="/admin/analytics" icon={<BarChart3 size={16} />} label="Analytics" />
           </div>
         </div>
@@ -156,12 +158,14 @@ export default function AdminShell(props: { title: string; children: React.React
             </div>
 
             <nav className="mt-4 space-y-1">
-              <SidebarLink href="/admin" icon={<LayoutDashboard size={16} />} label="Dashboard" />
+              <SidebarLink href="/admin/overview" icon={<TrendingUp size={16} />} label="Overview" />
+            <SidebarLink href="/admin" icon={<LayoutDashboard size={16} />} label="Dashboard" />
               <SidebarLink href="/admin/subscriptions" icon={<CreditCard size={16} />} label="Subscriptions" />
               <SidebarLink href="/admin/users" icon={<Users size={16} />} label="Users" />
               <SidebarLink href="/admin/companies" icon={<Building2 size={16} />} label="Companies" />
               <SidebarLink href="/admin/plans" icon={<Boxes size={16} />} label="Plans" />
               <SidebarLink href="/admin/payments" icon={<CreditCard size={16} />} label="Payments" />
+              <SidebarLink href="/admin/manual-payments" icon={<Banknote size={16} />} label="Manuel (MA)" />
               <SidebarLink href="/admin/analytics" icon={<BarChart3 size={16} />} label="Analytics" />
             </nav>
           </div>

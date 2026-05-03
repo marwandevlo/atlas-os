@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Mail, Lock, Eye, EyeOff, User, Phone, Building, MapPin, BadgeCheck, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { supabase } from '@/app/lib/supabase';
@@ -11,6 +11,8 @@ import { readCompaniesFromLocalStorage, writeCompaniesToLocalStorage } from '@/a
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { claimAtlasFreeTrialAfterAuth, shouldPersistAtlasTrialNotice } from '@/app/lib/atlas-trial-claim-client';
+import { awaitCompleteReferralSignupWithSession, storePendingReferralCode } from '@/app/lib/atlas-referral-client';
+import { normalizeReferralCode } from '@/app/lib/atlas-referral-utils';
 import { trackEvent } from '@/app/lib/analytics-track';
 import { getUsage, setUsage } from '@/app/lib/atlas-usage-limits';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
@@ -99,6 +101,28 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const raw = sp.get('ref');
+      const code = normalizeReferralCode(raw);
+      if (!code) return;
+      storePendingReferralCode(code);
+      if (sessionStorage.getItem('atlas_ref_signup_started') === '1') return;
+      sessionStorage.setItem('atlas_ref_signup_started', '1');
+      trackEvent('referral_signup_started', { referral_code: code });
+      void fetch('/api/referral/click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+        keepalive: true,
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const validation = useMemo(() => {
     const errs: string[] = [];
@@ -209,6 +233,7 @@ export default function SignUpPage() {
 
       if (isAtlasSupabaseDataEnabled() && signUpData.session) {
         const claim = await claimAtlasFreeTrialAfterAuth();
+        await awaitCompleteReferralSignupWithSession();
         if (typeof window !== 'undefined' && shouldPersistAtlasTrialNotice(claim)) {
           sessionStorage.setItem('zafirix_trial_notice', claim.message ?? '');
         }

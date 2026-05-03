@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -7,10 +7,19 @@ import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { claimAtlasFreeTrialAfterAuth, shouldPersistAtlasTrialNotice } from '@/app/lib/atlas-trial-claim-client';
+import { awaitCompleteReferralSignupWithSession } from '@/app/lib/atlas-referral-client';
 
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
+
+  useEffect(() => {
+    if (!isAtlasSupabaseDataEnabled()) return;
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) await awaitCompleteReferralSignupWithSession();
+    })();
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +38,7 @@ export default function LoginPage() {
       else {
         if (isAtlasSupabaseDataEnabled() && data.session) {
           const claim = await claimAtlasFreeTrialAfterAuth();
+          await awaitCompleteReferralSignupWithSession();
           if (typeof window !== 'undefined' && shouldPersistAtlasTrialNotice(claim)) {
             sessionStorage.setItem('zafirix_trial_notice', claim.message ?? '');
           }
@@ -41,6 +51,7 @@ export default function LoginPage() {
       else {
         if (isAtlasSupabaseDataEnabled()) {
           const claim = await claimAtlasFreeTrialAfterAuth();
+          await awaitCompleteReferralSignupWithSession();
           if (typeof window !== 'undefined' && shouldPersistAtlasTrialNotice(claim)) {
             sessionStorage.setItem('zafirix_trial_notice', claim.message ?? '');
           }
