@@ -5,7 +5,7 @@ import { ArrowLeft, Plus, Building2, ChevronRight, Trash2, Edit, CheckCircle, Se
 import type { AtlasCompany } from '@/app/types/atlas-company';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
-import { canCreateCompany, incrementUsage } from '@/app/lib/atlas-usage-limits';
+import { canCreateCompany, syncCompanyUsageCount } from '@/app/lib/atlas-usage-limits';
 import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 const defaultCompanies: AtlasCompany[] = [
@@ -83,11 +83,14 @@ export default function CompaniesPage() {
   useEffect(() => {
     const saved = localStorage.getItem('atlas_companies');
     if (saved) {
-      setCompanies(JSON.parse(saved));
+      const parsed = JSON.parse(saved) as AtlasCompany[];
+      setCompanies(parsed);
+      syncCompanyUsageCount(parsed.length);
     } else {
       setCompanies(defaultCompanies);
       localStorage.setItem('atlas_companies', JSON.stringify(defaultCompanies));
       localStorage.setItem('atlas_company', JSON.stringify(defaultCompanies[0]));
+      syncCompanyUsageCount(defaultCompanies.length);
     }
   }, []);
 
@@ -101,7 +104,11 @@ export default function CompaniesPage() {
   const addCompany = () => {
     if (!form.raisonSociale) return;
     const decision = canCreateCompany();
-    if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+    if (!decision.allowed) {
+      setLimitNotice(decision.messageFr ?? decision.messageAr ?? 'Limite atteinte.');
+      return;
+    }
+    if (decision.level === 'warning') setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
 
     const { balance, ...payload } = form;
     const paymentTerms: AtlasPaymentTerms =
@@ -116,8 +123,9 @@ export default function CompaniesPage() {
       paymentTerms: normalized,
       balance: Number.parseFloat(form.balance || '0') || 0,
     };
-    saveCompanies([...companies, newCompany]);
-    incrementUsage('companies', 1);
+    const merged = [...companies, newCompany];
+    saveCompanies(merged);
+    syncCompanyUsageCount(merged.length);
     setForm({ raisonSociale: '', formeJuridique: 'SARL', if_fiscal: '', ice: '', rc: '', cnss: '', adresse: '', ville: 'Casablanca', telephone: '', email: '', activite: '', regimeTVA: 'mensuel', balance: '0' });
     setTermsKind('30');
     setTermsCustomDays('45');
@@ -131,8 +139,9 @@ export default function CompaniesPage() {
   };
 
   const deleteCompany = (id: number) => {
-    const updated = companies.filter(c => c.id !== id);
+    const updated = companies.filter((c) => c.id !== id);
     saveCompanies(updated);
+    syncCompanyUsageCount(updated.length);
   };
 
   const filtered = companies.filter(c =>
@@ -183,9 +192,12 @@ export default function CompaniesPage() {
           </div>
           <button
             onClick={() => {
-              // Soft-limit: do not hard-block creation at 100%, only show notice.
               const decision = canCreateCompany();
-              if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+              if (!decision.allowed) {
+                setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
+                return;
+              }
+              if (decision.level === 'warning') setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
               setShowForm(!showForm);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors"

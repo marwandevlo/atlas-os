@@ -57,12 +57,15 @@ export default function PricingPage() {
             const Icon = style.icon;
             const isEnterprise = plan.id === 'enterprise';
             const isTrial = plan.billingPeriod === 'trial';
+            const isPro = plan.id === 'pro';
             const cta =
               plan.id === 'free-trial'
                 ? 'ابدأ التجربة'
                 : isEnterprise
                   ? 'تواصل معنا'
-                  : 'اختر الخطة';
+                  : isPro
+                    ? 'Choisir Pro — souscrire'
+                    : 'اختر الخطة';
 
             const priceLabel = plan.billingPeriod === 'year'
               ? formatPriceMadYear(plan.price)
@@ -71,11 +74,13 @@ export default function PricingPage() {
             return (
               <div
                 key={plan.id}
-                className={`bg-white rounded-2xl border ${style.border} shadow-sm hover:shadow-md transition-shadow overflow-hidden relative ${plan.isPopular ? 'ring-2 ring-amber-300 shadow-lg' : ''}`}
+                className={`bg-white rounded-2xl border ${style.border} shadow-sm hover:shadow-md transition-shadow overflow-hidden relative ${
+                  isPro ? 'ring-4 ring-amber-400 shadow-xl z-10 lg:scale-[1.02]' : plan.isPopular ? 'ring-2 ring-amber-300 shadow-lg' : ''
+                }`}
               >
-                {plan.isPopular && (
+                {(plan.isPopular || isPro) && (
                   <div className="absolute top-4 right-4 bg-amber-400 text-[#0F1F3D] text-xs font-bold px-3 py-1 rounded-full">
-                    الأكثر اختياراً
+                    {isPro ? 'Offre Pro · recommandée' : 'الأكثر اختياراً'}
                   </div>
                 )}
 
@@ -116,22 +121,42 @@ export default function PricingPage() {
                       <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
                       <span><span className="font-semibold">Opérations</span> · {formatLimit(plan.operationsLimit)}</span>
                     </li>
+                    {plan.invoicesLimit ? (
+                      <li className="flex items-start gap-2 text-sm text-gray-700">
+                        <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                        <span>
+                          <span className="font-semibold">Factures</span> · {formatLimit(plan.invoicesLimit)}
+                        </span>
+                      </li>
+                    ) : null}
                   </ul>
 
-                  <button
-                    onClick={() => onSelectPlan(plan.id)}
-                    className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
-                      plan.isPopular
-                        ? 'bg-amber-400 text-[#0F1F3D] hover:bg-amber-300'
-                        : isEnterprise
-                          ? 'bg-[#0F1F3D] text-white hover:bg-[#1a3060]'
-                          : isTrial
-                            ? 'bg-sky-600 text-white hover:bg-sky-700'
-                            : 'bg-gray-900 text-white hover:bg-gray-800'
-                    }`}
-                  >
-                    {cta}
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelectPlan(plan.id)}
+                      className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
+                        isPro || plan.isPopular
+                          ? 'bg-amber-400 text-[#0F1F3D] hover:bg-amber-300'
+                          : isEnterprise
+                            ? 'bg-[#0F1F3D] text-white hover:bg-[#1a3060]'
+                            : isTrial
+                              ? 'bg-sky-600 text-white hover:bg-sky-700'
+                              : 'bg-gray-900 text-white hover:bg-gray-800'
+                      }`}
+                    >
+                      {cta}
+                    </button>
+                    {isPro ? (
+                      <button
+                        type="button"
+                        onClick={() => router.push('/subscription')}
+                        className="w-full py-2.5 rounded-xl font-semibold text-xs border border-gray-200 text-gray-700 hover:bg-gray-50"
+                      >
+                        Déjà client — mon abonnement
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             );
@@ -139,7 +164,7 @@ export default function PricingPage() {
         </div>
 
         {/* Comparison */}
-        <div className="mt-14 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div id="pricing-compare" className="mt-14 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-6 py-6 border-b border-gray-100">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900">Comparaison des offres</h2>
             <p className="text-sm text-gray-500 mt-1">Limites principales (sociétés, utilisateurs, opérations) pour choisir la bonne formule.</p>

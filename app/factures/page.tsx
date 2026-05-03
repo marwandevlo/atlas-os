@@ -13,7 +13,13 @@ import { listAtlasPayments, upsertAtlasPayment } from '@/app/lib/atlas-payments-
 import { fetchAi } from '@/app/lib/fetch-ai';
 import { readActiveCompanyFromLocalStorage } from '@/app/lib/atlas-companies-repository';
 import { createInvoicePdfDoc, downloadInvoicePdf, invoicePdfFilename } from '@/app/lib/atlas-invoice-pdf';
-import { canPerformOperation, incrementUsage } from '@/app/lib/atlas-usage-limits';
+import {
+  canCreateInvoice,
+  canPerformOperation,
+  incrementUsage,
+  syncInvoiceUsageCount,
+} from '@/app/lib/atlas-usage-limits';
+import { TrialLimitNudgeModal } from '@/app/components/trial/TrialLimitNudgeModal';
 import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
 
 type FactureRow = {
@@ -38,6 +44,12 @@ export default function FacturesPage() {
   const [filter, setFilter] = useState<'all' | 'paid' | 'pending' | 'overdue'>('all');
   const [insight, setInsight] = useState<{ loading: boolean; text: string }>({ loading: false, text: '' });
   const [limitNotice, setLimitNotice] = useState('');
+  const [limitModal, setLimitModal] = useState<{ open: boolean; variant: 'warning' | 'blocked'; title: string; desc: string }>({
+    open: false,
+    variant: 'warning',
+    title: '',
+    desc: '',
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
@@ -52,6 +64,7 @@ export default function FacturesPage() {
   useEffect(() => {
     const load = async () => {
       const inv = await listAtlasInvoices();
+      let invoiceCount = inv.length;
       if (!inv.length && !isAtlasSupabaseDataEnabled()) {
         const seed: AtlasInvoice[] = [
           {
@@ -104,9 +117,12 @@ export default function FacturesPage() {
         ];
         setInvoices(seed);
         writeInvoicesToLocalStorage(seed);
+        invoiceCount = seed.length;
       } else {
         setInvoices(inv);
+        invoiceCount = inv.length;
       }
+      syncInvoiceUsageCount(invoiceCount);
 
       const pay = await listAtlasPayments();
       setPayments(pay);
@@ -116,8 +132,19 @@ export default function FacturesPage() {
 
   const addFacture = () => {
     if (!form.numero || !form.client || !form.montantHT) return;
-    const decision = canPerformOperation();
-    if (decision.level === 'warning' || decision.level === 'limit') setLimitNotice(decision.messageAr ?? '');
+    const invDecision = canCreateInvoice();
+    if (!invDecision.allowed) {
+      setLimitNotice(invDecision.messageFr ?? invDecision.messageAr ?? '');
+      setLimitModal({
+        open: true,
+        variant: 'blocked',
+        title: 'Limite factures (essai)',
+        desc: invDecision.messageFr ?? invDecision.messageAr ?? 'Passez à une offre payante pour continuer.',
+      });
+      return;
+    }
+    const opDecision = canPerformOperation();
+    if (opDecision.level === 'warning' || opDecision.level === 'limit') setLimitNotice(opDecision.messageFr ?? opDecision.messageAr ?? '');
 
     const issueDate = form.date || todayYmd();
     const ht = Number.parseFloat(form.montantHT);
@@ -154,6 +181,7 @@ export default function FacturesPage() {
     setInvoices(updated);
     void upsertAtlasInvoice(next);
     incrementUsage('operations', 1);
+    syncInvoiceUsageCount(updated.length);
 
     setForm({ numero: '', client: '', date: '', montantHT: '', taux: '20' });
     setTermsKind('30');
@@ -390,10 +418,22 @@ export default function FacturesPage() {
     const updated = invoices.filter((inv) => inv.id !== id);
     setInvoices(updated);
     void deleteAtlasInvoice(id);
+    syncInvoiceUsageCount(updated.length);
   };
 
   return (
     <div className="flex h-screen bg-gray-50">
+      <TrialLimitNudgeModal
+        open={limitModal.open}
+        variant={limitModal.variant}
+        title={limitModal.title}
+        description={limitModal.desc}
+        onClose={() => setLimitModal((m) => ({ ...m, open: false }))}
+        onUpgrade={() => {
+          setLimitModal((m) => ({ ...m, open: false }));
+          router.push('/pricing?plan=pro');
+        }}
+      />
       <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
         <div className="px-6 py-5 border-b border-white/10">
           <BrandWordmark size="md" />
@@ -415,7 +455,32 @@ export default function FacturesPage() {
             <h1 className="text-xl font-bold text-gray-800">Factures</h1>
             <p className="text-xs text-gray-400 mt-0.5">Gestion des factures clients</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors">
+          <button
+            onClick={() => {
+              const d = canCreateInvoice();
+              if (!d.allowed) {
+                setLimitNotice(d.messageFr ?? d.messageAr ?? '');
+                setLimitModal({
+                  open: true,
+                  variant: 'blocked',
+                  title: 'Limite factures atteinte',
+                  desc: d.messageFr ?? d.messageAr ?? 'Mettez à niveau votre offre pour créer plus de factures.',
+                });
+                return;
+              }
+              if (d.level === 'warning' && typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('zafirix_invoice_warn_modal')) {
+                sessionStorage.setItem('zafirix_invoice_warn_modal', '1');
+                setLimitModal({
+                  open: true,
+                  variant: 'warning',
+                  title: 'Vous approchez de la limite',
+                  desc: d.messageFr ?? d.messageAr ?? '',
+                });
+              }
+              setShowForm(!showForm);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1B2A4A] text-white rounded-lg text-sm hover:bg-[#243660] transition-colors"
+          >
             <Plus size={16} /> Nouvelle facture
           </button>
         </header>

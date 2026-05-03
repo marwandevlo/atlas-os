@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BadgeCheck, Clock, CreditCard, HelpCircle, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { supabase } from '@/app/lib/supabase';
+import { claimAtlasFreeTrialAfterAuth } from '@/app/lib/atlas-trial-claim-client';
 
 type PendingPaymentStatus = 'pending' | 'paid' | 'active' | 'rejected';
 type PaymentMethod = 'card' | 'cmi' | 'manual';
@@ -80,6 +81,7 @@ export default function SubscriptionPage() {
   const [pendingReqs, setPendingReqs] = useState<PendingSubscription[]>(() => readJsonArray<PendingSubscription>(STORAGE.pending));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [trialNotice, setTrialNotice] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -137,16 +139,53 @@ export default function SubscriptionPage() {
           createdAt: String(s.created_at ?? new Date().toISOString()),
         }));
 
+        let activeForCache: ActiveSubscription[] = subs;
+
         if (!cancelled) {
           setPendingReqs(reqs);
           setActiveSubs(subs);
+        }
+
+        if (typeof window !== 'undefined') {
+          const stored = sessionStorage.getItem('zafirix_trial_notice');
+          if (stored) {
+            sessionStorage.removeItem('zafirix_trial_notice');
+            if (!cancelled) setTrialNotice(stored);
+          }
+        }
+
+        if (!cancelled && subs.length === 0 && reqs.length === 0) {
+          const claim = await claimAtlasFreeTrialAfterAuth();
+          if (claim.message && !claim.granted && !cancelled) setTrialNotice(claim.message);
+          if (claim.granted || claim.reason === 'already_has_trial') {
+            const subRes2 = await supabase
+              .from('atlas_subscriptions')
+              .select('id, plan_id, status, start_date, end_date, payment_request_id, created_at')
+              .in('status', ['trial', 'active'])
+              .order('created_at', { ascending: false })
+              .limit(1);
+            if (!subRes2.error && !cancelled) {
+              const subs2: ActiveSubscription[] = (subRes2.data ?? []).map((s: any) => ({
+                id: String(s.id),
+                planId: String(s.plan_id ?? ''),
+                planName: String(s.plan_id ?? ''),
+                startDate: String(s.start_date ?? ''),
+                endDate: String(s.end_date ?? ''),
+                status: String(s.status) as any,
+                paymentReference: String(s.payment_request_id ?? ''),
+                createdAt: String(s.created_at ?? new Date().toISOString()),
+              }));
+              activeForCache = subs2;
+              setActiveSubs(subs2);
+            }
+          }
         }
 
         // Keep existing app behavior stable: many widgets read subscription/payment state
         // from localStorage. In Supabase mode, treat localStorage as a cache synced from DB,
         // not a source of truth.
         writeJsonArray(STORAGE.pending, reqs);
-        writeJsonArray(STORAGE.active, subs);
+        writeJsonArray(STORAGE.active, activeForCache);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erreur');
       } finally {
@@ -196,6 +235,11 @@ export default function SubscriptionPage() {
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
             {error}
+          </div>
+        )}
+        {trialNotice && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-950">
+            {trialNotice}
           </div>
         )}
         {active ? (

@@ -20,6 +20,8 @@ export type AtlasPricingPlan = {
   companiesLimit: AtlasLimit;
   usersLimit: AtlasLimit;
   operationsLimit: AtlasLimit;
+  /** Max invoices for this plan; omit or unlimited for no invoice cap. */
+  invoicesLimit?: AtlasLimit;
 
   description: string;
   isPopular: boolean;
@@ -59,6 +61,7 @@ export const ATLAS_PRICING_PLANS: AtlasPricingPlan[] = [
     companiesLimit: fixedLimit(1),
     usersLimit: fixedLimit(1),
     operationsLimit: fixedLimit(20),
+    invoicesLimit: fixedLimit(5),
     description: "Essai gratuit pour découvrir ZAFIRIX PRO pendant 7 jours.",
     isPopular: false,
     ctaLabel: 'Commencer l’essai',
@@ -72,6 +75,7 @@ export const ATLAS_PRICING_PLANS: AtlasPricingPlan[] = [
     companiesLimit: fixedLimit(1),
     usersLimit: fixedLimit(1),
     operationsLimit: fixedLimit(150),
+    invoicesLimit: unlimited(),
     description: 'Pour indépendants et petites structures : l’essentiel pour démarrer.',
     isPopular: false,
     ctaLabel: 'Choisir Starter',
@@ -85,6 +89,7 @@ export const ATLAS_PRICING_PLANS: AtlasPricingPlan[] = [
     companiesLimit: fixedLimit(10),
     usersLimit: fixedLimit(3),
     operationsLimit: fixedLimit(500),
+    invoicesLimit: unlimited(),
     description: 'Pour équipes en croissance : multi-sociétés et plus d’opérations.',
     isPopular: false,
     ctaLabel: 'Choisir Growth',
@@ -98,6 +103,7 @@ export const ATLAS_PRICING_PLANS: AtlasPricingPlan[] = [
     companiesLimit: fixedLimit(25),
     usersLimit: fixedLimit(5),
     operationsLimit: fixedLimit(1500),
+    invoicesLimit: unlimited(),
     description: 'Le meilleur rapport valeur : volume confortable et collaboration.',
     isPopular: true,
     ctaLabel: 'Choisir Pro',
@@ -111,6 +117,7 @@ export const ATLAS_PRICING_PLANS: AtlasPricingPlan[] = [
     companiesLimit: fixedLimit(70),
     usersLimit: fixedLimit(12),
     operationsLimit: fixedLimit(4000),
+    invoicesLimit: unlimited(),
     description: 'Pour groupes et cabinets : limites élevées et gestion avancée.',
     isPopular: false,
     ctaLabel: 'Choisir Business',
@@ -124,6 +131,7 @@ export const ATLAS_PRICING_PLANS: AtlasPricingPlan[] = [
     companiesLimit: fixedLimit(200),
     usersLimit: fixedLimit(25),
     operationsLimit: fixedLimit(8000),
+    invoicesLimit: unlimited(),
     description: 'Pour opérations intensives : gros volumes et équipes élargies.',
     isPopular: false,
     ctaLabel: 'Choisir Advanced',
@@ -137,6 +145,7 @@ export const ATLAS_PRICING_PLANS: AtlasPricingPlan[] = [
     companiesLimit: unlimited(),
     usersLimit: unlimited(),
     operationsLimit: fairUsage(),
+    invoicesLimit: unlimited(),
     description: 'Sur mesure pour grandes organisations : illimité + fair usage.',
     isPopular: false,
     ctaLabel: 'Contacter les ventes',

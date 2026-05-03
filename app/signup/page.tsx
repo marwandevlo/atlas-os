@@ -10,6 +10,8 @@ import type { AtlasCompany } from '@/app/types/atlas-company';
 import { readCompaniesFromLocalStorage, writeCompaniesToLocalStorage } from '@/app/lib/atlas-companies-repository';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { claimAtlasFreeTrialAfterAuth, shouldPersistAtlasTrialNotice } from '@/app/lib/atlas-trial-claim-client';
+import { getUsage, setUsage } from '@/app/lib/atlas-usage-limits';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 
 type UserProfile = {
@@ -183,19 +185,40 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       // Do not break existing auth logic: keep Supabase signup.
-      const { error } = await supabase.auth.signUp({ email: email.trim(), password });
+      const { data: signUpData, error } = await supabase.auth.signUp({ email: email.trim(), password });
       if (error) {
         setError(error.message);
         return;
       }
 
       // Demo/localStorage seeding must never run in production (prevents accidental "Pro" defaults).
-      // In Supabase mode, Free Trial is assigned server-side (DB trigger) and companies live in DB.
+      // In Supabase mode, Free Trial is assigned server-side (API + DB) after anti-abuse checks.
       const allowDemoSeed = process.env.NODE_ENV === 'development';
       if (allowDemoSeed && !isAtlasSupabaseDataEnabled()) {
         storeUserProfile();
         createCompanyProfile();
         assignFreeTrial();
+        const u = getUsage();
+        setUsage({ ...u, companies: 1, invoices: 0 });
+      }
+
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('zafirix_show_onboarding', '1');
+      }
+
+      if (isAtlasSupabaseDataEnabled() && signUpData.session) {
+        const claim = await claimAtlasFreeTrialAfterAuth();
+        if (typeof window !== 'undefined' && shouldPersistAtlasTrialNotice(claim)) {
+          sessionStorage.setItem('zafirix_trial_notice', claim.message ?? '');
+        }
+      }
+
+      if (isAtlasSupabaseDataEnabled() && !signUpData.session) {
+        setSuccess(
+          'Compte créé. Si un e-mail de confirmation est requis, ouvrez le lien puis connectez-vous : l’essai gratuit s’activera ensuite selon l’éligibilité.',
+        );
+        router.push('/login?next=/subscription');
+        return;
       }
 
       setSuccess('Compte créé. Redirection…');

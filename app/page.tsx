@@ -14,6 +14,8 @@ import type { AtlasInvoice } from '@/app/types/atlas-invoice';
 import { isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 import { GlobalSearchButton } from '@/app/components/search/GlobalSearchButton';
 import { UsageWidget } from '@/app/components/usage/UsageWidget';
+import { TrialUpgradeBanner } from '@/app/components/trial/TrialUpgradeBanner';
+import { TrialOnboardingChecklist } from '@/app/components/trial/TrialOnboardingChecklist';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 
 const modules = [
@@ -200,6 +202,8 @@ export default function Home() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-4 lg:py-6 space-y-4 lg:space-y-6">
+          <TrialUpgradeBanner />
+          <TrialOnboardingChecklist lang={lang} />
           {invoiceSummary.overdueCount > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">
               <span className="font-semibold">Alertes paiements :</span> {invoiceSummary.overdueCount} facture(s) en retard — {Math.round(invoiceSummary.overdueAmount).toLocaleString()} MAD.

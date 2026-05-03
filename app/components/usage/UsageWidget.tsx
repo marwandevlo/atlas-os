@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, Users, Zap } from 'lucide-react';
+import { Building2, FileText, Users, Zap } from 'lucide-react';
 import { getActivePlan, getPlanLimits, getUsage } from '@/app/lib/atlas-usage-limits';
 import { formatLimit } from '@/app/lib/atlas-pricing-plans';
 
 type Row = {
-  key: 'companies' | 'users' | 'operations';
+  key: 'companies' | 'users' | 'operations' | 'invoices';
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   color: { bar: string; bg: string; text: string };
@@ -13,6 +13,7 @@ type Row = {
 const rows: Row[] = [
   { key: 'companies', label: 'Sociétés', icon: Building2, color: { bar: 'bg-blue-500', bg: 'bg-blue-50', text: 'text-blue-700' } },
   { key: 'users', label: 'Utilisateurs', icon: Users, color: { bar: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700' } },
+  { key: 'invoices', label: 'Factures', icon: FileText, color: { bar: 'bg-violet-500', bg: 'bg-violet-50', text: 'text-violet-800' } },
   { key: 'operations', label: 'Opérations', icon: Zap, color: { bar: 'bg-amber-500', bg: 'bg-amber-50', text: 'text-amber-800' } },
 ];
 
@@ -51,6 +52,7 @@ export function UsageWidget() {
 
       <div className="p-4 space-y-4">
         {rows.map((r) => {
+          if (r.key === 'invoices' && limits.invoices === null) return null;
           const used = usage[r.key] ?? 0;
           const limit = limits[r.key];
           const percentage = pct(used, limit);

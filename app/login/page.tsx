@@ -5,6 +5,8 @@ import { Building2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { claimAtlasFreeTrialAfterAuth, shouldPersistAtlasTrialNotice } from '@/app/lib/atlas-trial-claim-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,13 +24,32 @@ export default function LoginPage() {
     setSuccess('');
 
     if (mode === 'register') {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
-      else setSuccess('Compte créé! Vérifiez votre email.');
+      else {
+        if (isAtlasSupabaseDataEnabled() && data.session) {
+          const claim = await claimAtlasFreeTrialAfterAuth();
+          if (typeof window !== 'undefined' && shouldPersistAtlasTrialNotice(claim)) {
+            sessionStorage.setItem('zafirix_trial_notice', claim.message ?? '');
+          }
+        }
+        setSuccess('Compte créé ! Vérifiez votre e-mail si une confirmation est requise, puis connectez-vous pour activer l’essai selon l’éligibilité.');
+      }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError('Email ou mot de passe incorrect');
-      else router.push('/');
+      else {
+        if (isAtlasSupabaseDataEnabled()) {
+          const claim = await claimAtlasFreeTrialAfterAuth();
+          if (typeof window !== 'undefined' && shouldPersistAtlasTrialNotice(claim)) {
+            sessionStorage.setItem('zafirix_trial_notice', claim.message ?? '');
+          }
+        }
+        const q =
+          typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('next')?.trim() : '';
+        const next = q || '/';
+        router.push(next.startsWith('/') ? next : '/');
+      }
     }
     setLoading(false);
   };
