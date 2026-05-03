@@ -1,12 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Building2, ChevronRight, Trash2, Edit, CheckCircle, Search } from 'lucide-react';
+import { Plus, Building2, ChevronRight, Trash2, Edit, CheckCircle, Search } from 'lucide-react';
 import type { AtlasCompany } from '@/app/types/atlas-company';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
 import { canCreateCompany, syncCompanyUsageCount } from '@/app/lib/atlas-usage-limits';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 const defaultCompanies: AtlasCompany[] = [
   {
@@ -159,30 +159,28 @@ export default function CompaniesPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Building2 size={16} /> Mes sociétés
-          </button>
-        </nav>
-        <div className="px-4 py-4 border-t border-white/10">
-          <div className="bg-amber-400/20 rounded-lg p-3 text-center">
-            <p className="text-amber-300 text-xs font-medium">Forfait {plan}</p>
-            <p className="text-white font-bold text-lg">{companies.length} / {maxCompanies === Infinity ? '∞' : maxCompanies}</p>
-            <p className="text-white/40 text-xs">sociétés</p>
-            <div className="w-full bg-white/10 rounded-full h-1.5 mt-2">
-              <div className="bg-amber-400 h-1.5 rounded-full" style={{width: `${Math.min((companies.length / (maxCompanies === Infinity ? companies.length : maxCompanies)) * 100, 100)}%`}}></div>
+      <AppSidebar
+        variant="module"
+        footer={
+          <div className="px-4 py-4 border-t border-white/10">
+            <div className="bg-amber-400/20 rounded-lg p-3 text-center">
+              <p className="text-amber-300 text-xs font-medium">Forfait {plan}</p>
+              <p className="text-white font-bold text-lg">
+                {companies.length} / {maxCompanies === Infinity ? '∞' : maxCompanies}
+              </p>
+              <p className="text-white/40 text-xs">sociétés</p>
+              <div className="w-full bg-white/10 rounded-full h-1.5 mt-2">
+                <div
+                  className="bg-amber-400 h-1.5 rounded-full"
+                  style={{
+                    width: `${Math.min((companies.length / (maxCompanies === Infinity ? companies.length : maxCompanies)) * 100, 100)}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </aside>
+        }
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">

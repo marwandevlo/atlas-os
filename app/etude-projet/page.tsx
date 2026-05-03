@@ -1,8 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Send, Bot, User, Download, CheckCircle, BarChart2, TrendingUp, DollarSign } from 'lucide-react';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { Send, Bot, User, Download, CheckCircle, BarChart2, TrendingUp, DollarSign } from 'lucide-react';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 const fmt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
@@ -38,7 +37,6 @@ const questions = [
 ];
 
 export default function EtudeProjetPage() {
-  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: "Bonjour! 👋 Je suis votre expert en création d'entreprise au Maroc.\n\nJe vais créer une étude de faisabilité PROFESSIONNELLE prête à soumettre à une banque, un investisseur ou un programme de soutien (Intelaka, Hassan II...).\n\nRépondez à mes questions et votre dossier sera prêt en quelques minutes!\n\n" + questions[0].q }
   ]);
@@ -596,48 +594,41 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <BarChart2 size={16} /> Etude de Projet
-          </button>
-        </nav>
-        <div className="px-4 py-4 border-t border-white/10 space-y-3">
-          <div>
-            <p className="text-white/30 text-xs mb-1">Progression</p>
-            <div className="w-full bg-white/10 rounded-full h-2">
-              <div className="bg-amber-400 h-2 rounded-full transition-all duration-500" style={{width: `${progress}%`}}></div>
-            </div>
-            <p className="text-white/40 text-xs mt-1">{step}/{questions.length} questions</p>
-          </div>
-          {companyData.raisonSociale && (
-            <div className="bg-white/5 rounded-lg p-3">
-              <p className="text-white/30 text-xs mb-1 flex items-center gap-1">
-                <CheckCircle size={10} className="text-green-400" /> Donnees societe
-              </p>
-              <p className="text-white/70 text-xs font-medium">{companyData.raisonSociale}</p>
-              {companyData.if_fiscal && <p className="text-white/30 text-xs">IF: {companyData.if_fiscal}</p>}
-              {companyData.ice && <p className="text-white/30 text-xs">ICE: {companyData.ice}</p>}
-              {companyData.rc && <p className="text-white/30 text-xs">RC: {companyData.rc}</p>}
-            </div>
-          )}
-          <div className="space-y-1">
-            {questions.slice(0, step).map((q, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <CheckCircle size={10} className="text-green-400 shrink-0" />
-                <p className="text-white/30 text-xs truncate">{data[q.key]}</p>
+      <AppSidebar
+        variant="module"
+        footer={
+          <div className="px-4 py-4 border-t border-white/10 space-y-3">
+            <div>
+              <p className="text-white/30 text-xs mb-1">Progression</p>
+              <div className="w-full bg-white/10 rounded-full h-2">
+                <div className="bg-amber-400 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
               </div>
-            ))}
+              <p className="text-white/40 text-xs mt-1">
+                {step}/{questions.length} questions
+              </p>
+            </div>
+            {companyData.raisonSociale && (
+              <div className="bg-white/5 rounded-lg p-3">
+                <p className="text-white/30 text-xs mb-1 flex items-center gap-1">
+                  <CheckCircle size={10} className="text-green-400" /> Donnees societe
+                </p>
+                <p className="text-white/70 text-xs font-medium">{companyData.raisonSociale}</p>
+                {companyData.if_fiscal && <p className="text-white/30 text-xs">IF: {companyData.if_fiscal}</p>}
+                {companyData.ice && <p className="text-white/30 text-xs">ICE: {companyData.ice}</p>}
+                {companyData.rc && <p className="text-white/30 text-xs">RC: {companyData.rc}</p>}
+              </div>
+            )}
+            <div className="space-y-1">
+              {questions.slice(0, step).map((q, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <CheckCircle size={10} className="text-green-400 shrink-0" />
+                  <p className="text-white/30 text-xs truncate">{data[q.key]}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </aside>
+        }
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">

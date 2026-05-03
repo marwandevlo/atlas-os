@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Upload, FileText, CheckCircle, Clock, Trash2, Sparkles } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Clock, Trash2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { fetchAi } from '../lib/fetch-ai';
 import { addDaysYmd, todayYmd } from '@/app/lib/atlas-dates';
@@ -12,7 +12,7 @@ import { getDocuments, searchDocuments } from '@/app/lib/atlas-documents-reposit
 import { createAtlasLink } from '@/app/lib/atlas-links-repository';
 import { listAtlasCompanies } from '@/app/lib/atlas-companies-repository';
 import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type Document = {
   id: number;
@@ -162,29 +162,22 @@ export default function DocumentsPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button
-            onClick={() => setTab('ocr')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${tab === 'ocr' ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
-          >
-            <Upload size={16} /> OCR
-          </button>
-          <button
-            onClick={() => setTab('library')}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${tab === 'library' ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
-          >
-            <FileText size={16} /> Bibliothèque
-          </button>
-        </nav>
-      </aside>
+      <AppSidebar variant="module">
+        <button
+          type="button"
+          onClick={() => setTab('ocr')}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${tab === 'ocr' ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
+        >
+          <Upload size={16} /> OCR
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('library')}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${tab === 'library' ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
+        >
+          <FileText size={16} /> Bibliothèque
+        </button>
+      </AppSidebar>
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4">

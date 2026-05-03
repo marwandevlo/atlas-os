@@ -1,19 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  ArrowLeft,
-  Brain,
-  Building2,
-  Loader2,
-  Scale,
-  Send,
-  Sparkles,
-  User,
-} from 'lucide-react';
+import { Brain, Loader2, Send, Sparkles, User } from 'lucide-react';
 import { fetchAi } from '../lib/fetch-ai';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type Message = { role: 'user' | 'assistant'; content: string };
 
@@ -46,7 +36,6 @@ function loadCompanyContext(): string {
 }
 
 export default function ConsultantPage() {
-  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -128,46 +117,16 @@ export default function ConsultantPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all"
-          >
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button
-            type="button"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-500/25 text-indigo-100 text-sm border border-indigo-400/30"
-          >
-            <Brain size={16} /> Consultant IA
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/juridique')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all"
-          >
-            <Scale size={16} /> Juridique
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/companies')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all"
-          >
-            <Building2 size={16} /> Sociétés
-          </button>
-        </nav>
-        <div className="px-4 py-3 border-t border-white/10">
-          <p className="text-white/30 text-xs leading-relaxed">
-            Conseil fiscal & social — Maroc. Pas un substitut à une mission d’expert-comptable.
-          </p>
-        </div>
-      </aside>
+      <AppSidebar
+        variant="module"
+        footer={
+          <div className="px-4 py-3 border-t border-white/10">
+            <p className="text-white/30 text-xs leading-relaxed">
+              Conseil fiscal & social — Maroc. Pas un substitut à une mission d’expert-comptable.
+            </p>
+          </div>
+        }
+      />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">

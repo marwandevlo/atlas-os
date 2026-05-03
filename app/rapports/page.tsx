@@ -1,11 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { ArrowLeft, Download, FileText, TrendingUp, Calculator, Users, Receipt } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { Download, FileText, TrendingUp, Calculator, Users, Receipt } from 'lucide-react';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 export default function RapportsPage() {
-  const router = useRouter();
   const [generating, setGenerating] = useState<string | null>(null);
 
   const generatePDF = async (type: string) => {
@@ -197,20 +195,7 @@ export default function RapportsPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <FileText size={16} /> Rapports PDF
-          </button>
-        </nav>
-      </aside>
+      <AppSidebar variant="module" />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4">

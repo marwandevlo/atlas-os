@@ -1,11 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Scale, Search, Building2, RefreshCw, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
 import { fetchAi } from '../lib/fetch-ai';
 import { createAtlasLink } from '@/app/lib/atlas-links-repository';
 import { createDocument } from '@/app/lib/atlas-documents-repository';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type Company = {
   id: number; raisonSociale: string; formeJuridique: string; if_fiscal: string;
@@ -1195,7 +1194,6 @@ EN-TETE: ${header}
 
 // ==================== MAIN PAGE ====================
 export default function JuridiquePage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'creation' | 'modifications'>('creation');
   const [companies, setCompanies] = useState<Company[]>([]);
 
@@ -1206,36 +1204,34 @@ export default function JuridiquePage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Scale size={16} /> Juridique
-          </button>
-          <div className="mt-4 space-y-1">
-            <button onClick={() => setActiveTab('creation')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === 'creation' ? 'bg-amber-500/20 text-amber-400' : 'text-white/40 hover:text-white/70'}`}>
-              <Building2 size={14} /> Création
-            </button>
-            <button onClick={() => setActiveTab('modifications')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === 'modifications' ? 'bg-amber-500/20 text-amber-400' : 'text-white/40 hover:text-white/70'}`}>
-              <RefreshCw size={14} /> Modifications
-            </button>
+      <AppSidebar
+        variant="module"
+        footer={
+          <div className="px-4 py-3 border-t border-white/10">
+            <div className="bg-white/5 rounded-lg p-2">
+              <p className="text-white/30 text-xs">Mode automatique</p>
+              <p className="text-white/50 text-xs mt-0.5">Remplissez une fois → 5 docs Word</p>
+            </div>
           </div>
-        </nav>
-        <div className="px-4 py-3 border-t border-white/10">
-          <div className="bg-white/5 rounded-lg p-2">
-            <p className="text-white/30 text-xs">Mode automatique</p>
-            <p className="text-white/50 text-xs mt-0.5">Remplissez une fois → 5 docs Word</p>
-          </div>
+        }
+      >
+        <div className="mt-4 space-y-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('creation')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === 'creation' ? 'bg-amber-500/20 text-amber-400' : 'text-white/40 hover:text-white/70'}`}
+          >
+            <Building2 size={14} /> Création
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('modifications')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === 'modifications' ? 'bg-amber-500/20 text-amber-400' : 'text-white/40 hover:text-white/70'}`}
+          >
+            <RefreshCw size={14} /> Modifications
+          </button>
         </div>
-      </aside>
+      </AppSidebar>
       <main className="flex-1 flex overflow-hidden">
         {activeTab === 'creation' ? <CreationForm companies={companies} /> : <ModificationsForm companies={companies} />}
       </main>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck, Search, Share2 } from 'lucide-react';
 import { createAtlasLink } from '@/app/lib/atlas-links-repository';
 import { createDocument } from '@/app/lib/atlas-documents-repository';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type Company = {
   id: number;
@@ -407,42 +407,38 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Users size={16} /> Ressources Humaines
-          </button>
-          <div className="mt-3 space-y-0.5">
-            {categories.map(cat => {
-              const Icon = categoryIcons[cat];
-              return (
-                <button key={cat} onClick={() => setActiveCategory(cat)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all ${activeCategory === cat ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}>
-                  <Icon size={12} />
-                  {cat}
-                  <span className="ml-auto text-white/20">{docs.filter(d => d.category === cat).length}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-        {selectedCompany && (
-          <div className="px-4 py-3 border-t border-white/10">
-            <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-white/30 text-xs mb-1">Société sélectionnée</p>
-              <p className="text-white/70 text-xs font-medium truncate">{selectedCompany.raisonSociale}</p>
-              <p className="text-white/30 text-xs">{selectedCompany.ville}</p>
+      <AppSidebar
+        variant="module"
+        footer={
+          selectedCompany ? (
+            <div className="px-4 py-3 border-t border-white/10">
+              <div className="bg-white/5 rounded-lg p-2">
+                <p className="text-white/30 text-xs mb-1">Société sélectionnée</p>
+                <p className="text-white/70 text-xs font-medium truncate">{selectedCompany.raisonSociale}</p>
+                <p className="text-white/30 text-xs">{selectedCompany.ville}</p>
+              </div>
             </div>
-          </div>
-        )}
-      </aside>
+          ) : undefined
+        }
+      >
+        <div className="mt-3 space-y-0.5">
+          {categories.map((cat) => {
+            const Icon = categoryIcons[cat];
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all ${activeCategory === cat ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
+              >
+                <Icon size={12} />
+                {cat}
+                <span className="ml-auto text-white/20">{docs.filter((d) => d.category === cat).length}</span>
+              </button>
+            );
+          })}
+        </div>
+      </AppSidebar>
 
       <main className="flex-1 flex overflow-hidden">
         <div className={`${selectedDoc ? 'hidden lg:flex' : 'flex'} flex-col w-full lg:w-80 border-r border-gray-200 bg-white overflow-hidden shrink-0`}>

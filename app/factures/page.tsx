@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Plus, Trash2, Download, Send, FileText, ReceiptText, CheckCircle2, Wallet, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Download, Send, FileText, ReceiptText, CheckCircle2, Wallet, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { addDaysYmd, isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 import { deleteAtlasInvoice, listAtlasInvoices, upsertAtlasInvoice, writeInvoicesToLocalStorage } from '@/app/lib/atlas-invoices-repository';
@@ -20,7 +20,7 @@ import {
   syncInvoiceUsageCount,
 } from '@/app/lib/atlas-usage-limits';
 import { TrialLimitNudgeModal } from '@/app/components/trial/TrialLimitNudgeModal';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type FactureRow = {
   id: AtlasInvoice['id'];
@@ -434,20 +434,7 @@ export default function FacturesPage() {
           router.push('/pricing?plan=pro');
         }}
       />
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <FileText size={16} /> Factures
-          </button>
-        </nav>
-      </aside>
+      <AppSidebar variant="module" />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">

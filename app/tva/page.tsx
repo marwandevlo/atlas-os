@@ -1,8 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Upload, Plus, Trash2, CheckCircle, AlertCircle, Download, ArrowLeft, FileCode, Globe } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { Upload, Plus, Trash2, CheckCircle, AlertCircle, Download, FileCode, Globe } from 'lucide-react';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type Facture = {
   id: number;
@@ -14,7 +13,6 @@ type Facture = {
 };
 
 export default function TVAPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'ventes' | 'achats' | 'declaration'>('ventes');
   const [factures, setFactures] = useState<Facture[]>([
     { id: 1, ref: 'F-001', fournisseur: 'Client A', montantHT: 10000, tva: 2000, type: 'vente' },
@@ -105,23 +103,18 @@ export default function TVAPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
+      <AppSidebar variant="module">
+        {['ventes', 'achats', 'declaration'].map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab as 'ventes' | 'achats' | 'declaration')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === tab ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
+          >
+            {tab === 'ventes' ? 'Ventes' : tab === 'achats' ? 'Achats' : 'Declaration'}
           </button>
-          {['ventes', 'achats', 'declaration'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab as 'ventes' | 'achats' | 'declaration')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${activeTab === tab ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}>
-              {tab === 'ventes' ? 'Ventes' : tab === 'achats' ? 'Achats' : 'Declaration'}
-            </button>
-          ))}
-        </nav>
-      </aside>
+        ))}
+      </AppSidebar>
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">

@@ -3,11 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard, FileText, Receipt, Calculator,
-  TrendingUp, Upload, Bell, Settings, ChevronRight,
-  AlertCircle, CheckCircle, Building2, Brain,
+  TrendingUp, Upload, Bell, ChevronRight,
+  AlertCircle, CheckCircle, Brain,
   ArrowUpRight, ArrowDownRight, Calendar, Globe,
-  Users, Zap, Shield, Clock, Menu, X, LogIn, LogOut,
-  Scale, BarChart2
+  Users, Zap, Shield, Clock, Menu,
 } from 'lucide-react';
 import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
 import type { AtlasInvoice } from '@/app/types/atlas-invoice';
@@ -16,7 +15,7 @@ import { GlobalSearchButton } from '@/app/components/search/GlobalSearchButton';
 import { UsageWidget } from '@/app/components/usage/UsageWidget';
 import { TrialUpgradeBanner } from '@/app/components/trial/TrialUpgradeBanner';
 import { TrialOnboardingChecklist } from '@/app/components/trial/TrialOnboardingChecklist';
-import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
+import { AppSidebar, AppSidebarMobileOverlay } from '@/app/components/shell/AppSidebar';
 
 const modules = [
   { id: 'tva', label: 'TVA', labelAr: 'الضريبة على القيمة المضافة', icon: Receipt, color: 'bg-blue-500', href: '/tva', deadline: '20 Mai', urgent: true },
@@ -27,25 +26,6 @@ const modules = [
   { id: 'comptabilite', label: 'Comptabilité', labelAr: 'المحاسبة', icon: LayoutDashboard, color: 'bg-cyan-500', href: '/comptabilite', deadline: null, urgent: false },
   { id: 'documents', label: 'Documents IA', labelAr: 'وثائق الذكاء الاصطناعي', icon: Upload, color: 'bg-rose-500', href: '/documents', deadline: null, urgent: false },
   { id: 'consultant', label: 'Consultant IA', labelAr: 'المستشار الذكي', icon: Brain, color: 'bg-indigo-500', href: '/consultant', deadline: null, urgent: false },
-];
-
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', labelAr: 'الرئيسية', icon: LayoutDashboard, href: '/' },
-  { id: 'tva', label: 'TVA', labelAr: 'الضريبة TVA', icon: Receipt, href: '/tva' },
-  { id: 'is', label: 'IS Fiscal', labelAr: 'ضريبة الشركات', icon: Calculator, href: '/is' },
-  { id: 'ir', label: 'IR / Salaires', labelAr: 'الرواتب والضرائب', icon: TrendingUp, href: '/ir' },
-  { id: 'factures', label: 'Factures', labelAr: 'الفواتير', icon: FileText, href: '/factures' },
-  { id: 'clients', label: 'Clients', labelAr: 'العملاء', icon: Users, href: '/clients' },
-  { id: 'comptabilite', label: 'Comptabilité', labelAr: 'المحاسبة', icon: LayoutDashboard, href: '/comptabilite' },
-  { id: 'documents', label: 'Documents IA', labelAr: 'وثائق ذكية', icon: Upload, href: '/documents' },
-  { id: 'consultant', label: 'Consultant IA', labelAr: 'المستشار', icon: Brain, href: '/consultant' },
-  { id: 'agents', label: 'Agents IA', labelAr: 'الوكلاء الذكيون', icon: Zap, href: '/agents' },
-  { id: 'etude', label: 'Étude de projet', labelAr: 'دراسة الجدوى', icon: BarChart2, href: '/etude-projet' },
-  { id: 'juridique', label: 'Juridique', labelAr: 'القانونية', icon: Scale, href: '/juridique' },
-  { id: 'rh', label: 'Ressources humaines', labelAr: 'الموارد البشرية', icon: Users, href: '/rh' },
-  { id: 'companies', label: 'Mes sociétés', labelAr: 'شركاتي', icon: Building2, href: '/companies' },
-  { id: 'rapports', label: 'Rapports PDF', labelAr: 'التقارير', icon: FileText, href: '/rapports' },
-  { id: 'settings', label: 'Paramètres', labelAr: 'الإعدادات', icon: Settings, href: '/settings' },
 ];
 
 const deadlines = [
@@ -114,64 +94,17 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-gray-50" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
 
-      {menuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMenuOpen(false)} />
-      )}
-
-      <aside className={`
-        fixed lg:relative inset-y-0 left-0 z-50
-        w-64 bg-[#0F1F3D] flex flex-col shrink-0 shadow-xl
-        transform transition-transform duration-300
-        ${menuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-amber-400 rounded-xl flex items-center justify-center">
-              <Building2 size={20} className="text-[#0F1F3D]" />
-            </div>
-            <div>
-              <ZafirixLogo size="sm" subtitle subtitleText="ZAFIRIX GROUP · المغرب" subtitleClassName="text-white/40" />
-            </div>
-          </div>
-          <button onClick={() => setMenuOpen(false)} className="lg:hidden text-white/50 hover:text-white">
-            <X size={20} />
-          </button>
-        </div>
-
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.href)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group ${item.id === 'dashboard' ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
-            >
-              <item.icon size={16} className="shrink-0" />
-              <span className="flex-1 text-left">{t(item.label, item.labelAr)}</span>
-              {item.id === 'tva' && <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>}
-            </button>
-          ))}
-        </nav>
-
-        <div className="px-3 py-4 border-t border-white/10 space-y-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
-            <Globe size={14} className="text-white/40" />
-            <span className="text-white/40 text-xs flex-1">{t('Langue', 'اللغة')}</span>
-            <button onClick={() => setLang('fr')} className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${lang === 'fr' ? 'bg-amber-400 text-[#0F1F3D]' : 'text-white/40 hover:text-white'}`}>FR</button>
-            <button onClick={() => setLang('ar')} className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${lang === 'ar' ? 'bg-amber-400 text-[#0F1F3D]' : 'text-white/40 hover:text-white'}`}>AR</button>
-          </div>
-          {connected ? (
-            <button onClick={() => { setConnected(false); router.push('/login'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 text-sm transition-all">
-              <LogOut size={16} className="shrink-0" />
-              <span>{t('Se déconnecter', 'تسجيل الخروج')}</span>
-            </button>
-          ) : (
-            <button onClick={() => { setConnected(true); router.push('/login'); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-green-400 hover:bg-green-500/10 hover:text-green-300 text-sm transition-all">
-              <LogIn size={16} className="shrink-0" />
-              <span>{t('Se connecter', 'تسجيل الدخول')}</span>
-            </button>
-          )}
-        </div>
-      </aside>
+      <AppSidebarMobileOverlay open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <AppSidebar
+        variant="home"
+        lang={lang}
+        setLang={setLang}
+        t={t}
+        connected={connected}
+        setConnected={setConnected}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center justify-between shrink-0">

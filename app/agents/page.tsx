@@ -1,9 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { fetchAi } from '../lib/fetch-ai';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Receipt, Users, TrendingUp, Shield, Bell, Play, Pause, MessageSquare, CheckCircle, Clock, Zap } from 'lucide-react';
-import { BrandWordmark } from '@/app/components/branding/BrandWordmark';
+import { Receipt, Users, TrendingUp, Shield, Bell, Play, Pause, MessageSquare, CheckCircle, Clock, Zap } from 'lucide-react';
+import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 const agents = [
   {
@@ -109,7 +108,6 @@ const agents = [
 ];
 
 export default function AgentsPage() {
-  const router = useRouter();
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [agentStatus, setAgentStatus] = useState<Record<string, boolean>>({
     tva: true, paie: true, is: true, audit: true, alert: true,
@@ -159,32 +157,23 @@ export default function AgentsPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <aside className="w-60 bg-[#1B2A4A] flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-white/10">
-          <BrandWordmark size="md" />
-          <p className="text-white/40 text-xs">ZAFIRIX GROUP</p>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 hover:text-white text-sm transition-all">
-            <ArrowLeft size={16} /> Dashboard
-          </button>
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-white/15 text-white text-sm">
-            <Zap size={16} /> Agents IA
-          </button>
-        </nav>
-        <div className="px-4 py-4 border-t border-white/10">
-          <p className="text-white/30 text-xs mb-2">Agents actifs</p>
-          {agents.map(a => (
-            <div key={a.id} className="flex items-center gap-2 py-1.5">
-              <div className={`w-2 h-2 rounded-full ${agentStatus[a.id] ? 'bg-green-400' : 'bg-gray-500'}`}></div>
-              <span className="text-white/50 text-xs flex-1">{a.name}</span>
-              {a.stats.alerts > 0 && (
-                <span className="w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">{a.stats.alerts}</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </aside>
+      <AppSidebar
+        variant="module"
+        footer={
+          <div className="px-4 py-4 border-t border-white/10">
+            <p className="text-white/30 text-xs mb-2">Agents actifs</p>
+            {agents.map((a) => (
+              <div key={a.id} className="flex items-center gap-2 py-1.5">
+                <div className={`w-2 h-2 rounded-full ${agentStatus[a.id] ? 'bg-green-400' : 'bg-gray-500'}`} />
+                <span className="text-white/50 text-xs flex-1">{a.name}</span>
+                {a.stats.alerts > 0 && (
+                  <span className="w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">{a.stats.alerts}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        }
+      />
 
       <main className="flex-1 flex overflow-hidden">
         {/* Agents List */}
