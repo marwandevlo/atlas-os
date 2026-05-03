@@ -1,15 +1,30 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, ArrowLeft, Copy } from 'lucide-react';
+import { addProCompanyAddonExtraSlots, getCompanyAddonById } from '@/app/lib/atlas-company-addons';
+import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 
 export default function SuccessClient() {
   const router = useRouter();
   const search = useSearchParams();
   const ref = search.get('ref') ?? '';
+  const addonId = search.get('addon') ?? '';
 
   const shortRef = useMemo(() => (ref.length > 16 ? `${ref.slice(0, 8)}…${ref.slice(-6)}` : ref), [ref]);
+
+  useEffect(() => {
+    if (!addonId || !ref) return;
+    const def = getCompanyAddonById(addonId);
+    if (!def) return;
+    const dedupe = `atlas_addon_applied_${ref}`;
+    if (typeof window !== 'undefined' && sessionStorage.getItem(dedupe)) return;
+    if (!isAtlasSupabaseDataEnabled()) {
+      addProCompanyAddonExtraSlots(def.extraSlots);
+      if (typeof window !== 'undefined') sessionStorage.setItem(dedupe, '1');
+    }
+  }, [addonId, ref]);
 
   const copyRef = async () => {
     try {
@@ -39,8 +54,20 @@ export default function SuccessClient() {
             <div>
               <p className="text-xl font-bold text-gray-900">Demande enregistrée</p>
               <p className="text-sm text-gray-500 mt-1">
-                Votre demande de paiement manuel a été créée avec le statut <span className="font-semibold">pending</span>.
-                Un admin activera l’abonnement après confirmation.
+                {addonId ? (
+                  <>
+                    Demande d’<span className="font-semibold">extension Pro</span> enregistrée (statut{' '}
+                    <span className="font-semibold">pending</span>).{' '}
+                    {isAtlasSupabaseDataEnabled()
+                      ? 'Les emplacements sociétés seront ajoutés après validation du paiement par l’équipe.'
+                      : 'En environnement local, les emplacements supplémentaires sont appliqués tout de suite.'}
+                  </>
+                ) : (
+                  <>
+                    Votre demande de paiement manuel a été créée avec le statut <span className="font-semibold">pending</span>.
+                    Un admin activera l’abonnement après confirmation.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -64,10 +91,10 @@ export default function SuccessClient() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push(addonId ? '/companies' : '/')}
               className="px-4 py-2 rounded-xl bg-[#0F1F3D] text-white text-sm font-semibold hover:bg-[#1a3060]"
             >
-              Aller au dashboard
+              {addonId ? 'Retour aux sociétés' : 'Aller au dashboard'}
             </button>
             <button
               onClick={() => router.push('/pricing')}

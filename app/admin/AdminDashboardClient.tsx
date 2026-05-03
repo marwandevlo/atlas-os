@@ -192,6 +192,9 @@ export default function AdminDashboardClient() {
           <Link href="/admin/subscriptions" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">
             <CreditCard size={16} /> Subscriptions
           </Link>
+          <Link href="/admin/analytics" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            <BarChart3 size={16} /> Analytics
+          </Link>
           <Link href="/pricing" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">
             <Boxes size={16} /> Plans
           </Link>

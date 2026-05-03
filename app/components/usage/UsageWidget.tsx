@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Building2, FileText, Users, Zap } from 'lucide-react';
-import { getActivePlan, getPlanLimits, getUsage } from '@/app/lib/atlas-usage-limits';
+import { getActivePlan, getEffectivePlanLimits, getUsage } from '@/app/lib/atlas-usage-limits';
 import { formatLimit } from '@/app/lib/atlas-pricing-plans';
 
 type Row = {
@@ -34,7 +34,7 @@ export function UsageWidget() {
 
   const plan = useMemo(() => getActivePlan(), [tick]);
   const usage = useMemo(() => getUsage(), [tick]);
-  const limits = useMemo(() => getPlanLimits(plan), [plan, tick]);
+  const limits = useMemo(() => getEffectivePlanLimits(plan), [plan, tick]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

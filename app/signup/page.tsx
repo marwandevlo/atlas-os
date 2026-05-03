@@ -11,6 +11,7 @@ import { readCompaniesFromLocalStorage, writeCompaniesToLocalStorage } from '@/a
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { claimAtlasFreeTrialAfterAuth, shouldPersistAtlasTrialNotice } from '@/app/lib/atlas-trial-claim-client';
+import { trackEvent } from '@/app/lib/analytics-track';
 import { getUsage, setUsage } from '@/app/lib/atlas-usage-limits';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 
@@ -211,9 +212,17 @@ export default function SignUpPage() {
         if (typeof window !== 'undefined' && shouldPersistAtlasTrialNotice(claim)) {
           sessionStorage.setItem('zafirix_trial_notice', claim.message ?? '');
         }
+        const access = signUpData.session.access_token;
+        if (access) {
+          void fetch('/api/email/welcome', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${access}` },
+          });
+        }
       }
 
       if (isAtlasSupabaseDataEnabled() && !signUpData.session) {
+        trackEvent('signup_completed', { flow: 'email_confirmation_required' });
         setSuccess(
           'Compte créé. Si un e-mail de confirmation est requis, ouvrez le lien puis connectez-vous : l’essai gratuit s’activera ensuite selon l’éligibilité.',
         );
@@ -221,6 +230,9 @@ export default function SignUpPage() {
         return;
       }
 
+      trackEvent('signup_completed', {
+        flow: isAtlasSupabaseDataEnabled() ? 'session' : 'local_demo',
+      });
       setSuccess('Compte créé. Redirection…');
       router.push('/onboarding');
     } finally {

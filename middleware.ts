@@ -34,6 +34,16 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (isPublicPath(pathname)) return NextResponse.next();
 
+  // Anonymous analytics (POST + preflight) — must not require a logged-in session.
+  if (pathname === '/api/analytics/track' || pathname === '/api/funnel/track') {
+    return NextResponse.next();
+  }
+
+  // Scheduled lifecycle emails (cron) — uses CRON_SECRET inside the route handler.
+  if (pathname === '/api/cron/email-lifecycle') {
+    return NextResponse.next();
+  }
+
   // Production safety: if Supabase isn't enabled for any reason, do NOT allow access
   // to private routes. Send visitors to the public landing page.
   if (process.env.NODE_ENV === 'production' && atlasDataBackend() !== 'supabase') {

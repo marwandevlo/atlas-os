@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
+import { getCompanyAddonById } from '@/app/lib/atlas-company-addons';
 import { getAtlasPlanById } from '@/app/lib/atlas-pricing-plans';
 import { checkPaymentRateLimit } from '@/app/lib/payment-rate-limit';
 
@@ -35,29 +36,56 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429, headers: { 'Retry-After': String(rate.retryAfterSec) } });
   }
 
-  const body = (await request.json().catch(() => null)) as null | { planId?: string; provider?: ManualProvider };
+  const body = (await request.json().catch(() => null)) as null | {
+    planId?: string;
+    addonId?: string;
+    provider?: ManualProvider;
+  };
   const planId = (body?.planId ?? '').trim();
+  const addonId = (body?.addonId ?? '').trim();
   const provider = body?.provider;
 
-  const plan = getAtlasPlanById(planId);
-  if (!plan) return NextResponse.json({ error: 'invalid_plan' }, { status: 400 });
+  const addon = addonId ? getCompanyAddonById(addonId) : undefined;
+  const plan = planId ? getAtlasPlanById(planId) : undefined;
+
+  if (addonId && !addon) return NextResponse.json({ error: 'invalid_addon' }, { status: 400 });
+  if (!addonId && (!plan || !planId)) return NextResponse.json({ error: 'invalid_plan' }, { status: 400 });
+  if (addonId && planId) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   if (!provider || !['cashplus', 'wafacash', 'western_union'].includes(provider)) {
     return NextResponse.json({ error: 'invalid_provider' }, { status: 400 });
   }
 
+  const insertRow = addon
+    ? {
+        user_id: auth.user.id,
+        plan_id: 'pro',
+        amount_mad: addon.priceMadYear,
+        currency: 'MAD' as const,
+        billing_period: 'year',
+        payment_method: 'manual' as const,
+        manual_provider: provider,
+        status: 'pending' as const,
+        metadata: {
+          kind: 'company_slot_addon',
+          addonId: addon.id,
+          extraSlots: addon.extraSlots,
+        },
+      }
+    : {
+        user_id: auth.user.id,
+        plan_id: plan!.id,
+        amount_mad: plan!.price,
+        currency: plan!.currency,
+        billing_period: plan!.billingPeriod,
+        payment_method: 'manual' as const,
+        manual_provider: provider,
+        status: 'pending' as const,
+        metadata: {},
+      };
+
   const { data, error } = await supabase
     .from('atlas_payment_requests')
-    .insert({
-      user_id: auth.user.id,
-      plan_id: plan.id,
-      amount_mad: plan.price,
-      currency: plan.currency,
-      billing_period: plan.billingPeriod,
-      payment_method: 'manual',
-      manual_provider: provider,
-      status: 'pending',
-      metadata: {},
-    })
+    .insert(insertRow)
     .select('id')
     .single();
 

@@ -14,6 +14,16 @@ export function addDaysYmd(ymd: string, days: number): string {
   return todayYmd(dt);
 }
 
+/** Add or subtract whole calendar days (UTC) from a YYYY-MM-DD string. */
+export function shiftYmd(ymd: string, deltaDays: number): string {
+  const delta = Number.isFinite(deltaDays) ? Math.trunc(deltaDays) : 0;
+  const [y, m, d] = ymd.split('-').map((v) => Number.parseInt(v, 10));
+  if (!y || !m || !d) return ymd;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  return todayYmd(dt);
+}
+
 export function isOverdue(dueDateYmd: string, isPaid: boolean, nowYmd: string = todayYmd()): boolean {
   if (isPaid) return false;
   if (!dueDateYmd) return false;

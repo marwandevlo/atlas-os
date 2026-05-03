@@ -47,13 +47,13 @@ const FUNNEL_META: Record<
     taglineFr: 'Le meilleur équilibre volume / collaboration.',
     taglineAr: 'أفضل توازن بين الحجم والتعاون.',
     benefitsFr: [
-      'Multi-sociétés et équipe jusqu’à 5 utilisateurs',
-      'Volume confortable pour TVA, IR et facturation',
+      'Jusqu’à 25 sociétés incluses — extensions +3 / +5 (option payante, à part)',
+      'Équipe jusqu’à 5 utilisateurs · volume confortable TVA, IR et facturation',
       'Priorité usage au quotidien',
     ],
     benefitsAr: [
-      'عدة شركات وفريق حتى 5 مستخدمين',
-      'حجم مريح لـ TVA وIR والفوترة',
+      'حتى 25 شركة مضمنة — إضافات +3 / +5 (اختيارية، منفصلة)',
+      'فريق حتى 5 مستخدمين · حجم مريح لـ TVA وIR والفوترة',
       'أولوية للاستخدام اليومي',
     ],
     isMostPopular: true,

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CreditCard, BadgeCheck, Landmark, Wallet, ShieldCheck, ReceiptText, ArrowRight, Info } from 'lucide-react';
 import { formatLimit, formatPriceMadYear, getAtlasPlanById } from '@/app/lib/atlas-pricing-plans';
+import { getCompanyAddonById } from '@/app/lib/atlas-company-addons';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { supabase } from '@/app/lib/supabase';
 
@@ -21,6 +22,8 @@ type PendingSubscription = {
   paymentMethod: PaymentMethod;
   manualProvider?: ManualProvider;
   createdAt: string;
+  /** Pro company slot add-on (not a full plan). */
+  addonId?: string;
 };
 
 const PENDING_SUBSCRIPTIONS_STORAGE_KEY = 'atlas_pending_subscriptions';
@@ -46,8 +49,10 @@ export default function PaymentClient() {
   const router = useRouter();
   const search = useSearchParams();
   const planId = search.get('plan') ?? '';
+  const addonId = search.get('addon') ?? '';
 
   const plan = useMemo(() => getAtlasPlanById(planId) ?? null, [planId]);
+  const addon = useMemo(() => getCompanyAddonById(addonId), [addonId]);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [manualProvider, setManualProvider] = useState<ManualProvider>('cashplus');
@@ -55,17 +60,70 @@ export default function PaymentClient() {
   const [error, setError] = useState('');
 
   const priceLabel = useMemo(() => {
+    if (addon) return `${addon.priceMadYear.toLocaleString('fr-MA')} MAD/an`;
     if (!plan) return '';
     return plan.billingPeriod === 'year'
       ? formatPriceMadYear(plan.price)
       : `${plan.price.toLocaleString()} ${plan.currency} · ${plan.durationDays ?? 7} jours`;
-  }, [plan]);
+  }, [plan, addon]);
 
   const confirmManual = async () => {
-    if (!plan) return;
+    if (!plan && !addon) return;
     setSubmitting(true);
     setError('');
     try {
+      if (addon) {
+        if (isAtlasSupabaseDataEnabled()) {
+          const { data } = await supabase.auth.getSession();
+          const token = data.session?.access_token ?? '';
+          if (!token) {
+            router.push(`/login?next=${encodeURIComponent(`/payment?addon=${addon.id}`)}`);
+            return;
+          }
+
+          const res = await fetch('/api/payments/manual-request', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ addonId: addon.id, provider: manualProvider }),
+          });
+          const json = (await res.json().catch(() => ({}))) as { error?: string; id?: string };
+          if (!res.ok) {
+            setError(typeof json?.error === 'string' ? json.error : 'Erreur paiement');
+            return;
+          }
+          const id = String(json.id || '');
+          if (!id) {
+            setError('Erreur paiement');
+            return;
+          }
+          router.push(`/payment/success?ref=${encodeURIComponent(id)}&addon=${encodeURIComponent(addon.id)}`);
+          return;
+        }
+
+        const id = createReferenceId();
+        const pending: PendingSubscription = {
+          id,
+          status: 'pending',
+          planId: 'pro',
+          planName: `Extension Pro · ${addon.labelFr}`,
+          amount: addon.priceMadYear,
+          currency: 'MAD',
+          billingPeriod: 'year',
+          paymentMethod: 'manual',
+          manualProvider,
+          createdAt: new Date().toISOString(),
+          addonId: addon.id,
+        };
+        writePendingSubscription(pending);
+        router.push(`/payment/success?ref=${encodeURIComponent(id)}&addon=${encodeURIComponent(addon.id)}`);
+        return;
+      }
+
+      if (!plan) return;
+
       if (isAtlasSupabaseDataEnabled()) {
         const { data } = await supabase.auth.getSession();
         const token = data.session?.access_token ?? '';
@@ -135,10 +193,10 @@ export default function PaymentClient() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-10">
-        {!plan ? (
+        {!plan && !addon ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <p className="text-sm text-gray-700">
-              Sélectionnez un plan depuis la page tarifs.
+              Sélectionnez un plan ou une extension depuis la page tarifs.
             </p>
             <button
               onClick={() => router.push('/pricing')}
@@ -147,7 +205,70 @@ export default function PaymentClient() {
               Retour aux tarifs
             </button>
           </div>
-        ) : (
+        ) : addon ? (
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-indigo-100 overflow-hidden">
+              <div className="px-6 py-5 border-b border-indigo-50 bg-indigo-50/50">
+                <p className="text-xs font-bold uppercase tracking-wide text-indigo-700">Extension Pro · hors forfait</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{addon.labelFr}</p>
+                <p className="text-sm text-gray-600 mt-1">{addon.descriptionFr}</p>
+                <p className="text-2xl font-extrabold text-gray-900 mt-4">{priceLabel}</p>
+              </div>
+              <div className="px-6 py-6">
+                {error && (
+                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                    {error}
+                  </div>
+                )}
+                <p className="text-sm font-semibold text-gray-900">Paiement manuel</p>
+                <p className="text-xs text-gray-500 mt-1">Demande enregistrée — activation après validation.</p>
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(
+                    [
+                      { id: 'cashplus' as const, label: 'CashPlus' },
+                      { id: 'wafacash' as const, label: 'WafaCash' },
+                      { id: 'western_union' as const, label: 'Western Union' },
+                    ] as const
+                  ).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setManualProvider(p.id)}
+                      className={`px-3 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                        manualProvider === p.id ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-white'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void confirmManual()}
+                    disabled={submitting}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+                      submitting ? 'bg-amber-200 text-amber-900/60 cursor-not-allowed' : 'bg-amber-400 text-[#0F1F3D] hover:bg-amber-300'
+                    }`}
+                  >
+                    {submitting ? 'Création…' : 'Confirmer la demande'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/pricing')}
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    Annuler
+                  </button>
+                </div>
+                <p className="mt-4 flex items-start gap-2 text-xs text-gray-500">
+                  <Info size={14} className="mt-0.5 shrink-0" />
+                  Les extensions sont facturées à part des offres Starter / Pro / Cabinet. Elles augmentent uniquement le plafond sociétés du forfait Pro.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : plan ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -440,7 +561,7 @@ export default function PaymentClient() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </main>
     </div>
   );

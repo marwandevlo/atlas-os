@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { getActivePlan, getTrialCountdown } from '@/app/lib/atlas-usage-limits';
+import { trackEvent } from '@/app/lib/analytics-track';
 
 export function TrialUpgradeBanner() {
   const router = useRouter();
@@ -42,14 +43,22 @@ export function TrialUpgradeBanner() {
       <div className="flex flex-wrap gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => router.push('/pricing')}
+          onClick={() => {
+            trackEvent('trial_banner_clicked', { surface: 'trial_banner', target: 'pricing' });
+            trackEvent('upgrade_clicked', { surface: 'trial_banner', target: 'pricing' });
+            router.push('/pricing');
+          }}
           className="px-4 py-2 rounded-lg bg-[#0F1F3D] text-white text-xs font-semibold hover:bg-[#1a3060]"
         >
           Voir les offres Pro
         </button>
         <button
           type="button"
-          onClick={() => router.push('/subscription')}
+          onClick={() => {
+            trackEvent('trial_banner_clicked', { surface: 'trial_banner', target: 'subscription' });
+            trackEvent('upgrade_clicked', { surface: 'trial_banner', target: 'subscription' });
+            router.push('/subscription');
+          }}
           className="px-4 py-2 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-amber-950 hover:bg-amber-50"
         >
           Mon abonnement

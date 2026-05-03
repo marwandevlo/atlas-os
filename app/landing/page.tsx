@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
+import { trackEvent } from '@/app/lib/analytics-track';
 
 type Lang = 'fr' | 'ar';
 
@@ -32,7 +33,14 @@ export default function LandingPage() {
 
   const t = useCallback((fr: string, ar: string) => (isAr ? ar : fr), [isAr]);
 
-  const goSignup = () => router.push('/signup');
+  useEffect(() => {
+    trackEvent('view_landing');
+  }, []);
+
+  const goSignup = () => {
+    trackEvent('click_signup', { source: 'landing' });
+    router.push('/signup');
+  };
   const goPricing = () => router.push('/pricing');
   const goLogin = () => router.push('/login');
 

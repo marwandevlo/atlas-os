@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2,
@@ -20,6 +20,8 @@ import {
   formatLimit,
   formatPriceMadYear,
 } from '@/app/lib/atlas-pricing-funnel';
+import { ATLAS_COMPANY_SLOT_ADDONS } from '@/app/lib/atlas-company-addons';
+import { trackEvent } from '@/app/lib/analytics-track';
 import type { FunnelPlanPresentation } from '@/app/lib/atlas-pricing-funnel';
 
 const planIconById: Record<string, typeof Rocket> = {
@@ -58,8 +60,18 @@ export default function PricingPage() {
   const [faqOpen, setFaqOpen] = useState<number | null>(0);
   const funnelPlans = useMemo(() => getFunnelPlanPresentations(), []);
 
-  const goTrial = () => router.push('/signup');
-  const goPay = (planId: string) => router.push(`/payment?plan=${encodeURIComponent(planId)}`);
+  useEffect(() => {
+    trackEvent('view_pricing');
+  }, []);
+
+  const goTrial = () => {
+    trackEvent('click_signup', { source: 'pricing' });
+    router.push('/signup');
+  };
+  const goPay = (planId: string) => {
+    trackEvent('upgrade_clicked', { surface: 'pricing', target: 'checkout', planId });
+    router.push(`/payment?plan=${encodeURIComponent(planId)}`);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -111,6 +123,44 @@ export default function PricingPage() {
           {funnelPlans.map((fp) => (
             <FunnelPlanCard key={fp.plan.id} fp={fp} onTrial={goTrial} onPay={goPay} />
           ))}
+        </div>
+
+        {/* Pro-only company extensions — visually separate from main plans */}
+        <div
+          id="pro-extensions"
+          className="mt-14 rounded-2xl border border-indigo-100 bg-linear-to-br from-indigo-50/90 to-white p-6 sm:p-8 shadow-sm"
+        >
+          <p className="text-xs font-bold uppercase tracking-wide text-indigo-700">Extensions · forfait Pro uniquement</p>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-2">Besoin de plus de sociétés sur Pro ?</h2>
+          <p className="text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
+            Le forfait Pro inclut <strong>25 sociétés</strong>. Les options ci-dessous augmentent ce plafond : ce sont des{' '}
+            <strong>extensions facturées à part</strong>, pas des offres à la carte équivalentes à Starter ou Cabinet.
+          </p>
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 max-w-3xl">
+            {ATLAS_COMPANY_SLOT_ADDONS.map((a) => (
+              <div
+                key={a.id}
+                className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm flex flex-col"
+              >
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Add-on sociétés</p>
+                <p className="text-base font-bold text-slate-900 mt-1">{a.labelFr}</p>
+                <p className="text-xs text-slate-500 mt-2 flex-1">{a.descriptionFr}</p>
+                <p className="text-lg font-extrabold text-indigo-700 mt-4">
+                  {a.priceMadYear.toLocaleString('fr-MA')} MAD<span className="text-slate-400 font-normal text-sm">/an</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackEvent('upgrade_clicked', { surface: 'pricing', target: 'addon', addonId: a.id });
+                    router.push(`/payment?addon=${encodeURIComponent(a.id)}`);
+                  }}
+                  className="mt-4 w-full py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                >
+                  Commander cette extension
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Comparison — funnel plans only */}
@@ -211,7 +261,7 @@ function FunnelPlanCard({
   return (
     <div
       className={`relative flex flex-col rounded-2xl border bg-white shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${accent.ring} ${
-        isPro || isMostPopular ? 'lg:scale-[1.02] shadow-lg z-[1]' : 'border-slate-200'
+        isPro || isMostPopular ? 'lg:scale-[1.02] shadow-lg z-1' : 'border-slate-200'
       }`}
     >
       {(isPro || isMostPopular) && (

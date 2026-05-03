@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Calendar, Lock, Sparkles } from 'lucide-react';
 import { getTrialCountdown } from '@/app/lib/atlas-usage-limits';
+import { trackEvent } from '@/app/lib/analytics-track';
 
 type Props = {
   lang: 'fr' | 'ar';
@@ -58,7 +59,10 @@ export function DashboardFunnelInsights({ lang, pendingDeclarationsCount }: Prop
             </p>
             <button
               type="button"
-              onClick={() => router.push('/pricing')}
+              onClick={() => {
+                trackEvent('upgrade_clicked', { surface: 'dashboard_insights', target: 'pricing' });
+                router.push('/pricing');
+              }}
               className="mt-2 text-xs font-bold text-slate-800 hover:underline"
             >
               {t('Comparer les offres', 'قارن العروض')}

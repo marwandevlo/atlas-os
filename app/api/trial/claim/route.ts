@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
 import { addDaysYmd, todayYmd } from '@/app/lib/atlas-dates';
+import { sendWelcomeLifecycleEmail } from '@/app/lib/atlas-lifecycle-email';
 
 const FREE_TRIAL_PLAN_ID = 'free-trial';
 const TRIAL_DAYS = 7;
@@ -289,6 +290,20 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+
+  void (async () => {
+    try {
+      const { data: full } = await admin.auth.admin.getUserById(user.id);
+      const addr = full.user?.email;
+      if (!addr) return;
+      const meta = full.user?.user_metadata as Record<string, unknown> | undefined;
+      const displayName =
+        typeof meta?.full_name === 'string' ? meta.full_name : typeof meta?.name === 'string' ? meta.name : null;
+      await sendWelcomeLifecycleEmail(admin, user.id, addr, displayName);
+    } catch {
+      // non-blocking
+    }
+  })();
 
   return NextResponse.json({
     ok: true,

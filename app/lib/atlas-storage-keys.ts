@@ -11,4 +11,6 @@ export const ATLAS_STORAGE_KEYS = {
   employees: 'atlas_employees',
   projects: 'atlas_projects',
   links: 'atlas_links',
+  /** Extra company slots purchased for Pro (integer, local persistence until server-backed). */
+  proCompanyAddonSlots: 'atlas_pro_company_addon_slots',
 } as const;

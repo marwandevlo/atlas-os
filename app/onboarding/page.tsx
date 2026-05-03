@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle2, ChevronRight, FileText, Sparkles, UserCircle2 } from 'lucide-react';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
+import { trackEvent } from '@/app/lib/analytics-track';
 
 const SESSION_ONBOARDING = 'zafirix_show_onboarding';
 
@@ -21,6 +22,15 @@ const NEEDS = [
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  useEffect(() => {
+    try {
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('atlas_onboarding_started_track')) return;
+      sessionStorage.setItem('atlas_onboarding_started_track', '1');
+    } catch {
+      // ignore
+    }
+    trackEvent('onboarding_started');
+  }, []);
   const [companyType, setCompanyType] = useState<string>(COMPANY_TYPES[0]);
   const [selectedNeeds, setSelectedNeeds] = useState<string[]>([]);
 
@@ -50,6 +60,10 @@ export default function OnboardingPage() {
       }
       sessionStorage.setItem(SESSION_ONBOARDING, '1');
     }
+    trackEvent('onboarding_completed', {
+      companyType,
+      needsCount: selectedNeeds.length,
+    });
     router.push('/');
   };
 
@@ -149,7 +163,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="flex-[2] py-3 rounded-xl bg-[#0f1a32] text-white text-sm font-bold hover:bg-[#1a2a4a]"
+                className="flex-2 py-3 rounded-xl bg-[#0f1a32] text-white text-sm font-bold hover:bg-[#1a2a4a]"
               >
                 Suivant
               </button>
@@ -211,7 +225,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={finish}
-                className="flex-[2] py-3 rounded-xl bg-linear-to-r from-amber-400 to-amber-300 text-[#0b1428] text-sm font-extrabold shadow-md hover:brightness-105"
+                className="flex-2 py-3 rounded-xl bg-linear-to-r from-amber-400 to-amber-300 text-[#0b1428] text-sm font-extrabold shadow-md hover:brightness-105"
               >
                 Accéder au tableau de bord
               </button>

@@ -1,11 +1,19 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Building2, ChevronRight, Trash2, Edit, CheckCircle, Search } from 'lucide-react';
 import type { AtlasCompany } from '@/app/types/atlas-company';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
-import { canCreateCompany, syncCompanyUsageCount } from '@/app/lib/atlas-usage-limits';
+import {
+  canCreateCompany,
+  getActivePlan,
+  getEffectivePlanLimits,
+  getPlanLimits,
+  syncCompanyUsageCount,
+} from '@/app/lib/atlas-usage-limits';
+import { getProCompanyAddonExtraSlots } from '@/app/lib/atlas-company-addons';
+import { CompanyLimitProUpsell } from '@/app/components/conversion/CompanyLimitProUpsell';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 const defaultCompanies: AtlasCompany[] = [
@@ -73,6 +81,8 @@ export default function CompaniesPage() {
   const [limitNotice, setLimitNotice] = useState('');
   const [termsKind, setTermsKind] = useState<'30' | '60' | '90' | 'custom'>('30');
   const [termsCustomDays, setTermsCustomDays] = useState('45');
+  /** Bumps when returning to the tab so Pro add-on limits refresh from localStorage. */
+  const [limitRefreshTick, setLimitRefreshTick] = useState(0);
   const [form, setForm] = useState({
     raisonSociale: '', formeJuridique: 'SARL', if_fiscal: '', ice: '',
     rc: '', cnss: '', adresse: '', ville: 'Casablanca', telephone: '',
@@ -94,6 +104,14 @@ export default function CompaniesPage() {
     }
   }, []);
 
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') setLimitRefreshTick((t) => t + 1);
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
+
   const saveCompanies = (newCompanies: AtlasCompany[]) => {
     setCompanies(newCompanies);
     localStorage.setItem('atlas_companies', JSON.stringify(newCompanies));
@@ -105,7 +123,9 @@ export default function CompaniesPage() {
     if (!form.raisonSociale) return;
     const decision = canCreateCompany();
     if (!decision.allowed) {
-      setLimitNotice(decision.messageFr ?? decision.messageAr ?? 'Limite atteinte.');
+      const p = getActivePlan();
+      if (p?.id === 'pro') setLimitNotice('');
+      else setLimitNotice(decision.messageFr ?? decision.messageAr ?? 'Limite atteinte.');
       return;
     }
     if (decision.level === 'warning') setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
@@ -151,8 +171,16 @@ export default function CompaniesPage() {
   );
 
   const activeCompany = companies.find(c => c.actif);
-  const plan = companies.length <= 1 ? 'Starter' : companies.length <= 20 ? 'Pro' : 'Enterprise';
-  const maxCompanies = plan === 'Starter' ? 1 : plan === 'Pro' ? 20 : Infinity;
+
+  const planMeta = useMemo(() => {
+    const activePlan = getActivePlan();
+    const eff = getEffectivePlanLimits(activePlan);
+    const base = getPlanLimits(activePlan);
+    const addonExtra = activePlan?.id === 'pro' ? getProCompanyAddonExtraSlots() : 0;
+    const max = eff.companies ?? (activePlan ? 999 : 999);
+    const proCapReached = activePlan?.id === 'pro' && eff.companies !== null && companies.length >= eff.companies;
+    return { activePlan, eff, base, addonExtra, max, proCapReached };
+  }, [companies.length, limitRefreshTick]);
 
   const formes = ['SARL', 'SA', 'SNC', 'SARL AU', 'Auto-entrepreneur', 'Personne physique'];
   const villes = ['Casablanca', 'Rabat', 'Marrakech', 'Fes', 'Tanger', 'Agadir', 'Meknes', 'Oujda', 'Kenitra', 'Autre'];
@@ -164,16 +192,19 @@ export default function CompaniesPage() {
         footer={
           <div className="px-4 py-4 border-t border-white/10">
             <div className="bg-amber-400/20 rounded-lg p-3 text-center">
-              <p className="text-amber-300 text-xs font-medium">Forfait {plan}</p>
+              <p className="text-amber-300 text-xs font-medium">Forfait {planMeta.activePlan?.name ?? '—'}</p>
               <p className="text-white font-bold text-lg">
-                {companies.length} / {maxCompanies === Infinity ? '∞' : maxCompanies}
+                {companies.length} / {planMeta.max}
               </p>
               <p className="text-white/40 text-xs">sociétés</p>
+              {planMeta.activePlan?.id === 'pro' && planMeta.addonExtra > 0 ? (
+                <p className="text-white/50 text-[10px] mt-1">+{planMeta.addonExtra} extension Pro</p>
+              ) : null}
               <div className="w-full bg-white/10 rounded-full h-1.5 mt-2">
                 <div
                   className="bg-amber-400 h-1.5 rounded-full"
                   style={{
-                    width: `${Math.min((companies.length / (maxCompanies === Infinity ? companies.length : maxCompanies)) * 100, 100)}%`,
+                    width: `${Math.min((companies.length / Math.max(planMeta.max, 1)) * 100, 100)}%`,
                   }}
                 />
               </div>
@@ -192,7 +223,9 @@ export default function CompaniesPage() {
             onClick={() => {
               const decision = canCreateCompany();
               if (!decision.allowed) {
-                setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
+                const p = getActivePlan();
+                if (p?.id === 'pro') setLimitNotice('');
+                else setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
                 return;
               }
               if (decision.level === 'warning') setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
@@ -205,6 +238,11 @@ export default function CompaniesPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-4">
+          {planMeta.proCapReached &&
+            planMeta.eff.companies !== null &&
+            planMeta.base.companies !== null && (
+              <CompanyLimitProUpsell effectiveLimit={planMeta.eff.companies} baseIncluded={planMeta.base.companies} />
+            )}
           {limitNotice && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
               {limitNotice}
@@ -221,7 +259,7 @@ export default function CompaniesPage() {
             </div>
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <p className="text-xs text-gray-400">Places restantes</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{maxCompanies === Infinity ? '∞' : maxCompanies - companies.length}</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{Math.max(0, planMeta.max - companies.length)}</p>
             </div>
           </div>
 

@@ -1,5 +1,6 @@
 import { todayYmd } from '@/app/lib/atlas-dates';
 import { readCompaniesFromLocalStorage } from '@/app/lib/atlas-companies-repository';
+import { getProCompanyAddonExtraSlots } from '@/app/lib/atlas-company-addons';
 import { getAtlasPlanById, type AtlasLimit, type AtlasPricingPlan, type AtlasPricingPlan as Plan } from '@/app/lib/atlas-pricing-plans';
 
 export type AtlasUsage = {
@@ -138,9 +139,24 @@ export function getPlanLimits(plan: Plan | null = getActivePlan()): {
   };
 }
 
+/** Plan limits with Pro company add-ons (+3 / +5 packs) applied to the sociétés cap only. */
+export function getEffectivePlanLimits(plan: Plan | null = getActivePlan()): {
+  companies: number | null;
+  users: number | null;
+  operations: number | null;
+  invoices: number | null;
+} {
+  const base = getPlanLimits(plan);
+  if (!plan || plan.id !== 'pro' || base.companies === null) return base;
+  return {
+    ...base,
+    companies: base.companies + getProCompanyAddonExtraSlots(),
+  };
+}
+
 export function getUsagePercentage(type: AtlasUsageType): number | null {
   const plan = getActivePlan();
-  const limits = getPlanLimits(plan);
+  const limits = type === 'companies' ? getEffectivePlanLimits(plan) : getPlanLimits(plan);
   const limit = limits[type];
   if (!limit || limit <= 0) return null;
   const usage = getUsage();
@@ -258,9 +274,24 @@ export function syncCompanyUsageCount(companyCount: number): void {
 
 export function canCreateCompany(): LimitDecision {
   const plan = getActivePlan();
-  const limits = getPlanLimits(plan);
+  const limits = getEffectivePlanLimits(plan);
   const count = typeof window !== 'undefined' ? readCompaniesFromLocalStorage().length : getUsage().companies;
-  return decideHard(count, limits.companies, 'company');
+  const decision = decideHard(count, limits.companies, 'company');
+  if (!decision.allowed && plan?.id === 'pro' && limits.companies !== null) {
+    return {
+      ...decision,
+      messageFr: `Vous avez atteint la limite de ${limits.companies} entreprises`,
+      messageAr: `لقد وصلت إلى حد ${limits.companies} شركة`,
+    };
+  }
+  if (!decision.allowed && plan && plan.id !== 'free-trial' && plan.billingPeriod !== 'trial') {
+    return {
+      ...decision,
+      messageFr: 'Limite du nombre de sociétés atteinte pour votre forfait.',
+      messageAr: 'تم بلوغ حد عدد الشركات لهذه الباقة.',
+    };
+  }
+  return decision;
 }
 
 export function canInviteUser(): LimitDecision {
