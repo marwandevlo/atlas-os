@@ -23,9 +23,9 @@ export function TrialUpgradeBanner() {
   const subline =
     days !== null
       ? days === 0
-        ? "Dernier jour d'essai — passez à l'offre Pro pour continuer sans limite."
-        : `${days} jour${days > 1 ? 's' : ''} restant${days > 1 ? 's' : ''} sur votre essai gratuit.`
-      : 'Essai gratuit actif — débloquez toutes les limites avec une offre payante.';
+        ? "Dernier jour d'essai — passez à Pro pour débloquer volumes, utilisateurs et opérations sans blocage."
+        : `${days} jour${days > 1 ? 's' : ''} restant${days > 1 ? 's' : ''} — la version Pro retire les plafonds qui freinent votre cabinet ou votre PME.`
+      : 'Essai gratuit actif — Passez à la version Pro pour débloquer tout le potentiel de ZAFIRIX PRO.';
 
   return (
     <div className="rounded-xl border border-amber-200 bg-linear-to-r from-amber-50 to-orange-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -34,7 +34,7 @@ export function TrialUpgradeBanner() {
           <Sparkles size={18} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-amber-950">Passez à l&apos;offre payante</p>
+          <p className="text-sm font-semibold text-amber-950">Passez à la version Pro</p>
           <p className="text-xs text-amber-900/80 mt-0.5">{subline}</p>
           {plan?.name ? <p className="text-[11px] text-amber-800/70 mt-1">Forfait actuel : {plan.name}</p> : null}
         </div>
@@ -42,10 +42,10 @@ export function TrialUpgradeBanner() {
       <div className="flex flex-wrap gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => router.push('/pricing?plan=pro')}
+          onClick={() => router.push('/pricing')}
           className="px-4 py-2 rounded-lg bg-[#0F1F3D] text-white text-xs font-semibold hover:bg-[#1a3060]"
         >
-          Voir les tarifs — Pro
+          Voir les offres Pro
         </button>
         <button
           type="button"

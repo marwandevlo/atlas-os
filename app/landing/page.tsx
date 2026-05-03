@@ -1,7 +1,25 @@
 'use client';
+
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, CheckCircle, Zap, Shield, Brain, FileText, TrendingUp, Upload, ArrowRight, Star } from 'lucide-react';
+import {
+  ArrowRight,
+  Brain,
+  Building2,
+  CheckCircle,
+  CreditCard,
+  FileText,
+  Headphones,
+  Lock,
+  Receipt,
+  Shield,
+  Sparkles,
+  Star,
+  TrendingUp,
+  Upload,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 import { ZafirixLogo } from '@/app/components/branding/ZafirixLogo';
 
@@ -14,61 +32,122 @@ export default function LandingPage() {
 
   const t = useCallback((fr: string, ar: string) => (isAr ? ar : fr), [isAr]);
 
-  const features = useMemo(
+  const goSignup = () => router.push('/signup');
+  const goPricing = () => router.push('/pricing');
+  const goLogin = () => router.push('/login');
+
+  const trustBarItems = useMemo(
+    () => [
+      { icon: Building2, label: t('Pensé pour le Maroc', 'مصمم للمغرب') },
+      { icon: Users, label: t('PME & Cabinets', 'الشركات الصغرى والمكاتب') },
+      { icon: Sparkles, label: t('Interface FR / AR', 'واجهة FR / AR') },
+      { icon: Zap, label: t('7 jours gratuits', '7 أيام مجانية') },
+    ],
+    [t],
+  );
+
+  const benefitFeatures = useMemo(
     () => [
       {
-        icon: FileText,
-        title: t('Aide à la déclaration de TVA', 'مساعدة على إقرار TVA'),
+        icon: Receipt,
+        title: t('Déclarez votre TVA en quelques clics', 'صَرِّح عن TVA في بضع نقرات'),
         desc: t(
-          'Centralisez vos factures et préparez votre déclaration de TVA grâce à des contrôles explicites.',
-          'جمّع فواتيرك وأعدّ إقرار TVA بفضل ضوابط وتدقيق واضحين.',
+          'Moins d’erreurs, moins de tableurs : vos bases et échéances restent lisibles.',
+          'أخطاء أقل وجداول أقل: تبقى قواعدك وآجالك واضحة.',
         ),
-        color: 'bg-blue-500',
-      },
-      {
-        icon: Brain,
-        title: t('Consultant IA 24/7', 'مستشار الذكاء الاصطناعي (AI) — على مدار الساعة'),
-        desc: t(
-          'Posez vos questions fiscales en français ou en arabe : réponses structurées et pédagogiques.',
-          'اطرح أسئلتك الضريبية بالفرنسية أو بالعربية، مع إجابات منظّمة وواضحة.',
-        ),
-        color: 'bg-purple-500',
-      },
-      {
-        icon: Upload,
-        title: t('OCR intelligent', 'OCR ذكي للوثائق'),
-        desc: t(
-          'Numérisez vos factures pour en extraire les données utiles et réduire la saisie manuelle.',
-          'حوّل فواتيرك إلى نسخ رقمية لاستخراج الحقول المفيدة وتقليل الإدخال اليدوي.',
-        ),
-        color: 'bg-rose-500',
+        gradient: 'from-blue-500 to-indigo-600',
       },
       {
         icon: TrendingUp,
-        title: t('IS et IR assistés', 'IS و IR بمساعدة منظّمة'),
+        title: t('IS & IR structurés pour le Maroc', 'IS وIR منظّمان للسياق المغربي'),
         desc: t(
-          'Cadres de calcul et barèmes marocains pour structurer vos éléments IS et IR ainsi que vos masses salariales.',
-          'إطارات حساب وسلالم مغربية لترتيب عناصر IS وIR وكتل الأجور.',
+          'Barèmes et cadres pensés pour les obligations locales — sans jargon inutile.',
+          'سلوم وإطارات تلائم الالتزامات المحلية — دون مصطلحات معقّدة.',
         ),
-        color: 'bg-green-500',
+        gradient: 'from-emerald-500 to-teal-600',
+      },
+      {
+        icon: FileText,
+        title: t('Factures & clients sans friction', 'الفواتير والعملاء بسهولة'),
+        desc: t(
+          'Centralisez clients et factures : suivez les retards et gardez une trace claire.',
+          'جمّع العملاء والفواتير: تابع التأخير واحتفظ بأثر واضح.',
+        ),
+        gradient: 'from-amber-500 to-orange-600',
+      },
+      {
+        icon: Brain,
+        title: t('Un consultant fiscal IA à portée de clic', 'مستشار ضريبي بالذكاء الاصطناعي'),
+        desc: t(
+          'Réponses structurées sur TVA, IS, IR, CNSS — en français ou en arabe.',
+          'إجابات منظّمة حول TVA وIS وIR والضمان الاجتماعي — بالفرنسية أو العربية.',
+        ),
+        gradient: 'from-violet-500 to-purple-600',
+      },
+      {
+        icon: Upload,
+        title: t('OCR : moins de saisie, plus de contrôle', 'OCR: إدخال أقل وتحكّم أكبر'),
+        desc: t(
+          'Extrayez l’essentiel de vos pièces pour accélérer votre dossier.',
+          'استخرج جوهر وثائقك لتسريع ملفك.',
+        ),
+        gradient: 'from-rose-500 to-pink-600',
       },
       {
         icon: Shield,
-        title: t('Conformité DGI (Maroc)', 'متوافق مع متطلبات المديرية العامة للضرائب'),
+        title: t('Aligné sur le cadre marocain (DGI)', 'متماشٍ مع الإطار المغربي (DGI)'),
         desc: t(
-          'Évolutions régulières alignées sur les circulaires et orientations de la DGI.',
-          'تحديثات دورية تتماشى مع التعاميم والتوجيهات الصادرة عن المديرية العامة للضرائب.',
+          'Une logique produit orientée conformité et clarté opérationnelle.',
+          'منطق منتوج يركّز على المطابقة والوضوح التشغيلي.',
         ),
-        color: 'bg-amber-500',
+        gradient: 'from-slate-600 to-slate-800',
+      },
+    ],
+    [t],
+  );
+
+  const steps = useMemo(
+    () => [
+      {
+        n: 1,
+        title: t('Créez votre compte', 'أنشئ حسابك'),
+        desc: t('En 1 minute — sans carte bancaire.', 'في دقيقة — بدون بطاقة بنكية.'),
       },
       {
-        icon: Zap,
-        title: t('Export et télédéclaration', 'التصدير والتصريح الإلكتروني'),
-        desc: t(
-          'Exportez vos déclarations dans des formats adaptés et facilitez vos démarches de télédéclaration.',
-          'صدّر التصاريح بصيغ مناسبة، وسهّل مسار التصريح الإلكتروني.',
-        ),
-        color: 'bg-cyan-500',
+        n: 2,
+        title: t('Ajoutez vos données', 'أضف بياناتك'),
+        desc: t('Clients, factures, société : tout au même endroit.', 'العملاء والفواتير والشركة: في مكان واحد.'),
+      },
+      {
+        n: 3,
+        title: t('Gérez & déclarez sereinement', 'أدِر وصَرِّح براحة'),
+        desc: t('Tableaux de bord, exports et assistant IA.', 'لوحات معلومات وتصدير ومساعد ذكي.'),
+      },
+    ],
+    [t],
+  );
+
+  const objections = useMemo(
+    () => [
+      {
+        icon: CreditCard,
+        title: t('Pas besoin de carte bancaire', 'لا حاجة لبطاقة بنكية'),
+        text: t('L’essai démarre sans friction — vous décidez ensuite.', 'تبدأ التجربة بسلاسة — ثم تقرر.'),
+      },
+      {
+        icon: Sparkles,
+        title: t('Facile à prendre en main', 'سهل الاستيعاب'),
+        text: t('Interface pensée pour les équipes non techniques.', 'واجهة مفكّرة للفرق غير التقنية.'),
+      },
+      {
+        icon: Headphones,
+        title: t('Support disponible', 'دعم متوفر'),
+        text: t('Une équipe à l’écoute pour vous accompagner.', 'فريق يستمع لمرافقتك.'),
+      },
+      {
+        icon: Lock,
+        title: t('Conçu pour le système marocain', 'مفكّر للنظام المغربي'),
+        text: t('TVA, IS, IR, CNSS : le vocabulaire et les flux locaux.', 'TVA وIS وIR والضمان الاجتماعي: المفردات والمسارات المحلية.'),
       },
     ],
     [t],
@@ -108,180 +187,256 @@ export default function LandingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-white flex flex-col" dir={isAr ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-slate-50 flex flex-col" dir={isAr ? 'rtl' : 'ltr'}>
       {/* Navbar */}
-      <nav className="bg-[#1B2A4A] text-white sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ZafirixLogo size="sm" subtitle subtitleText="ZAFIRIX GROUP" subtitleClassName="text-white/40" />
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0f1a32]/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0 shrink">
+            <ZafirixLogo size="sm" subtitle subtitleText="ZAFIRIX GROUP" subtitleClassName="text-white/45" />
           </div>
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="hidden sm:flex items-center gap-1 rounded-lg bg-white/10 p-1">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-0.5 rounded-xl bg-white/10 p-0.5 ring-1 ring-white/10">
               <button
                 type="button"
                 onClick={() => setLang('fr')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${!isAr ? 'bg-white text-[#1B2A4A]' : 'text-white/70 hover:text-white'}`}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${!isAr ? 'bg-white text-[#0f1a32] shadow' : 'text-white/70 hover:text-white'}`}
               >
                 FR
               </button>
               <button
                 type="button"
                 onClick={() => setLang('ar')}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${isAr ? 'bg-white text-[#1B2A4A]' : 'text-white/70 hover:text-white'}`}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${isAr ? 'bg-white text-[#0f1a32] shadow' : 'text-white/70 hover:text-white'}`}
               >
                 AR
               </button>
             </div>
             <button
-              onClick={() => router.push('/pricing')}
-              className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold text-white bg-linear-to-r from-sky-500 via-indigo-500 to-violet-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition"
+              type="button"
+              onClick={goPricing}
+              className="hidden sm:inline-flex items-center justify-center px-3 py-2 rounded-xl text-sm font-semibold text-white/90 border border-white/15 bg-white/5 hover:bg-white/10 transition"
             >
               {t('Tarifs', 'الأسعار')}
             </button>
             <button
-              onClick={() => router.push('/login')}
-              className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold text-white/90 border border-white/20 bg-white/10 hover:bg-white/15 hover:text-white transition"
+              type="button"
+              onClick={goLogin}
+              className="hidden sm:inline-flex items-center justify-center px-3 py-2 rounded-xl text-sm font-semibold text-white/90 hover:bg-white/10 transition"
             >
-              {t('Connexion', 'تسجيل الدخول')}
+              {t('Connexion', 'دخول')}
             </button>
-            <button onClick={() => router.push('/signup')} className="px-4 py-2 bg-amber-400 text-[#1B2A4A] rounded-lg text-sm font-bold hover:bg-amber-300 transition-colors">
-              {t('Essai gratuit 7 j', 'تجربة مجانية 7 أيام')}
+            <button
+              type="button"
+              onClick={goSignup}
+              className="inline-flex items-center justify-center px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-amber-400 text-[#0f1a32] hover:bg-amber-300 shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {t('Essai gratuit', 'تجربة مجانية')}
             </button>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero */}
-      <section className="bg-[#1B2A4A] text-white pt-20 pb-32">
-        <div className="max-w-4xl mx-auto text-center px-6">
-          <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-2 text-sm mb-6">
-            <Zap size={14} className="text-amber-400" />
-            <span>
-              {t(
-                'Comptabilité et fiscalité au Maroc : plus simples au quotidien',
-                'المحاسبة والضرائب في المغرب: أبسط في الممارسة اليومية',
-              )}
-            </span>
+      {/* Hero — compact, CTA visible without scroll on most phones */}
+      <section className="relative overflow-hidden bg-linear-to-br from-[#0b1428] via-[#121f3d] to-[#1a1040] text-white">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(99,102,241,0.25), transparent 45%), radial-gradient(circle at 80% 60%, rgba(245,158,11,0.12), transparent 40%)',
+          }}
+        />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-8 pb-10 sm:pt-12 sm:pb-14 lg:pt-14 lg:pb-16">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs sm:text-sm font-medium text-white/85 backdrop-blur-sm mb-4 sm:mb-5">
+            <Zap size={14} className="text-amber-400 shrink-0" aria-hidden />
+            <span>{t('Pour entrepreneurs, PME & cabinets — Maroc', 'لروّاد الأعمال والشركات والمكاتب — المغرب')}</span>
           </div>
-          <h1 className="text-5xl font-bold leading-tight mb-6">
-            {t('Pilotez votre gestion,', 'تحكّم في إدارتك،')}
-            <br />
-            <span className="text-amber-400">{t('avec des outils conçus pour le Maroc', 'بأدوات مصممة للمغرب')}</span>
-          </h1>
-          <p className="text-white/60 text-xl mb-10 max-w-2xl mx-auto">
+
+          <h1 className="text-[1.65rem] leading-tight sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-balance max-w-4xl">
             {t(
-              'Centralisez vos factures, suivez vos échéances et préparez vos déclarations (TVA, IS, IR) dans une interface claire — pour les PME et les cabinets.',
-              'جمّع فواتيرك، تابع آجالك، وحضّر تصاريحك (TVA، IS، IR) عبر واجهة واضحة — للشركات الصغرى والمتوسطة وللمكاتب المحاسبية.',
+              'Gérez votre comptabilité sans stress — TVA, IS, IR en quelques clics',
+              'أدِر محاسبتك بلا توتر — TVA وIS وIR في بضع نقرات',
+            )}
+          </h1>
+
+          <p className="mt-4 text-base sm:text-lg text-white/70 max-w-2xl leading-relaxed text-pretty">
+            {t(
+              'Factures, clients, déclarations et assistant IA — tout centralisé pour réduire les erreurs fiscales et le temps perdu.',
+              'الفواتير والعملاء والتصاريح والمساعد الذكي — مركزية لتقليل الأخطاء الضريبية والوقت الضائع.',
             )}
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-8 py-4 bg-amber-400 text-[#1B2A4A] rounded-xl text-base font-bold hover:bg-amber-300 transition-colors">
-              {t('Créer un compte', 'إنشاء حساب')} <ArrowRight size={18} />
+
+          <div className="mt-6 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+            <button
+              type="button"
+              onClick={goSignup}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-amber-400 to-amber-300 px-6 py-3.5 sm:py-4 text-base font-bold text-[#0b1428] shadow-lg shadow-amber-500/25 transition-all hover:brightness-105 hover:scale-[1.02] active:scale-[0.98] ring-1 ring-amber-200/60"
+            >
+              {t('Essai gratuit 7 jours', 'تجربة مجانية 7 أيام')}
+              <ArrowRight size={18} className={isAr ? 'rotate-180' : ''} aria-hidden />
             </button>
-            <button onClick={() => router.push('/pricing')} className="px-8 py-4 border border-white/20 rounded-xl text-base hover:bg-white/10 transition-colors">
-              {t('Voir les offres', 'اطّلع على العروض')}
+            <button
+              type="button"
+              onClick={goSignup}
+              className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+            >
+              {t('Commencez maintenant', 'ابدأ الآن')}
+            </button>
+            <button
+              type="button"
+              onClick={goPricing}
+              className="inline-flex items-center justify-center rounded-2xl px-6 py-3.5 text-sm font-semibold text-white/80 hover:text-white hover:underline underline-offset-4 transition-colors sm:no-underline sm:hover:bg-white/5 sm:rounded-2xl sm:px-5"
+            >
+              {t('Voir les offres', 'عرض الأسعار')}
             </button>
           </div>
-          <p className="text-white/30 text-sm mt-4">
-            {t('Essai 7 jours · Sans carte bancaire · Support local', 'تجربة 7 أيام · بدون بطاقة بنكية · دعم محلي')}
-          </p>
+
+          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs sm:text-sm text-white/55">
+            <li className="flex items-center gap-1.5">
+              <CheckCircle size={14} className="text-emerald-400 shrink-0" aria-hidden />
+              {t('Sans carte bancaire', 'بدون بطاقة بنكية')}
+            </li>
+            <li className="flex items-center gap-1.5">
+              <CheckCircle size={14} className="text-emerald-400 shrink-0" aria-hidden />
+              {t('Activation immédiate', 'تفعيل فوري')}
+            </li>
+            <li className="flex items-center gap-1.5">
+              <CheckCircle size={14} className="text-emerald-400 shrink-0" aria-hidden />
+              {t('Conçu pour le Maroc', 'مصمم للمغرب')}
+            </li>
+          </ul>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="bg-gray-50 py-12">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="grid grid-cols-4 gap-6 text-center">
-            {[
-              { value: t('Simple', 'بسيط'), label: t('Au quotidien', 'يومياً') },
-              { value: t('Clair', 'واضح'), label: t('Suivi clair', 'متابعة واضحة') },
-              { value: t('Temps', 'الوقت'), label: t('Gestion simplifiée', 'إدارة مبسّطة') },
-              {
-                value: t('Maroc', 'المغرب'),
-                label: t('Conforme aux besoins du marché marocain', 'ملائم لاحتياجات السوق المغربي'),
-              },
-            ].map((s, i) => (
-              <div key={i}>
-                <p className="text-3xl font-bold text-[#1B2A4A]">{s.value}</p>
-                <p className="text-gray-400 text-sm mt-1">{s.label}</p>
+      {/* Trust bar */}
+      <section className="border-b border-slate-200/80 bg-white py-4 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {trustBarItems.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-center gap-2 rounded-2xl border border-slate-100 bg-slate-50/80 py-3 px-3 text-center text-xs sm:text-sm font-semibold text-slate-700 transition hover:border-indigo-200 hover:bg-white hover:shadow-md"
+              >
+                <item.icon size={16} className="text-indigo-500 shrink-0" aria-hidden />
+                <span className="leading-tight">{item.label}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-20 px-6">
+      {/* Benefits / features */}
+      <section className="py-14 sm:py-20 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">{t('Tout ce dont vous avez besoin', 'كل ما تحتاجه')}</h2>
-            <p className="text-gray-400 text-lg">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
+            <p className="text-sm font-semibold uppercase tracking-wider text-indigo-600 mb-2">{t('Résultats', 'النتائج')}</p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 text-balance">
+              {t('Moins de complexité. Plus de maîtrise.', 'تعقيد أقل. تحكّم أكبر.')}
+            </h2>
+            <p className="mt-3 text-slate-600 text-base">
               {t(
-                'Une solution complète pour la fiscalité et la comptabilité au Maroc',
-                'حل متكامل للمحاسبة والضرائب في المغرب',
+                'Chaque fonctionnalité est formulée comme un gain concret pour votre entreprise ou votre cabinet.',
+                'كل ميزة صيغت كمكسب ملموس لمؤسستك أو لمكتبك.',
               )}
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-6">
-            {features.map((f, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-                <div className={`w-12 h-12 ${f.color} rounded-xl flex items-center justify-center mb-4`}>
-                  <f.icon size={24} className="text-white" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {benefitFeatures.map((f, i) => (
+              <div
+                key={i}
+                className="group relative rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-100 hover:shadow-xl"
+              >
+                <div
+                  className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br ${f.gradient} text-white shadow-md transition-transform group-hover:scale-105`}
+                >
+                  <f.icon size={22} aria-hidden />
                 </div>
-                <h3 className="font-bold text-gray-800 mb-2">{f.title}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
+                <h3 className="text-lg font-bold text-slate-900 leading-snug">{f.title}</h3>
+                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Vs Competition */}
-      <section className="bg-[#1B2A4A] text-white py-16 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">{t('Pourquoi ZAFIRIX PRO ?', 'لماذا ZAFIRIX PRO؟')}</h2>
-          <p className="text-white/60 mb-10">
-            {t(
-              'Par rapport aux solutions génériques peu adaptées au contexte marocain',
-              'مقارنةً بالحلول العامة التي لا تراعي السياق المغربي بما يكفي',
-            )}
-          </p>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: t('Conforme TVA Maroc', 'متوافق مع TVA بالمغرب'), atlas: true, other: false },
-              { label: t('Cadres CNSS / AMO', 'إطارات CNSS / AMO'), atlas: true, other: false },
-              { label: t('Barème IR marocain', 'سلم IR المغربي'), atlas: true, other: false },
-              { label: t('Interface en français et en arabe', 'واجهة بالفرنسية والعربية'), atlas: true, other: false },
-              { label: t('Tarification adaptée au Maroc', 'تسعير ملائم للسوق المغربي'), atlas: true, other: false },
-              { label: t('Support local', 'دعم محلي'), atlas: true, other: false },
-            ].map((r, i) => (
-              <div key={i} className="bg-white/10 rounded-xl p-4 flex items-center justify-between">
-                <span className="text-sm text-white/80">{r.label}</span>
-                <div className="flex gap-3">
-                  <CheckCircle size={16} className="text-green-400" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 px-6 bg-gray-50">
+      {/* How it works */}
+      <section className="py-14 sm:py-20 px-4 sm:px-6 bg-linear-to-b from-white to-slate-50 border-y border-slate-100">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">{t('Ils nous font confiance', 'يثقون بنا')}</h2>
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{t('Comment ça marche ?', 'كيف يعمل؟')}</h2>
+            <p className="mt-2 text-slate-600">{t('Trois étapes. Aucune formation lourde.', 'ثلاث خطوات. دون تكوين معقّد.')}</p>
           </div>
-          <div className="grid grid-cols-3 gap-6">
-            {testimonials.map((t, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(t.stars)].map((_, j) => <Star key={j} size={14} className="text-amber-400 fill-amber-400" />)}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 relative">
+            <div className="hidden md:block absolute top-10 left-[16%] right-[16%] h-0.5 bg-linear-to-r from-indigo-200 via-violet-200 to-amber-200 z-0" aria-hidden />
+            {steps.map((s) => (
+              <div
+                key={s.n}
+                className="relative z-10 flex flex-col items-center text-center rounded-2xl border border-slate-100 bg-white p-6 sm:p-8 shadow-sm transition hover:shadow-md"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-600 to-violet-600 text-lg font-black text-white shadow-lg mb-4">
+                  {s.n}
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">&quot;{t.text}&quot;</p>
+                <h3 className="text-lg font-bold text-slate-900">{s.title}</h3>
+                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Social proof */}
+      <section className="py-14 sm:py-20 px-4 sm:px-6 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="rounded-2xl border border-slate-200/80 bg-linear-to-r from-indigo-50 via-white to-amber-50 px-6 py-8 sm:py-10 text-center mb-10 sm:mb-12 shadow-sm">
+            <p className="text-sm font-semibold text-indigo-700 uppercase tracking-wide">{t('Confiance', 'الثقة')}</p>
+            <p className="mt-2 text-xl sm:text-2xl font-extrabold text-slate-900">
+              {t('Des dizaines d’entreprises nous font confiance', 'عشرات الشركات تثق بنا')}
+            </p>
+            <p className="mt-2 text-slate-600 max-w-xl mx-auto">
+              {t('Pensé pour le marché marocain — PME, indépendants et cabinets comptables.', 'مفكّر للسوق المغربي — الشركات والمستقلون والمحاسبون.')}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+            {testimonials.map((item, i) => (
+              <figure
+                key={i}
+                className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md hover:border-amber-100"
+              >
+                <div className="flex gap-0.5 mb-4" aria-label={t('5 sur 5', '5 من 5')}>
+                  {Array.from({ length: item.stars }).map((_, j) => (
+                    <Star key={j} size={14} className="text-amber-400 fill-amber-400" aria-hidden />
+                  ))}
+                </div>
+                <blockquote className="text-slate-600 text-sm leading-relaxed mb-4">&ldquo;{item.text}&rdquo;</blockquote>
+                <figcaption>
+                  <p className="font-semibold text-slate-900 text-sm">{item.name}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">{item.role}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Objection handling */}
+      <section className="py-14 sm:py-20 px-4 sm:px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-slate-900 mb-3">
+            {t('Des réponses avant vos questions', 'إجابات قبل أسئلتك')}
+          </h2>
+          <p className="text-center text-slate-600 mb-10 max-w-xl mx-auto">
+            {t('On enlève les freins classiques pour vous faire gagner du temps.', 'نزيل العوائق المعتادة لتوفير وقتك.')}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {objections.map((o, i) => (
+              <div
+                key={i}
+                className="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-5 sm:p-6 transition hover:bg-white hover:shadow-md hover:border-indigo-100"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-100">
+                  <o.icon size={20} className="text-indigo-600" aria-hidden />
+                </div>
                 <div>
-                  <p className="font-semibold text-gray-800 text-sm">{t.name}</p>
-                  <p className="text-gray-400 text-xs">{t.role}</p>
+                  <h3 className="font-bold text-slate-900">{o.title}</h3>
+                  <p className="mt-1 text-sm text-slate-600 leading-relaxed">{o.text}</p>
                 </div>
               </div>
             ))}
@@ -289,25 +444,54 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="bg-amber-400 py-16 px-6">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-[#1B2A4A] mb-4">
-            {t('Simplifiez votre gestion comptable et fiscale', 'بسّط إدارتك المحاسبية والجبائية')}
+      {/* Final CTA */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 pb-28 sm:pb-20 lg:pb-16">
+        <div className="max-w-3xl mx-auto text-center rounded-3xl border border-indigo-100 bg-linear-to-br from-[#0f1a32] via-[#1a2560] to-[#2e1065] p-8 sm:p-12 text-white shadow-2xl shadow-indigo-900/20">
+          <Sparkles className="mx-auto mb-4 text-amber-400" size={28} aria-hidden />
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-balance">
+            {t('Commencez gratuitement dès aujourd’hui', 'ابدأ مجاناً من اليوم')}
           </h2>
-          <p className="text-[#1B2A4A]/70 mb-8">
-            {t(
-              'Une approche structurée, un suivi plus lisible et moins de tâches répétitives — adaptée au contexte marocain.',
-              'نهج منظم، ومتابعة أوضح، ومهام متكررة أقل — بما يلائم السياق المغربي.',
-            )}
+          <p className="mt-3 text-white/75 text-base sm:text-lg">
+            {t('Aucune carte requise — testez pendant 7 jours', 'لا حاجة لبطاقة — جرّب 7 أيام')}
           </p>
-          <button onClick={() => router.push('/login')} className="flex items-center gap-2 px-10 py-4 bg-[#1B2A4A] text-white rounded-xl text-base font-bold hover:bg-[#243660] transition-colors mx-auto">
-            {t('Démarrer maintenant', 'ابدأ الآن')} <ArrowRight size={18} />
+          <button
+            type="button"
+            onClick={goSignup}
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-2xl bg-amber-400 px-8 py-4 text-base font-bold text-[#0b1428] shadow-lg transition-all hover:bg-amber-300 hover:scale-[1.03] active:scale-[0.98]"
+          >
+            {t('Essai gratuit 7 jours', 'تجربة مجانية 7 أيام')}
+            <ArrowRight size={20} className={isAr ? 'rotate-180' : ''} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={goPricing}
+            className="mt-4 block w-full text-center text-sm font-semibold text-white/70 hover:text-white transition-colors"
+          >
+            {t('Comparer les offres d’abord →', 'قارن العروض أولاً ←')}
           </button>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Sticky mobile CTA */}
+      <div className="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur-md p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(15,23,42,0.12)] lg:hidden">
+        <div className="max-w-lg mx-auto flex gap-2">
+          <button
+            type="button"
+            onClick={goSignup}
+            className="flex-1 rounded-xl bg-linear-to-r from-amber-400 to-amber-300 py-3.5 text-sm font-bold text-[#0b1428] shadow-md active:scale-[0.98] transition-transform"
+          >
+            {t('Essai gratuit 7 j', '7 أيام مجاناً')}
+          </button>
+          <button
+            type="button"
+            onClick={goPricing}
+            className="rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-semibold text-slate-700 bg-white active:scale-[0.98] transition-transform"
+          >
+            {t('Offres', 'العروض')}
+          </button>
+        </div>
+      </div>
+
       <div className="mt-auto">
         <PublicFooter />
       </div>
