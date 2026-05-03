@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
 import { activateReferralForUser } from '@/app/lib/atlas-referral-server';
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   if (atlasDataBackend() !== 'supabase') {
     return NextResponse.json({ ok: true, skipped: true });
   }
