@@ -1,5 +1,6 @@
 import { appendLocalFunnelEvent } from '@/app/lib/atlas-funnel-local-buffer';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 
 export const ANALYTICS_EVENT_NAMES = [
   'view_landing',
@@ -57,6 +58,14 @@ function currentPath(): string {
 export function trackEvent(eventName: AnalyticsEventName, metadata: Record<string, unknown> = {}): void {
   if (typeof window === 'undefined') return;
   if (!ALLOWED.has(eventName)) return;
+  if (
+    ATLAS_INCIDENT_HOTFIX_GROWTH &&
+    (eventName === 'manual_payment_requested' ||
+      eventName.startsWith('referral_') ||
+      eventName === 'reward_unlocked')
+  ) {
+    return;
+  }
 
   const anonymousId = getOrCreateAnonymousId();
   const path = currentPath();

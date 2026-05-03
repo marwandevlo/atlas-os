@@ -10,6 +10,7 @@ import {
   getManualWhatsAppPhoneDigits,
   planDisplayName,
 } from '@/app/lib/atlas-manual-subscription';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { trackEvent } from '@/app/lib/analytics-track';
 
 type Props = {
@@ -89,6 +90,7 @@ export function ManualPaymentModal({ open, onClose, planId }: Props) {
     }
   }, [planId, router]);
 
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH) return null;
   if (!open) return null;
 
   return (

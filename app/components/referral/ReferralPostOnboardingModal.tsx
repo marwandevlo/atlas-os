@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { ATLAS_REFERRAL_CONFIG } from '@/app/lib/atlas-referral-config';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { ReferralDashboardCard } from '@/app/components/referral/ReferralDashboardCard';
 
@@ -30,6 +31,7 @@ function readReferralModalShouldOpen(): boolean {
 export function ReferralPostOnboardingModal({ lang }: Props) {
   const [open, setOpen] = useState(() => readReferralModalShouldOpen());
 
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH) return null;
   if (!isAtlasSupabaseDataEnabled() || !open) return null;
 
   const dismiss = () => {

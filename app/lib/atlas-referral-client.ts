@@ -1,5 +1,6 @@
 import { ATLAS_REFERRAL_CONFIG } from '@/app/lib/atlas-referral-config';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { normalizeReferralCode as normalizeReferralCodeUtil } from '@/app/lib/atlas-referral-utils';
 
 export const ATLAS_REFERRAL_PENDING_KEY = ATLAS_REFERRAL_CONFIG.pendingCodeStorageKey;
@@ -46,7 +47,7 @@ export function buildSignupReferralLink(origin: string, code: string): string {
 
 /** Await referral attach after trial claim so welcome bonus can extend the new trial row. */
 export async function awaitCompleteReferralSignupWithSession(): Promise<void> {
-  if (!isAtlasSupabaseDataEnabled()) return;
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH || !isAtlasSupabaseDataEnabled()) return;
   const code = readPendingReferralCode();
   if (!code) return;
   try {
@@ -74,7 +75,7 @@ export async function awaitCompleteReferralSignupWithSession(): Promise<void> {
  * Fire-and-forget: attach pending referral after auth. Never throws; ignores when Supabase off.
  */
 export function flushPendingReferralSignup(accessToken?: string | null): void {
-  if (!isAtlasSupabaseDataEnabled()) return;
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH || !isAtlasSupabaseDataEnabled()) return;
   const code = readPendingReferralCode();
   if (!code) return;
 

@@ -99,7 +99,7 @@ export async function middleware(request: NextRequest) {
   const { data } = await supabase.auth.getUser();
   const user = data.user;
 
-  // Require login for private pages
+  // Require login for private pages. Public routes (e.g. /landing, /login) already returned above — no loop on `next`.
   if (!user) {
     const url = request.nextUrl.clone();
     // Public entry point should be the landing page in production.

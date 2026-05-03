@@ -23,6 +23,7 @@ import {
 import { ATLAS_COMPANY_SLOT_ADDONS } from '@/app/lib/atlas-company-addons';
 import { trackEvent } from '@/app/lib/analytics-track';
 import type { FunnelPlanPresentation } from '@/app/lib/atlas-pricing-funnel';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { ManualPaymentModal } from '@/app/components/pricing/ManualPaymentModal';
 
 const planIconById: Record<string, typeof Rocket> = {
@@ -77,7 +78,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {manualModal ? (
+      {!ATLAS_INCIDENT_HOTFIX_GROWTH && manualModal ? (
         <ManualPaymentModal
           open
           planId={manualModal.planId}
@@ -135,7 +136,7 @@ export default function PricingPage() {
               fp={fp}
               onTrial={goTrial}
               onPay={goPay}
-              onManual={() => setManualModal({ planId: fp.plan.id })}
+              onManual={ATLAS_INCIDENT_HOTFIX_GROWTH ? undefined : () => setManualModal({ planId: fp.plan.id })}
             />
           ))}
         </div>
@@ -268,7 +269,7 @@ function FunnelPlanCard({
   fp: FunnelPlanPresentation;
   onTrial: () => void;
   onPay: (planId: string) => void;
-  onManual: () => void;
+  onManual?: () => void;
 }) {
   const { plan, isMostPopular } = fp;
   const Icon = planIconById[plan.id] ?? Rocket;
@@ -330,13 +331,15 @@ function FunnelPlanCard({
           >
             Choisir cette offre — payer
           </button>
-          <button
-            type="button"
-            onClick={onManual}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-dashed border-slate-300 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-400 transition-colors"
-          >
-            💬 Paiement manuel (Maroc)
-          </button>
+          {onManual ? (
+            <button
+              type="button"
+              onClick={onManual}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold text-slate-600 border border-dashed border-slate-300 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-400 transition-colors"
+            >
+              💬 Paiement manuel (Maroc)
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

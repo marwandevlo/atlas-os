@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Gift, MessageCircle, Sparkles, Trophy } from 'lucide-react';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { trackEvent } from '@/app/lib/analytics-track';
 import { buildReferralShareTextBilingual, openWhatsAppReferralShareText } from '@/app/lib/atlas-referral-client';
@@ -54,6 +55,8 @@ export function ReferralDashboardCard({ lang, compact = false }: Props) {
     window.addEventListener(REFRESH_EVENT, onRefresh);
     return () => window.removeEventListener(REFRESH_EVENT, onRefresh);
   }, [load]);
+
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH) return null;
 
   const share = (surface: string) => {
     const link = (data?.signupUrl ?? '').trim();

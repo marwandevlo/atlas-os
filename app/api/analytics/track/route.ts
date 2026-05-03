@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { checkPaymentRateLimit } from '@/app/lib/payment-rate-limit';
 
 const ALLOWED = new Set([
@@ -69,6 +70,13 @@ export async function POST(request: NextRequest) {
   const event = (body?.event ?? '').trim();
   if (!ALLOWED.has(event)) {
     return NextResponse.json({ ok: false, error: 'invalid_event' }, { status: 400 });
+  }
+
+  if (
+    ATLAS_INCIDENT_HOTFIX_GROWTH &&
+    (event === 'manual_payment_requested' || event.startsWith('referral_') || event === 'reward_unlocked')
+  ) {
+    return NextResponse.json({ ok: true, skipped: true });
   }
 
   const pathRaw = typeof body?.path === 'string' ? body.path.trim().slice(0, 512) : '';

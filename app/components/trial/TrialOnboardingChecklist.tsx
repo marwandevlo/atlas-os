@@ -6,6 +6,7 @@ import { Building2, CheckCircle2, Circle, FileText, Users } from 'lucide-react';
 import { readCompaniesFromLocalStorage } from '@/app/lib/atlas-companies-repository';
 import { listAtlasInvoices } from '@/app/lib/atlas-invoices-repository';
 import { readClientsFromLocalStorage } from '@/app/lib/atlas-clients-repository';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 
 const SESSION_KEY = 'zafirix_show_onboarding';
@@ -56,7 +57,7 @@ export function TrialOnboardingChecklist({ lang }: Props) {
     } catch {
       return;
     }
-    if (!isAtlasSupabaseDataEnabled()) return;
+    if (!isAtlasSupabaseDataEnabled() || ATLAS_INCIDENT_HOTFIX_GROWTH) return;
     void (async () => {
       try {
         const res = await fetch('/api/referral/activate', { method: 'POST', credentials: 'include' });

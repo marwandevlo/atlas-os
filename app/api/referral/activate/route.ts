@@ -3,9 +3,13 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { activateReferralForUser } from '@/app/lib/atlas-referral-server';
 
 export async function POST() {
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH) {
+    return NextResponse.json({ ok: true, skipped: true, reason: 'hotfix' });
+  }
   if (atlasDataBackend() !== 'supabase') {
     return NextResponse.json({ ok: true, skipped: true });
   }

@@ -3,6 +3,8 @@
  * Without credentials, operations log structured lines and expose wa.me deep links for ops tooling.
  */
 
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
+
 export type WhatsAppSendResult =
   | { ok: true; channel: 'cloud_api'; messageId?: string }
   | { ok: true; channel: 'logged'; deeplink: string }
@@ -23,6 +25,12 @@ export function buildWaMeDeepLink(phoneE164Digits: string, text: string): string
  * Sends a WhatsApp message when Cloud API env is configured; otherwise logs + returns deeplink (integration-ready).
  */
 export async function sendWhatsAppMessage(phone: string, message: string): Promise<WhatsAppSendResult> {
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH) {
+    const to = digitsOnly(phone);
+    if (!to) return { ok: false, reason: 'invalid_phone' };
+    return { ok: true, channel: 'logged', deeplink: buildWaMeDeepLink(to, message) };
+  }
+
   const token = process.env.WHATSAPP_CLOUD_API_TOKEN?.trim();
   const phoneNumberId = process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID?.trim();
   const to = digitsOnly(phone);

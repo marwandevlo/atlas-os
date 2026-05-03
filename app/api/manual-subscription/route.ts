@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
+import { ATLAS_INCIDENT_HOTFIX_GROWTH } from '@/app/lib/atlas-hotfix';
 import { checkPaymentRateLimit } from '@/app/lib/payment-rate-limit';
 import { normalizeManualPlan, planDisplayName } from '@/app/lib/atlas-manual-subscription';
 import { sendEmailViaResend } from '@/app/lib/atlas-email-resend';
@@ -23,6 +24,9 @@ function bearer(request: NextRequest): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  if (ATLAS_INCIDENT_HOTFIX_GROWTH) {
+    return NextResponse.json({ ok: false, error: 'temporarily_unavailable' }, { status: 503 });
+  }
   if (atlasDataBackend() !== 'supabase') {
     return NextResponse.json({ ok: false, error: 'not_enabled' }, { status: 400 });
   }
