@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
+import { isOwnerEmail, OWNER_SESSION_KEY } from '@/app/lib/owner';
 import { supabase } from '@/app/lib/supabase';
 
 const PUBLIC_PREFIXES = [
@@ -40,6 +41,14 @@ export function EmailLifecycleBootstrap() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) return;
+      try {
+        const email = data.session?.user?.email ?? null;
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(OWNER_SESSION_KEY, isOwnerEmail(email) ? '1' : '0');
+        }
+      } catch {
+        // ignore
+      }
       if (typeof window !== 'undefined' && sessionStorage.getItem('atlas_welcome_email_ping')) {
         attempted.current = true;
         return;

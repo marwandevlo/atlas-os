@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Building2, ChevronRight, Trash2, Edit, CheckCircle, Search } from 'lucide-react';
+import { Plus, ChevronRight, Trash2, CheckCircle, Search } from 'lucide-react';
 import type { AtlasCompany } from '@/app/types/atlas-company';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
@@ -98,19 +98,21 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('atlas_companies');
-    if (saved) {
-      const parsed = JSON.parse(saved) as AtlasCompany[];
-      setCompanies(parsed);
-      syncCompanyUsageCount(parsed.length);
-    } else if (!isAtlasSupabaseDataEnabled()) {
-      setCompanies(defaultCompanies);
-      localStorage.setItem('atlas_companies', JSON.stringify(defaultCompanies));
-      localStorage.setItem('atlas_company', JSON.stringify(defaultCompanies[0]));
-      syncCompanyUsageCount(defaultCompanies.length);
-    } else {
-      setCompanies([]);
-      syncCompanyUsageCount(0);
-    }
+    queueMicrotask(() => {
+      if (saved) {
+        const parsed = JSON.parse(saved) as AtlasCompany[];
+        setCompanies(parsed);
+        syncCompanyUsageCount(parsed.length);
+      } else if (!isAtlasSupabaseDataEnabled()) {
+        setCompanies(defaultCompanies);
+        localStorage.setItem('atlas_companies', JSON.stringify(defaultCompanies));
+        localStorage.setItem('atlas_company', JSON.stringify(defaultCompanies[0]));
+        syncCompanyUsageCount(defaultCompanies.length);
+      } else {
+        setCompanies([]);
+        syncCompanyUsageCount(0);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -146,6 +148,7 @@ export default function CompaniesPage() {
     if (decision.level === 'warning') setLimitNotice(decision.messageFr ?? decision.messageAr ?? '');
 
     const { balance, ...payload } = form;
+    void balance;
     const paymentTerms: AtlasPaymentTerms =
       termsKind === 'custom'
         ? { kind: 'custom', days: Number.parseInt(termsCustomDays || '0', 10) || 0 }
@@ -198,6 +201,7 @@ export default function CompaniesPage() {
       activePlan?.id === 'pro' ? getProCompanyAddonExtraSlots() + referralExtra : referralExtra;
     const max = eff.companies ?? (activePlan ? 999 : 999);
     const proCapReached = activePlan?.id === 'pro' && eff.companies !== null && companies.length >= eff.companies;
+    void limitRefreshTick;
     return { activePlan, eff, base, addonExtra, max, proCapReached, referralExtra };
   }, [companies.length, limitRefreshTick]);
 
@@ -345,7 +349,11 @@ export default function CompaniesPage() {
                 <div className="col-span-2">
                   <label className="text-xs text-gray-400 mb-1 block">Délai de paiement</label>
                   <div className="flex gap-2">
-                    <select value={termsKind} onChange={e => setTermsKind(e.target.value as any)} className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    <select
+                      value={termsKind}
+                      onChange={(e) => setTermsKind(e.target.value as '30' | '60' | '90' | 'custom')}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                    >
                       <option value="30">30 jours</option>
                       <option value="60">60 jours</option>
                       <option value="90">90 jours</option>

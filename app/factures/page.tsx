@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Download, Send, FileText, ReceiptText, CheckCircle2, Wallet, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Download, Send, ReceiptText, CheckCircle2, Wallet, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { addDaysYmd, isOverdue, todayYmd } from '@/app/lib/atlas-dates';
 import { deleteAtlasInvoice, listAtlasInvoices, upsertAtlasInvoice, writeInvoicesToLocalStorage } from '@/app/lib/atlas-invoices-repository';
@@ -213,14 +213,13 @@ export default function FacturesPage() {
     return m;
   }, [payments]);
 
-  const paidForInvoice = (inv: AtlasInvoice): number => {
-    const invKey = String(inv.id);
-    const sum = (paymentsByInvoiceId.get(invKey) ?? []).reduce((s, p) => s + (p.paidAmount || 0), 0);
-    return sum > 0 ? sum : (inv.paidAmount ?? 0);
-  };
-
   const rows: FactureRow[] = useMemo(() => {
     const now = todayYmd();
+    const paidForInvoice = (inv: AtlasInvoice): number => {
+      const invKey = String(inv.id);
+      const sum = (paymentsByInvoiceId.get(invKey) ?? []).reduce((s, p) => s + (p.paidAmount || 0), 0);
+      return sum > 0 ? sum : (inv.paidAmount ?? 0);
+    };
     return invoices.map((inv) => {
       const normalizedTerms = normalizePaymentTerms(inv.paymentTerms ?? { kind: 'preset', days: 30 });
       const computedDueDate = addDaysYmd(inv.issueDate, normalizedTerms.days);
@@ -332,9 +331,13 @@ export default function FacturesPage() {
         const doc = createInvoicePdfDoc({ company, invoice: pdfData });
         const blob = doc.output('blob') as Blob;
         const file = new File([blob], invoicePdfFilename(r.numero), { type: 'application/pdf' });
-        const canShareFiles = (navigator as any).canShare?.({ files: [file] });
+        const nav = navigator as Navigator & {
+          canShare?: (data: { files: File[] }) => boolean;
+          share?: (data: { files: File[]; title?: string; text?: string }) => Promise<void>;
+        };
+        const canShareFiles = nav.canShare?.({ files: [file] });
         if (canShareFiles) {
-          await (navigator as any).share({
+          await nav.share?.({
             title: `Facture ${r.numero}`,
             text: `Facture ${r.numero} — ${Math.round(r.ttc).toLocaleString()} MAD — échéance ${r.echeance}`,
             files: [file],
@@ -352,7 +355,7 @@ export default function FacturesPage() {
 
   useEffect(() => {
     if (totals.overdueCount <= 0) {
-      setInsight({ loading: false, text: '' });
+      queueMicrotask(() => setInsight({ loading: false, text: '' }));
       return;
     }
 
@@ -379,8 +382,15 @@ export default function FacturesPage() {
             `Factures (top):\\n${top}\\n\\n` +
             `Format attendu:\\n1) Résumé (1 phrase)\\n2) Recommandation (2-3 bullets)\\n3) Prochaine action (1 phrase)`,
         });
-        const data = await res.json().catch(() => ({} as any));
-        const text = typeof data?.response === 'string' && data.response.trim() ? data.response : fallback;
+        const raw: unknown = await res.json().catch(() => ({}));
+        const responseText =
+          typeof raw === 'object' &&
+          raw !== null &&
+          'response' in raw &&
+          typeof (raw as { response: unknown }).response === 'string'
+            ? String((raw as { response: string }).response).trim()
+            : '';
+        const text = responseText || fallback;
         if (!cancelled) setInsight({ loading: false, text });
       } catch {
         if (!cancelled) setInsight({ loading: false, text: fallback });
@@ -625,7 +635,11 @@ export default function FacturesPage() {
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Délai de paiement</label>
                   <div className="flex gap-2">
-                    <select value={termsKind} onChange={e => setTermsKind(e.target.value as any)} className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400">
+                    <select
+                      value={termsKind}
+                      onChange={(e) => setTermsKind(e.target.value as '30' | '60' | '90' | 'custom')}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
+                    >
                       <option value="30">30 jours</option>
                       <option value="60">60 jours</option>
                       <option value="90">90 jours</option>

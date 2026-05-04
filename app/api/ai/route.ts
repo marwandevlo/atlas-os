@@ -57,10 +57,11 @@ Règles:
 
 function tryParseAssistantJson(text: string): { response: string; actions: unknown[] } | null {
   try {
-    const parsed = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
     if (!parsed || typeof parsed !== 'object') return null;
-    const response = (parsed as any).response;
-    const actions = (parsed as any).actions;
+    const obj = parsed as Record<string, unknown>;
+    const response = obj.response;
+    const actions = obj.actions;
     if (typeof response !== 'string') return null;
     if (!Array.isArray(actions)) return null;
     return { response, actions };

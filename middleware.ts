@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import type { User } from '@supabase/supabase-js';
 import { atlasDataBackend } from '@/app/lib/atlas-data-source';
+import { isOwnerEmail } from '@/app/lib/owner';
 
 const PUBLIC_PATHS = new Set([
   '/landing',
@@ -26,8 +28,11 @@ function isPublicPath(pathname: string): boolean {
   return false;
 }
 
-function isAdminFromUser(user: any): boolean {
-  return user?.app_metadata?.role === 'admin';
+function isAdminFromUser(user: User | null): boolean {
+  if (!user) return false;
+  const meta = user.app_metadata as Record<string, unknown> | undefined;
+  const r = String(meta?.role ?? '');
+  return r === 'admin' || r === 'owner';
 }
 
 export async function middleware(request: NextRequest) {
@@ -83,7 +88,7 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  let response = NextResponse.next();
+  const response = NextResponse.next();
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -110,7 +115,38 @@ export async function middleware(request: NextRequest) {
 
   // Protect admin routes
   if (pathname.startsWith('/admin')) {
-    if (!isAdminFromUser(user)) {
+    // Owner must never be blocked (fast path; avoids relying on JWT metadata/DB).
+    if (isOwnerEmail(user.email ?? null)) {
+      return response;
+    }
+
+    // Prefer app_metadata.role, but allow a DB-backed admin role as fallback.
+    // This keeps admin access manageable via `profiles.role` without relying solely on JWT metadata.
+    let isAdmin = isAdminFromUser(user);
+    if (!isAdmin) {
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE ?? '';
+      if (serviceRoleKey) {
+        try {
+          const adminClient = createServerClient(supabaseUrl, serviceRoleKey, {
+            cookies: {
+              getAll: () => [],
+              setAll: () => {},
+            },
+          });
+          const { data: prof } = await adminClient
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+          const r = String((prof as { role?: string | null } | null)?.role ?? '');
+          isAdmin = r === 'admin' || r === 'owner';
+        } catch {
+          // ignore; fall back to app_metadata only
+        }
+      }
+    }
+
+    if (!isAdmin) {
       const url = request.nextUrl.clone();
       url.pathname = '/access-denied';
       return NextResponse.redirect(url);

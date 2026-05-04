@@ -41,15 +41,27 @@ export default function CompaniesAdminClient() {
         if (!token) return;
 
         const res = await fetch('/api/admin/companies', { headers: { Authorization: `Bearer ${token}` } });
-        const json = (await res.json().catch(() => ({}))) as any;
+        const json: unknown = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(typeof json?.error === 'string' ? json.error : 'forbidden');
+          const msg =
+            typeof json === 'object' && json && 'error' in json && typeof (json as { error?: unknown }).error === 'string'
+              ? String((json as { error?: unknown }).error)
+              : 'forbidden';
+          setError(msg);
           return;
         }
 
         if (!cancelled) {
-          setRows(Array.isArray(json?.companies) ? (json.companies as AdminCompanyRow[]) : []);
-          if (typeof json?.warning === 'string') setWarning(json.warning);
+          const companies =
+            typeof json === 'object' && json && 'companies' in json && Array.isArray((json as { companies?: unknown }).companies)
+              ? ((json as { companies: unknown[] }).companies as AdminCompanyRow[])
+              : [];
+          setRows(companies);
+          const warn =
+            typeof json === 'object' && json && 'warning' in json && typeof (json as { warning?: unknown }).warning === 'string'
+              ? String((json as { warning?: unknown }).warning)
+              : '';
+          if (warn) setWarning(warn);
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erreur');

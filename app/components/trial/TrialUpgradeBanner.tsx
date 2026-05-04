@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { getActivePlan, getTrialCountdown } from '@/app/lib/atlas-usage-limits';
 import { trackEvent } from '@/app/lib/analytics-track';
+import { isOwnerSessionFlagSet } from '@/app/lib/owner';
 
 export function TrialUpgradeBanner() {
   const router = useRouter();
@@ -16,8 +17,15 @@ export function TrialUpgradeBanner() {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  const tc = useMemo(() => getTrialCountdown(), [tick]);
-  const plan = useMemo(() => getActivePlan(), [tick]);
+  const tc = useMemo(() => {
+    void tick;
+    return getTrialCountdown();
+  }, [tick]);
+  const plan = useMemo(() => {
+    void tick;
+    return getActivePlan();
+  }, [tick]);
+  if (isOwnerSessionFlagSet()) return null;
   if (!tc.isTrial) return null;
 
   const days = tc.isTrial ? tc.daysLeft : null;

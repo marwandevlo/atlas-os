@@ -1,56 +1,48 @@
 'use client';
 
-import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BadgeCheck, Ban, BarChart3, DollarSign, RefreshCw, ShieldAlert, Users } from 'lucide-react';
 import { isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { supabase } from '@/app/lib/supabase';
-import { readLocalFunnelEvents } from '@/app/lib/atlas-funnel-local-buffer';
-import type { FunnelStatsResponse } from '@/app/api/admin/funnel-stats/route';
 
-function aggregateLocal(windowDays: number): FunnelStatsResponse {
-  const since = Date.now() - windowDays * 24 * 60 * 60 * 1000;
-  const rows = readLocalFunnelEvents().filter((r) => new Date(r.created_at).getTime() >= since);
-  const counts: Record<string, number> = {};
-  for (const r of rows) {
-    counts[r.event_name] = (counts[r.event_name] ?? 0) + 1;
-  }
-  const landingViews = counts.view_landing ?? 0;
-  const signups = counts.signup_completed ?? 0;
-  const onboardingStarted = counts.onboarding_started ?? 0;
-  const onboardingCompleted = counts.onboarding_completed ?? 0;
-  const pricingViews = counts.view_pricing ?? 0;
-  const upgradeClicks = counts.upgrade_clicked ?? 0;
-  const trialBannerClicks = counts.trial_banner_clicked ?? 0;
-  const landingToSignupRate = landingViews > 0 ? signups / landingViews : null;
-  return {
-    windowDays,
-    counts,
-    signups,
-    onboardingStarted,
-    onboardingCompleted,
-    landingViews,
-    pricingViews,
-    upgradeClicks,
-    trialBannerClicks,
-    landingToSignupRate,
-    signupToOnboardingRate: signups > 0 ? onboardingCompleted / signups : null,
-    conversionRateEstimate: landingToSignupRate,
-    referralClicksDb: 0,
-    referralLinkedSignupsDb: 0,
-    referralActivatedDb: 0,
-    referralRewardsGrantedDb: 0,
+type Metrics = {
+  users: {
+    total: number;
+    active: number;
+    suspended: number;
+    banned: number;
   };
+  subscriptions: {
+    total: number;
+    active: number;
+    byPlan: { free: number; pro: number; vip: number; enterprise: number; other: number };
+  };
+  revenue: {
+    estMonthlyUsd: number;
+    activePro: number;
+    activeVip: number;
+  };
+  growth: Array<{ day: string; count: number }>;
+  planDist: { free: number; pro: number; vip: number; enterprise: number; other: number };
+};
+
+type ProfileCreatedAtRow = { created_at: string | null };
+type ActiveSubscriptionRow = { id: string; status: string | null; plan_slug: string | null; plan: string | null };
+
+function ymd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-function pct(n: number | null): string {
-  if (n === null || Number.isNaN(n)) return '—';
-  return `${(n * 100).toFixed(1)} %`;
+function clamp(n: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, n));
 }
 
 export default function AnalyticsDashboardClient() {
   const [days, setDays] = useState(30);
-  const [stats, setStats] = useState<FunnelStatsResponse | null>(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -59,24 +51,106 @@ export default function AnalyticsDashboardClient() {
     setError('');
     try {
       if (!isAtlasSupabaseDataEnabled()) {
-        setStats(aggregateLocal(days));
+        setError('Supabase requis pour ces métriques (profiles/subscriptions).');
         return;
       }
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token ?? '';
-      if (!token) {
-        setError('Session requise.');
-        return;
+
+      const [uTotal, uActive, uSusp, uBanned] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'suspended'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('status', 'banned'),
+      ]);
+      if (uTotal.error || uActive.error || uSusp.error || uBanned.error) throw new Error('db_error_users');
+
+      const [sTotal, sActive] = await Promise.all([
+        supabase.from('subscriptions').select('id', { count: 'exact', head: true }),
+        supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      ]);
+      if (sTotal.error || sActive.error) throw new Error('db_error_subs');
+
+      const [pFree, pPro, pVip, pEnt] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('plan', 'free'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('plan', 'pro'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('plan', 'vip'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('plan', 'enterprise'),
+      ]);
+      if (pFree.error || pPro.error || pVip.error || pEnt.error) throw new Error('db_error_plans');
+
+      const since = new Date();
+      since.setDate(since.getDate() - clamp(days, 1, 365));
+      const growthRes = await supabase
+        .from('profiles')
+        .select('created_at')
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: true })
+        .limit(5000);
+      if (growthRes.error) throw new Error('db_error_growth');
+
+      const buckets = new Map<string, number>();
+      const start = new Date(since);
+      start.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+        buckets.set(ymd(d), 0);
       }
-      const res = await fetch(`/api/admin/funnel-stats?days=${days}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      for (const r of (growthRes.data ?? []) as ProfileCreatedAtRow[]) {
+        const raw = String(r.created_at ?? '');
+        const dt = new Date(raw);
+        if (Number.isNaN(dt.getTime())) continue;
+        const key = ymd(dt);
+        buckets.set(key, (buckets.get(key) ?? 0) + 1);
+      }
+      const growth = Array.from(buckets.entries()).map(([day, count]) => ({ day, count }));
+
+      const activeSubsRes = await supabase
+        .from('subscriptions')
+        .select('id, status, plan_slug, plan')
+        .eq('status', 'active')
+        .limit(5000);
+      if (activeSubsRes.error) throw new Error('db_error_active_subs');
+
+      let activePro = 0;
+      let activeVip = 0;
+      const subByPlan = { free: 0, pro: 0, vip: 0, enterprise: 0, other: 0 };
+      for (const s of (activeSubsRes.data ?? []) as ActiveSubscriptionRow[]) {
+        const plan = String(s.plan_slug ?? s.plan ?? '').toLowerCase();
+        if (plan === 'pro') activePro += 1;
+        else if (plan === 'vip') activeVip += 1;
+
+        if (plan === 'free') subByPlan.free += 1;
+        else if (plan === 'pro') subByPlan.pro += 1;
+        else if (plan === 'vip') subByPlan.vip += 1;
+        else if (plan === 'enterprise') subByPlan.enterprise += 1;
+        else subByPlan.other += 1;
+      }
+      const estMonthlyUsd = activePro * 49 + activeVip * 199;
+
+      const planDist = {
+        free: pFree.count ?? 0,
+        pro: pPro.count ?? 0,
+        vip: pVip.count ?? 0,
+        enterprise: pEnt.count ?? 0,
+        other: Math.max(0, (uTotal.count ?? 0) - (pFree.count ?? 0) - (pPro.count ?? 0) - (pVip.count ?? 0) - (pEnt.count ?? 0)),
+      };
+
+      setMetrics({
+        users: {
+          total: uTotal.count ?? 0,
+          active: uActive.count ?? 0,
+          suspended: uSusp.count ?? 0,
+          banned: uBanned.count ?? 0,
+        },
+        subscriptions: {
+          total: sTotal.count ?? 0,
+          active: sActive.count ?? 0,
+          byPlan: subByPlan,
+        },
+        revenue: { estMonthlyUsd, activePro, activeVip },
+        growth,
+        planDist,
       });
-      const json = (await res.json().catch(() => ({}))) as FunnelStatsResponse & { error?: string; message?: string };
-      if (!res.ok) {
-        setError(typeof json?.message === 'string' ? json.message : json?.error ?? 'Erreur');
-        return;
-      }
-      setStats(json as FunnelStatsResponse);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur');
     } finally {
@@ -88,24 +162,42 @@ export default function AnalyticsDashboardClient() {
     void load();
   }, [load]);
 
+  const maxGrowth = useMemo(() => {
+    if (!metrics?.growth?.length) return 1;
+    return Math.max(1, ...metrics.growth.map((g) => g.count));
+  }, [metrics?.growth]);
+
+  const planBars = useMemo(() => {
+    const d = metrics?.planDist;
+    if (!d) return [];
+    const total = Math.max(1, d.free + d.pro + d.vip + d.enterprise + d.other);
+    return [
+      { key: 'free', label: 'Free', value: d.free, pct: d.free / total, cls: 'bg-slate-500' },
+      { key: 'pro', label: 'Pro', value: d.pro, pct: d.pro / total, cls: 'bg-blue-500' },
+      { key: 'vip', label: 'VIP', value: d.vip, pct: d.vip / total, cls: 'bg-violet-500' },
+      { key: 'enterprise', label: 'Enterprise', value: d.enterprise, pct: d.enterprise / total, cls: 'bg-emerald-500' },
+      { key: 'other', label: 'Other', value: d.other, pct: d.other / total, cls: 'bg-gray-400' },
+    ];
+  }, [metrics?.planDist]);
+
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className="rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 bg-[#0F1F3D] text-white">
         <div>
-          <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <BarChart3 size={16} /> Analytics interne
+          <p className="text-sm font-semibold flex items-center gap-2">
+            <BarChart3 size={16} /> Admin Analytics (Supabase)
           </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Table <span className="font-mono">events</span> · path &amp; metadata côté serveur
+          <p className="text-xs text-white/70 mt-1">
+            Tables <span className="font-mono">profiles</span> &amp; <span className="font-mono">subscriptions</span>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-gray-500">
+          <label className="text-xs text-white/70">
             Jours{' '}
             <select
               value={days}
               onChange={(e) => setDays(Number.parseInt(e.target.value, 10) || 30)}
-              className="ml-1 border border-gray-200 rounded-lg px-2 py-1 text-sm"
+              className="ml-1 border border-white/15 bg-white/10 text-white rounded-lg px-2 py-1 text-sm"
             >
               {[7, 14, 30, 60, 90].map((d) => (
                 <option key={d} value={d}>
@@ -118,7 +210,7 @@ export default function AnalyticsDashboardClient() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/15 bg-white/10 text-sm font-semibold text-white hover:bg-white/15 disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Actualiser
@@ -128,77 +220,93 @@ export default function AnalyticsDashboardClient() {
 
       {error ? <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800">{error}</div> : null}
 
-      {stats ? (
+      {metrics ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Inscriptions</p>
-              <p className="text-3xl font-extrabold text-gray-900 mt-2 tabular-nums">{stats.signups}</p>
-              <p className="text-[11px] text-gray-400 mt-1">signup_completed</p>
+            <div className="rounded-2xl border border-white/10 bg-[#060816] p-5 shadow-sm text-white">
+              <p className="text-xs font-medium text-white/70 uppercase tracking-wide flex items-center gap-2">
+                <Users size={14} /> Users
+              </p>
+              <p className="text-3xl font-extrabold mt-2 tabular-nums">{metrics.users.total}</p>
+              <p className="text-xs text-white/60 mt-2">
+                Active: {metrics.users.active} · Suspended: {metrics.users.suspended} · Banned: {metrics.users.banned}
+              </p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Onboarding terminé</p>
-              <p className="text-3xl font-extrabold text-gray-900 mt-2 tabular-nums">{stats.onboardingCompleted}</p>
-              <p className="text-[11px] text-gray-400 mt-1">Démarrages : {stats.onboardingStarted}</p>
+            <div className="rounded-2xl border border-white/10 bg-[#060816] p-5 shadow-sm text-white">
+              <p className="text-xs font-medium text-white/70 uppercase tracking-wide flex items-center gap-2">
+                <BadgeCheck size={14} /> Subscriptions
+              </p>
+              <p className="text-3xl font-extrabold mt-2 tabular-nums">{metrics.subscriptions.total}</p>
+              <p className="text-xs text-white/60 mt-2">Active: {metrics.subscriptions.active}</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Vues pricing</p>
-              <p className="text-3xl font-extrabold text-gray-900 mt-2 tabular-nums">{stats.pricingViews}</p>
-              <p className="text-[11px] text-gray-400 mt-1">view_pricing</p>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Clics upgrade</p>
-              <p className="text-3xl font-extrabold text-emerald-700 mt-2 tabular-nums">{stats.upgradeClicks}</p>
-              <p className="text-[11px] text-gray-400 mt-1">upgrade_clicked · bannière : {stats.trialBannerClicks}</p>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm sm:col-span-2 lg:col-span-2">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Taux de conversion (estimation)</p>
-              <p className="text-3xl font-extrabold text-indigo-700 mt-2 tabular-nums">{pct(stats.conversionRateEstimate)}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                signup_completed ÷ view_landing · vues landing : {stats.landingViews} · signup → onboarding :{' '}
-                {pct(stats.signupToOnboardingRate)}
+            <div className="rounded-2xl border border-white/10 bg-[#060816] p-5 shadow-sm text-white">
+              <p className="text-xs font-medium text-white/70 uppercase tracking-wide flex items-center gap-2">
+                <DollarSign size={14} /> Revenue (est.)
+              </p>
+              <p className="text-3xl font-extrabold mt-2 tabular-nums">${metrics.revenue.estMonthlyUsd}</p>
+              <p className="text-xs text-white/60 mt-2">
+                Pro: {metrics.revenue.activePro} × $49 · VIP: {metrics.revenue.activeVip} × $199
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
-            <p className="text-sm font-semibold text-gray-900">Parrainage (atlas_referrals)</p>
-            {stats.warnings?.length ? (
-              <p className="text-xs text-amber-700">{stats.warnings.join(' · ')}</p>
-            ) : null}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="rounded-xl border border-gray-100 p-4">
-                <p className="text-xs text-gray-500">Clics parrain</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{stats.referralClicksDb ?? 0}</p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-4">
-                <p className="text-xs text-gray-500">Inscrits avec ref</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1 tabular-nums">{stats.referralLinkedSignupsDb ?? 0}</p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-4">
-                <p className="text-xs text-gray-500">Activations</p>
-                <p className="text-2xl font-bold text-emerald-800 mt-1 tabular-nums">{stats.referralActivatedDb ?? 0}</p>
-              </div>
-              <div className="rounded-xl border border-gray-100 p-4">
-                <p className="text-xs text-gray-500">Récompenses attribuées</p>
-                <p className="text-2xl font-bold text-indigo-800 mt-1 tabular-nums">{stats.referralRewardsGrantedDb ?? 0}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-white/10 bg-[#060816] p-5 shadow-sm text-white">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <BarChart3 size={16} /> Users growth (last {days}d)
+              </p>
+              <p className="text-xs text-white/60 mt-1">Grouped by `profiles.created_at`.</p>
+              <div className="mt-4 h-40 flex items-end gap-1">
+                {metrics.growth.map((g) => {
+                  const h = Math.round((g.count / maxGrowth) * 100);
+                  return (
+                    <div key={g.day} className="flex-1 min-w-[2px]">
+                      <div
+                        title={`${g.day}: ${g.count}`}
+                        className="w-full rounded-t bg-linear-to-t from-[#0066FF] to-[#00F0FF]"
+                        style={{ height: `${Math.max(2, h)}%` }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <p className="text-[11px] text-gray-400">
-              Événements funnel : referral_link_created {stats.counts.referral_link_created ?? 0} · share{' '}
-              {stats.counts.referral_share_clicked ?? 0} · signup started {stats.counts.referral_signup_started ?? 0} ·
-              completed {stats.counts.referral_signup_completed ?? 0} · reward {stats.counts.referral_reward_granted ?? 0}
-              · progress {stats.counts.referral_progress ?? 0} · reward_unlocked {stats.counts.reward_unlocked ?? 0}
-            </p>
+
+            <div className="rounded-2xl border border-white/10 bg-[#060816] p-5 shadow-sm text-white">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <ShieldAlert size={16} /> Plans distribution (profiles.plan)
+              </p>
+              <p className="text-xs text-white/60 mt-1">Free / Pro / VIP / Enterprise.</p>
+              <div className="mt-5 space-y-3">
+                {planBars.map((b) => (
+                  <div key={b.key}>
+                    <div className="flex items-center justify-between text-xs text-white/70">
+                      <span className="font-semibold text-white">{b.label}</span>
+                      <span className="tabular-nums">{b.value}</span>
+                    </div>
+                    <div className="mt-2 h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div className={`h-2 ${b.cls}`} style={{ width: `${Math.round(b.pct * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <p className="text-sm text-gray-600">
-            <Link href="/admin/funnel" className="font-semibold text-gray-900 underline underline-offset-2 hover:text-indigo-700">
-              Détail par nom d’événement
-            </Link>
-            {' · '}
-            {isAtlasSupabaseDataEnabled() ? 'Supabase' : 'localStorage (dev)'}
-          </p>
+          <div className="rounded-2xl border border-white/10 bg-[#060816] p-5 shadow-sm text-white">
+            <p className="text-sm font-semibold flex items-center gap-2">
+              <Ban size={16} /> Subscription plans (active only)
+            </p>
+            <p className="text-xs text-white/60 mt-1">Based on `subscriptions.plan_slug` or `subscriptions.plan`.</p>
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
+              {Object.entries(metrics.subscriptions.byPlan).map(([k, v]) => (
+                <div key={k} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs text-white/60 uppercase tracking-wide">{k}</p>
+                  <p className="text-2xl font-extrabold mt-1 tabular-nums">{v}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </>
       ) : null}
     </div>

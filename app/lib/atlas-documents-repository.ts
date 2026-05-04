@@ -38,21 +38,22 @@ export async function listAtlasDocuments(): Promise<AtlasDocument[]> {
     return readDocumentsFromLocalStorage();
   }
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row: Record<string, unknown>): AtlasDocument => {
     const metadata = asRecord(row.metadata);
+    const cid = row.company_id;
     return {
       id: String(row.id),
-      companyId: row.company_id ?? null,
+      companyId: cid == null ? null : String(cid),
       type: String(row.type ?? 'generic'),
       title: String(row.title ?? ''),
-      content: row.content ?? undefined,
+      content: row.content as unknown,
       kind: String(row.kind ?? 'generic'),
       source: String(row.source ?? 'manual'),
       status: String(row.status ?? 'active'),
       metadata,
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-    } satisfies AtlasDocument;
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+      updatedAt: String(row.updated_at ?? row.created_at ?? new Date().toISOString()),
+    };
   });
 }
 

@@ -120,7 +120,17 @@ export async function executeAssistantAction(action: AtlasAssistantAction): Prom
     const relation = str(data.relation) ?? 'relates_to';
     if (!fromType || !fromId || !toType || !toId) return { ok: false, error: 'link_fields_required' };
 
-    const res = await createAtlasLink({ fromType, fromId, toType, toId, relation, metadata: obj(data.metadata), companyId: (data.companyId as any) ?? null });
+    const companyId =
+      typeof data.companyId === 'string' || data.companyId === null ? (data.companyId as string | null) : null;
+    const res = await createAtlasLink({
+      fromType,
+      fromId,
+      toType,
+      toId,
+      relation,
+      metadata: obj(data.metadata),
+      companyId,
+    });
     if (!res.ok) return { ok: false, error: res.error };
     return { ok: true, message: `Lien créé (${relation})` };
   }

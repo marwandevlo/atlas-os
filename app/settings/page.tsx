@@ -26,7 +26,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('atlas_company');
-    if (saved) setCompany(JSON.parse(saved));
+    if (saved) queueMicrotask(() => setCompany(JSON.parse(saved)));
   }, []);
 
   const handleSave = () => {

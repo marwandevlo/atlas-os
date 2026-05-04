@@ -89,7 +89,7 @@ export default function ComptabilitePage() {
 
   useEffect(() => {
     if (accountingKpis.overdue.length === 0) {
-      setInsight({ loading: false, text: '' });
+      queueMicrotask(() => setInsight({ loading: false, text: '' }));
       return;
     }
     let cancelled = false;
@@ -110,8 +110,15 @@ export default function ComptabilitePage() {
             `Factures (top):\n${top}\n\n` +
             `Format:\n1) Résumé (1 phrase)\n2) Recommandation (2 bullets)\n3) Prochaine action (1 phrase)`,
         });
-        const data = await res.json().catch(() => ({} as any));
-        const text = typeof data?.response === 'string' && data.response.trim() ? data.response : fallback;
+        const raw: unknown = await res.json().catch(() => ({}));
+        const responseText =
+          typeof raw === 'object' &&
+          raw !== null &&
+          'response' in raw &&
+          typeof (raw as { response: unknown }).response === 'string'
+            ? String((raw as { response: string }).response).trim()
+            : '';
+        const text = responseText || fallback;
         if (!cancelled) setInsight({ loading: false, text });
       } catch {
         if (!cancelled) setInsight({ loading: false, text: fallback });

@@ -3,6 +3,7 @@ import { readCompaniesFromLocalStorage } from '@/app/lib/atlas-companies-reposit
 import { getProCompanyAddonExtraSlots } from '@/app/lib/atlas-company-addons';
 import { getReferralExtraCompanySlots } from '@/app/lib/atlas-referral-bonus-state';
 import { getAtlasPlanById, type AtlasLimit, type AtlasPricingPlan, type AtlasPricingPlan as Plan } from '@/app/lib/atlas-pricing-plans';
+import { isOwnerSessionFlagSet } from '@/app/lib/owner';
 
 export type AtlasUsage = {
   companies: number;
@@ -22,7 +23,7 @@ export type AtlasActiveSubscriptionLike = {
 };
 
 export const ATLAS_USAGE_STORAGE_KEY = 'atlas_usage';
-export const ATLAS_ACTIVE_SUBSCRIPTIONS_STORAGE_KEY = 'atlas_active_subscriptions';
+export const ATLAS_ACTIVE_SUBSCRIPTIONS_STORAGE_KEY = 'atlas_subscriptions_cache_v1';
 
 export const DEFAULT_USAGE: AtlasUsage = {
   companies: 0,
@@ -105,6 +106,10 @@ function readActiveSubscriptions(): AtlasActiveSubscriptionLike[] {
 }
 
 export function getActivePlan(): AtlasPricingPlan | null {
+  if (isOwnerSessionFlagSet()) {
+    // Owner bypass: always treat as enterprise (unlimited caps) client-side.
+    return getAtlasPlanById('enterprise') ?? null;
+  }
   const subs = readActiveSubscriptions();
   const candidate =
     subs.find((s) => (s?.status === 'active' || s?.status === 'trial') && typeof s?.planId === 'string') ??

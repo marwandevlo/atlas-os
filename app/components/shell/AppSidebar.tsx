@@ -8,7 +8,6 @@ import {
   Globe,
   LogIn,
   LogOut,
-  Menu,
   X,
 } from 'lucide-react';
 import { BrandWordmark } from '@/app/components/branding/BrandWordmark';

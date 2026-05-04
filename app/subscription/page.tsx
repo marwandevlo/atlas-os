@@ -47,26 +47,77 @@ type ActiveSubscription = {
   createdAt: string;
 };
 
-const STORAGE = {
-  pending: 'atlas_pending_subscriptions',
-  active: 'atlas_active_subscriptions',
-} as const;
+type AtlasPaymentRequestRow = {
+  id: unknown;
+  plan_id: unknown;
+  amount_mad: unknown;
+  billing_period: unknown;
+  payment_method: unknown;
+  manual_provider: unknown;
+  status: unknown;
+  created_at: unknown;
+};
 
-function readJsonArray<T>(key: string): T[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
+type AtlasSubscriptionRow = {
+  id: unknown;
+  plan_id: unknown;
+  status: unknown;
+  start_date: unknown;
+  end_date: unknown;
+  payment_request_id: unknown;
+  created_at: unknown;
+};
+
+function mapPendingPaymentStatus(v: unknown): PendingPaymentStatus {
+  if (v === 'pending' || v === 'paid' || v === 'active' || v === 'rejected') return v;
+  return 'pending';
 }
 
-function writeJsonArray<T>(key: string, value: T[]): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(key, JSON.stringify(value));
+function mapBillingPeriod(v: unknown): PendingSubscription['billingPeriod'] {
+  return v === 'trial' ? 'trial' : 'year';
+}
+
+function mapPaymentMethod(v: unknown): PaymentMethod {
+  if (v === 'card' || v === 'cmi' || v === 'manual') return v;
+  return 'manual';
+}
+
+function mapManualProvider(v: unknown): ManualProvider | undefined {
+  if (v === 'cashplus' || v === 'wafacash' || v === 'western_union') return v;
+  return undefined;
+}
+
+function mapActiveStatus(v: unknown): ActiveSubscription['status'] {
+  if (v === 'active' || v === 'trial') return v;
+  return 'active';
+}
+
+function rowToPendingSubscription(r: AtlasPaymentRequestRow): PendingSubscription {
+  return {
+    id: String(r.id),
+    status: mapPendingPaymentStatus(r.status),
+    planId: String(r.plan_id ?? ''),
+    planName: String(r.plan_id ?? ''),
+    amount: Number(r.amount_mad ?? 0),
+    currency: 'MAD',
+    billingPeriod: mapBillingPeriod(r.billing_period),
+    paymentMethod: mapPaymentMethod(r.payment_method),
+    manualProvider: mapManualProvider(r.manual_provider),
+    createdAt: String(r.created_at ?? new Date().toISOString()),
+  };
+}
+
+function rowToActiveSubscription(s: AtlasSubscriptionRow): ActiveSubscription {
+  return {
+    id: String(s.id),
+    planId: String(s.plan_id ?? ''),
+    planName: String(s.plan_id ?? ''),
+    startDate: String(s.start_date ?? ''),
+    endDate: String(s.end_date ?? ''),
+    status: mapActiveStatus(s.status),
+    paymentReference: String(s.payment_request_id ?? ''),
+    createdAt: String(s.created_at ?? new Date().toISOString()),
+  };
 }
 
 function prettyMethod(p: PendingSubscription): string {
@@ -89,8 +140,8 @@ function prettyMethod(p: PendingSubscription): string {
 export default function SubscriptionPage() {
   const router = useRouter();
 
-  const [activeSubs, setActiveSubs] = useState<ActiveSubscription[]>(() => readJsonArray<ActiveSubscription>(STORAGE.active));
-  const [pendingReqs, setPendingReqs] = useState<PendingSubscription[]>(() => readJsonArray<PendingSubscription>(STORAGE.pending));
+  const [activeSubs, setActiveSubs] = useState<ActiveSubscription[]>([]);
+  const [pendingReqs, setPendingReqs] = useState<PendingSubscription[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [trialNotice, setTrialNotice] = useState('');
@@ -149,31 +200,11 @@ export default function SubscriptionPage() {
           setManualPending(null);
         }
 
-        const reqs: PendingSubscription[] = (reqRes.data ?? []).map((r: any) => ({
-          id: String(r.id),
-          status: String(r.status) as PendingPaymentStatus,
-          planId: String(r.plan_id ?? ''),
-          planName: String(r.plan_id ?? ''),
-          amount: Number(r.amount_mad ?? 0),
-          currency: 'MAD',
-          billingPeriod: (r.billing_period ?? 'year') as any,
-          paymentMethod: (r.payment_method ?? 'manual') as any,
-          manualProvider: (r.manual_provider ?? undefined) as any,
-          createdAt: String(r.created_at ?? new Date().toISOString()),
-        }));
+        const reqs: PendingSubscription[] =
+          ((reqRes.data ?? []) as AtlasPaymentRequestRow[]).map(rowToPendingSubscription);
 
-        const subs: ActiveSubscription[] = (subRes.data ?? []).map((s: any) => ({
-          id: String(s.id),
-          planId: String(s.plan_id ?? ''),
-          planName: String(s.plan_id ?? ''),
-          startDate: String(s.start_date ?? ''),
-          endDate: String(s.end_date ?? ''),
-          status: String(s.status) as any,
-          paymentReference: String(s.payment_request_id ?? ''),
-          createdAt: String(s.created_at ?? new Date().toISOString()),
-        }));
-
-        let activeForCache: ActiveSubscription[] = subs;
+        const subs: ActiveSubscription[] =
+          ((subRes.data ?? []) as AtlasSubscriptionRow[]).map(rowToActiveSubscription);
 
         if (!cancelled) {
           setPendingReqs(reqs);
@@ -199,27 +230,14 @@ export default function SubscriptionPage() {
               .order('created_at', { ascending: false })
               .limit(1);
             if (!subRes2.error && !cancelled) {
-              const subs2: ActiveSubscription[] = (subRes2.data ?? []).map((s: any) => ({
-                id: String(s.id),
-                planId: String(s.plan_id ?? ''),
-                planName: String(s.plan_id ?? ''),
-                startDate: String(s.start_date ?? ''),
-                endDate: String(s.end_date ?? ''),
-                status: String(s.status) as any,
-                paymentReference: String(s.payment_request_id ?? ''),
-                createdAt: String(s.created_at ?? new Date().toISOString()),
-              }));
-              activeForCache = subs2;
+              const subs2: ActiveSubscription[] = ((subRes2.data ?? []) as AtlasSubscriptionRow[]).map(
+                rowToActiveSubscription,
+              );
               setActiveSubs(subs2);
             }
           }
         }
 
-        // Keep existing app behavior stable: many widgets read subscription/payment state
-        // from localStorage. In Supabase mode, treat localStorage as a cache synced from DB,
-        // not a source of truth.
-        writeJsonArray(STORAGE.pending, reqs);
-        writeJsonArray(STORAGE.active, activeForCache);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erreur');
       } finally {

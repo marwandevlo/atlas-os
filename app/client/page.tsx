@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Building2, FileText, Receipt, TrendingUp, CheckCircle, AlertCircle, Download, Clock } from 'lucide-react';
+import { Building2, FileText, Receipt, CheckCircle, AlertCircle, Download, Clock } from 'lucide-react';
 
 export default function ClientPortalPage() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -55,7 +55,7 @@ export default function ClientPortalPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Code d'accès</label>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Code d&apos;accès</label>
                 <input
                   value={code}
                   onChange={e => setCode(e.target.value)}

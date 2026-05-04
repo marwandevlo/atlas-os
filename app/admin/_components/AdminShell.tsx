@@ -4,7 +4,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Building2, CreditCard, LayoutDashboard, ShieldCheck, Users, Boxes, BarChart3, Banknote, TrendingUp } from 'lucide-react';
+import { Building2, CreditCard, LayoutDashboard, ShieldCheck, Users, Boxes, BarChart3, Banknote, TrendingUp, ScrollText } from 'lucide-react';
 import { atlasDataBackend, isAtlasSupabaseDataEnabled } from '@/app/lib/atlas-data-source';
 import { supabase } from '@/app/lib/supabase';
 import { AdminTableSkeleton } from '@/app/admin/_components/AdminUi';
@@ -143,6 +143,7 @@ export default function AdminShell(props: { title: string; children: React.React
             <SidebarLink href="/admin/payments" icon={<CreditCard size={16} />} label="Payments" />
             <SidebarLink href="/admin/manual-payments" icon={<Banknote size={16} />} label="Manuel (MA)" />
             <SidebarLink href="/admin/analytics" icon={<BarChart3 size={16} />} label="Analytics" />
+            <SidebarLink href="/admin/logs" icon={<ScrollText size={16} />} label="Logs" />
           </div>
         </div>
         <aside className="hidden lg:block w-64 shrink-0">
@@ -167,6 +168,7 @@ export default function AdminShell(props: { title: string; children: React.React
               <SidebarLink href="/admin/payments" icon={<CreditCard size={16} />} label="Payments" />
               <SidebarLink href="/admin/manual-payments" icon={<Banknote size={16} />} label="Manuel (MA)" />
               <SidebarLink href="/admin/analytics" icon={<BarChart3 size={16} />} label="Analytics" />
+              <SidebarLink href="/admin/logs" icon={<ScrollText size={16} />} label="Logs" />
             </nav>
           </div>
         </aside>

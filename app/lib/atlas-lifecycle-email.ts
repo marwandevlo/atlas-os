@@ -12,7 +12,7 @@ export const LIFECYCLE_EMAIL_KEYS = ['welcome', 'inactive_reminder', 'trial_day5
 export type LifecycleEmailKey = (typeof LIFECYCLE_EMAIL_KEYS)[number];
 
 export async function hasLifecycleEmailSent(
-  admin: SupabaseClient<any>,
+  admin: SupabaseClient,
   userId: string,
   emailKey: string,
 ): Promise<boolean> {
@@ -25,7 +25,7 @@ export async function hasLifecycleEmailSent(
   return !!data;
 }
 
-async function insertLifecycleSend(admin: SupabaseClient<any>, userId: string, emailKey: string): Promise<void> {
+async function insertLifecycleSend(admin: SupabaseClient, userId: string, emailKey: string): Promise<void> {
   await admin.from('atlas_lifecycle_email_sends').insert({ user_id: userId, email_key: emailKey });
 }
 
@@ -33,7 +33,7 @@ async function insertLifecycleSend(admin: SupabaseClient<any>, userId: string, e
  * Sends welcome if not already sent. Does not record send when Resend is not configured (allows retry later).
  */
 export async function sendWelcomeLifecycleEmail(
-  admin: SupabaseClient<any>,
+  admin: SupabaseClient,
   userId: string,
   email: string,
   displayName?: string | null,
@@ -52,7 +52,7 @@ export async function sendWelcomeLifecycleEmail(
 }
 
 export async function sendInactiveReminderIfNeeded(
-  admin: SupabaseClient<any>,
+  admin: SupabaseClient,
   userId: string,
   email: string,
 ): Promise<SendEmailResult | { skipped: true; reason: string }> {
@@ -79,7 +79,7 @@ export async function sendInactiveReminderIfNeeded(
 }
 
 export async function sendTrialDay5IfNeeded(
-  admin: SupabaseClient<any>,
+  admin: SupabaseClient,
   userId: string,
   email: string,
   trialStartYmd: string,
@@ -103,7 +103,7 @@ export async function sendTrialDay5IfNeeded(
 }
 
 export async function sendUpgradeOfferIfNeeded(
-  admin: SupabaseClient<any>,
+  admin: SupabaseClient,
   userId: string,
   email: string,
   trialEndYmd: string,

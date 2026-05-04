@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { fetchAi } from '../lib/fetch-ai';
-import { Receipt, Users, TrendingUp, Shield, Bell, Play, Pause, MessageSquare, CheckCircle, Clock, Zap } from 'lucide-react';
+import { Receipt, Users, TrendingUp, Shield, Bell, Play, Pause, MessageSquare, CheckCircle, Clock } from 'lucide-react';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 const agents = [
@@ -278,7 +278,7 @@ export default function AgentsPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {!(chat[activeAgent]?.length) && (
                 <div className={`${selected.colorLight} rounded-xl p-4 text-sm ${selected.colorText}`}>
-                  Bonjour! Je suis {selected.name}. Comment puis-je vous aider aujourd'hui?
+                  Bonjour! Je suis {selected.name}. Comment puis-je vous aider aujourd&apos;hui?
                 </div>
               )}
               {(chat[activeAgent] || []).map((m, i) => (

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Upload, Plus, Trash2, CheckCircle, AlertCircle, Download, FileCode, Globe } from 'lucide-react';
+import { Upload, Plus, Trash2, CheckCircle, FileCode, Globe } from 'lucide-react';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type Facture = {
@@ -185,7 +185,7 @@ export default function TVAPage() {
                 <div className="flex flex-col items-center gap-2">
                   <Upload size={24} className="text-gray-400" />
                   <p className="text-sm text-gray-500">Deposez vos factures, releves bancaires ou PDF</p>
-                  <p className="text-xs text-gray-400">L'IA extrait automatiquement les donnees TVA</p>
+                  <p className="text-xs text-gray-400">L&apos;IA extrait automatiquement les donnees TVA</p>
                 </div>
               )}
             </div>

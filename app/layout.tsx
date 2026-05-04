@@ -4,6 +4,7 @@ import "./globals.css";
 import { AssistantOverlay } from "@/app/components/assistant/AssistantOverlay";
 import { GlobalSearchOverlay } from "@/app/components/search/GlobalSearchOverlay";
 import { EmailLifecycleBootstrap } from "@/app/components/lifecycle/EmailLifecycleBootstrap";
+import { RecoveryHashRedirectScript } from "@/app/components/auth/RecoveryHashRedirectScript";
 import { AppSubscriptionProviders } from "@/app/components/subscription/AppSubscriptionProviders";
 
 const geistSans = Geist({
@@ -52,6 +53,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="ZAFIRIX PRO" />
       </head>
       <body className="min-h-full flex flex-col">
+        <RecoveryHashRedirectScript />
         <EmailLifecycleBootstrap />
         <AppSubscriptionProviders>{children}</AppSubscriptionProviders>
         {enableGlobalSearchOverlay ? <GlobalSearchOverlay /> : null}

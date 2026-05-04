@@ -1,11 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { Calculator, CheckCircle, FileCode, Globe, Download } from 'lucide-react';
+import { Calculator, CheckCircle, FileCode, Globe } from 'lucide-react';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 export default function ISPage() {
   const [resultat, setResultat] = useState(0);
-  const [chargesSociales, setChargesSociales] = useState(0);
   const [form, setForm] = useState({
     chiffreAffaires: '',
     chargesExploitation: '',
@@ -27,8 +26,6 @@ export default function ISPage() {
     const totalCharges = charges + salaires + amort + autres;
     const resultatFiscal = ca - totalCharges;
     setResultat(resultatFiscal);
-    const cnssPatronal = salaires * 0.2126;
-    setChargesSociales(cnssPatronal);
     setCalcule(true);
   };
 
@@ -139,11 +136,11 @@ export default function ISPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Chiffre d'affaires (MAD)</label>
+                <label className="text-xs text-gray-400 mb-1 block">Chiffre d&apos;affaires (MAD)</label>
                 <input value={form.chiffreAffaires} onChange={e => setForm({...form, chiffreAffaires: e.target.value})} placeholder="0" type="number" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Charges d'exploitation (MAD)</label>
+                <label className="text-xs text-gray-400 mb-1 block">Charges d&apos;exploitation (MAD)</label>
                 <input value={form.chargesExploitation} onChange={e => setForm({...form, chargesExploitation: e.target.value})} placeholder="0" type="number" className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400" />
               </div>
               <div>

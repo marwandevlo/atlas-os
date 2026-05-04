@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Download, CheckCircle, BarChart2, TrendingUp, DollarSign } from 'lucide-react';
+import { Send, Bot, User, Download, CheckCircle, BarChart2 } from 'lucide-react';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 const fmt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -184,6 +184,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
   const downloadPDF = async () => {
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
+    type DocWithAutoTable = InstanceType<typeof jsPDF> & { lastAutoTable?: { finalY: number } };
     const doc = new jsPDF();
     const W = 210; const H = 297;
 
@@ -440,7 +441,7 @@ Genere l'etude avec ces 12 sections detaillees en francais professionnel. Sois t
       columnStyles: { 0: { fontStyle: 'bold' } },
     });
 
-    const yf = (doc as any).lastAutoTable.finalY + 12;
+    const yf = ((doc as DocWithAutoTable).lastAutoTable?.finalY ?? 30) + 12;
     autoTable(doc, {
       startY: yf,
       head: [['OBLIGATION FISCALE / SOCIALE', 'FREQUENCE', 'MONTANT ESTIME', 'ORGANISME']],

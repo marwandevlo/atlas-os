@@ -38,9 +38,9 @@ export async function listAtlasInvoices(): Promise<AtlasInvoice[]> {
     return readInvoicesFromLocalStorage();
   }
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row: Record<string, unknown>) => {
     const metadata = asRecord(row.metadata);
-    return {
+    const base: AtlasInvoice = {
       id: String(row.id),
       number: String(row.number ?? ''),
       clientName: String(row.client_name ?? ''),
@@ -52,10 +52,10 @@ export async function listAtlasInvoices(): Promise<AtlasInvoice[]> {
       vatRate: Number(row.vat_rate ?? 0),
       vatAmount: Number(row.vat_amount ?? 0),
       totalTTC: Number(row.total_ttc ?? 0),
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-      ...(metadata ? { metadata } as any : {}),
-    } satisfies AtlasInvoice;
+      createdAt: (row.created_at as string | undefined) ?? new Date().toISOString(),
+      updatedAt: (row.updated_at as string | undefined) ?? (row.created_at as string | undefined) ?? new Date().toISOString(),
+    };
+    return metadata && Object.keys(metadata).length > 0 ? ({ ...base, metadata } as AtlasInvoice) : base;
   });
 }
 
@@ -88,7 +88,7 @@ export async function upsertAtlasInvoice(invoice: AtlasInvoice, opts?: { company
     vat_amount: invoice.vatAmount,
     total_ttc: invoice.totalTTC,
     status: invoice.status,
-    metadata: (invoice as any).metadata ?? {},
+    metadata: (invoice as AtlasInvoice & { metadata?: Record<string, unknown> }).metadata ?? {},
     updated_at: new Date().toISOString(),
   });
 

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Users, Trash2, Pencil, Search, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Pencil, Search, CheckCircle } from 'lucide-react';
 import type { AtlasClient } from '@/app/types/atlas-client';
 import type { AtlasPaymentTerms, AtlasPaymentTermsPreset } from '@/app/types/atlas-payment-terms';
 import { normalizePaymentTerms, paymentTermsLabel } from '@/app/types/atlas-payment-terms';
@@ -54,16 +54,18 @@ export default function ClientsPage() {
 
   useEffect(() => {
     const existing = readClientsFromLocalStorage();
-    if (existing.length) {
-      setClients(existing);
-      return;
-    }
-    if (!isAtlasSupabaseDataEnabled()) {
-      setClients(seedClients);
-      writeClientsToLocalStorage(seedClients);
-      return;
-    }
-    setClients([]);
+    queueMicrotask(() => {
+      if (existing.length) {
+        setClients(existing);
+        return;
+      }
+      if (!isAtlasSupabaseDataEnabled()) {
+        setClients(seedClients);
+        writeClientsToLocalStorage(seedClients);
+        return;
+      }
+      setClients([]);
+    });
   }, []);
 
   const filtered = useMemo(() => {
@@ -103,8 +105,14 @@ export default function ClientsPage() {
       balance: String(c.balance ?? 0),
     });
     if (c.paymentTerms.kind === 'preset') {
-      setTermsKind(String(c.paymentTerms.days) as any);
-      setTermsCustomDays('45');
+      const d = c.paymentTerms.days;
+      if (d === 30 || d === 60 || d === 90) {
+        setTermsKind(String(d) as '30' | '60' | '90');
+        setTermsCustomDays('45');
+      } else {
+        setTermsKind('custom');
+        setTermsCustomDays(String(d ?? 0));
+      }
     } else {
       setTermsKind('custom');
       setTermsCustomDays(String(c.paymentTerms.days ?? 0));
@@ -286,7 +294,7 @@ export default function ClientsPage() {
                   <div className="flex gap-2">
                     <select
                       value={termsKind}
-                      onChange={(e) => setTermsKind(e.target.value as any)}
+                      onChange={(e) => setTermsKind(e.target.value as '30' | '60' | '90' | 'custom')}
                       className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400"
                     >
                       <option value="30">30 jours</option>

@@ -9,6 +9,14 @@ type SearchHit = {
   href?: string;
 };
 
+type DocumentSearchRow = {
+  id: string;
+  title: string;
+  type?: string | null;
+  kind?: string | null;
+  source?: string | null;
+};
+
 function requireBearer(request: NextRequest): string | null {
   const auth = request.headers.get('authorization') ?? '';
   if (!auth.toLowerCase().startsWith('bearer ')) return null;
@@ -76,12 +84,12 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  for (const r of docRes.data ?? []) {
+  for (const r of (docRes.data ?? []) as DocumentSearchRow[]) {
     hits.push({
       type: 'document',
       id: String(r.id),
       title: String(r.title),
-      subtitle: `${(r as any).type ?? r.kind ?? 'document'} · ${r.source ?? ''}`,
+      subtitle: `${r.type ?? r.kind ?? 'document'} · ${r.source ?? ''}`,
       href: '/documents',
     });
   }
@@ -98,7 +106,7 @@ export async function GET(request: NextRequest) {
 
   const qLower = q.toLowerCase();
   for (const r of compRes.data ?? []) {
-    const j = r.company_json as any;
+    const j = r.company_json as Record<string, unknown> | null;
     const name = typeof j?.raisonSociale === 'string' ? j.raisonSociale : '';
     const ifFiscal = typeof j?.if_fiscal === 'string' ? j.if_fiscal : '';
     const city = typeof j?.ville === 'string' ? j.ville : '';

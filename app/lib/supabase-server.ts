@@ -1,19 +1,16 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 
-export function getSupabaseServerClient() {
+export async function getSupabaseServerClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  // Next.js 16+ may return a Promise in some runtimes; normalize with await at callsites.
-  // This helper is primarily used in server components; route handlers/middleware should
-  // create their own SSR client with the request/response cookies.
-  const cookieStore = cookies() as any;
+  const cookieStore = await cookies();
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
-        return cookieStore.getAll?.() ?? [];
+        return cookieStore.getAll();
       },
       setAll(cookiesToSet) {
         // In server components, setting cookies may be a no-op depending on runtime.
@@ -31,13 +28,14 @@ export function getSupabaseServerClient() {
 }
 
 export async function getServerUser() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { data } = await supabase.auth.getUser();
   return data.user ?? null;
 }
 
 export function isAdminFromUser(user: { app_metadata?: Record<string, unknown> } | null): boolean {
   if (!user) return false;
-  return (user.app_metadata as any)?.role === 'admin';
+  const r = String(user.app_metadata?.role ?? '');
+  return r === 'admin' || r === 'owner';
 }
 

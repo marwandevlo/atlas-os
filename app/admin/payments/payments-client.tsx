@@ -58,13 +58,21 @@ export default function PaymentsAdminClient() {
 
         const url = filter === 'all' ? '/api/admin/payment-requests' : `/api/admin/payment-requests?status=${encodeURIComponent(filter)}`;
         const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-        const json = (await res.json().catch(() => ({}))) as any;
+        const json: unknown = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(typeof json?.error === 'string' ? json.error : 'forbidden');
+          const msg =
+            typeof json === 'object' && json && 'error' in json && typeof (json as { error?: unknown }).error === 'string'
+              ? String((json as { error?: unknown }).error)
+              : 'forbidden';
+          setError(msg);
           return;
         }
         if (!cancelled) {
-          setRows(Array.isArray(json?.paymentRequests) ? (json.paymentRequests as PaymentRequestRow[]) : []);
+          const paymentRequests =
+            typeof json === 'object' && json && 'paymentRequests' in json && Array.isArray((json as { paymentRequests?: unknown }).paymentRequests)
+              ? ((json as { paymentRequests: unknown[] }).paymentRequests as PaymentRequestRow[])
+              : [];
+          setRows(paymentRequests);
         }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Erreur');

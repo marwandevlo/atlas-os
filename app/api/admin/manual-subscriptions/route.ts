@@ -11,7 +11,8 @@ function requireBearer(request: NextRequest): string | null {
 }
 
 function isAdminFromUser(user: { app_metadata?: Record<string, unknown> } | null): boolean {
-  return (user?.app_metadata?.role as string | undefined) === 'admin';
+  const r = String((user?.app_metadata?.role as string | undefined) ?? '');
+  return r === 'admin' || r === 'owner';
 }
 
 export type ManualSubscriptionRow = {

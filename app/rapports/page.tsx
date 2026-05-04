@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Download, FileText, TrendingUp, Calculator, Users, Receipt } from 'lucide-react';
+import { Download, TrendingUp, Calculator, Users, Receipt } from 'lucide-react';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 export default function RapportsPage() {
@@ -11,7 +11,9 @@ export default function RapportsPage() {
     
     const { jsPDF } = await import('jspdf');
     const autoTable = (await import('jspdf-autotable')).default;
-    
+
+    type DocWithAutoTable = InstanceType<typeof jsPDF> & { lastAutoTable?: { finalY: number } };
+
     const doc = new jsPDF();
     const now = new Date();
     const dateStr = now.toLocaleDateString('fr-MA');
@@ -53,7 +55,7 @@ export default function RapportsPage() {
         alternateRowStyles: { fillColor: [245, 247, 250] },
       });
 
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      const finalY = ((doc as DocWithAutoTable).lastAutoTable?.finalY ?? 75) + 10;
       doc.setFillColor(254, 242, 242);
       doc.rect(15, finalY, 180, 20, 'F');
       doc.setTextColor(185, 28, 28);
@@ -112,7 +114,7 @@ export default function RapportsPage() {
         alternateRowStyles: { fillColor: [245, 247, 250] },
       });
 
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      const finalY = ((doc as DocWithAutoTable).lastAutoTable?.finalY ?? 65) + 10;
       autoTable(doc, {
         startY: finalY,
         head: [['Cotisation', 'Taux', 'Montant (MAD)']],

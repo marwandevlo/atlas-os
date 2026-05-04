@@ -38,20 +38,24 @@ export async function listAtlasEmployees(): Promise<AtlasEmployee[]> {
     return readEmployeesFromLocalStorage();
   }
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row: Record<string, unknown>): AtlasEmployee => {
     const metadata = asRecord(row.metadata);
+    const cid = row.company_id;
+    const em = row.email;
+    const ph = row.phone;
+    const rt = row.role_title;
     return {
       id: String(row.id),
-      companyId: row.company_id ?? null,
+      companyId: cid == null ? null : String(cid),
       fullName: String(row.full_name ?? ''),
-      email: row.email ?? undefined,
-      phone: row.phone ?? undefined,
-      roleTitle: row.role_title ?? undefined,
+      email: em == null || em === '' ? undefined : String(em),
+      phone: ph == null || ph === '' ? undefined : String(ph),
+      roleTitle: rt == null || rt === '' ? undefined : String(rt),
       status: String(row.status ?? 'active'),
       metadata,
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-    } satisfies AtlasEmployee;
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+      updatedAt: String(row.updated_at ?? row.created_at ?? new Date().toISOString()),
+    };
   });
 }
 

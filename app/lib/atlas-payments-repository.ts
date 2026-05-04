@@ -38,19 +38,22 @@ export async function listAtlasPayments(params?: { invoiceId?: string }): Promis
     return [];
   }
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row: Record<string, unknown>): AtlasPayment => {
     const metadata = asRecord(row.metadata);
+    const cid = row.company_id;
+    const pa = row.paid_at;
+    const nt = row.note;
     return {
       id: String(row.id),
-      companyId: row.company_id ?? null,
+      companyId: cid == null ? null : String(cid),
       invoiceId: String(row.invoice_id),
       paidAmount: Number(row.paid_amount ?? 0),
-      paidAt: row.paid_at ?? undefined,
-      note: row.note ?? undefined,
+      paidAt: pa == null || pa === '' ? undefined : String(pa),
+      note: nt == null || nt === '' ? undefined : String(nt),
       metadata,
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-    } satisfies AtlasPayment;
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+      updatedAt: String(row.updated_at ?? row.created_at ?? new Date().toISOString()),
+    };
   });
 }
 

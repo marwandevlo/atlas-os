@@ -38,17 +38,18 @@ export async function listAtlasProjects(): Promise<AtlasProject[]> {
     return readProjectsFromLocalStorage();
   }
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row: Record<string, unknown>): AtlasProject => {
     const metadata = asRecord(row.metadata);
+    const cid = row.company_id;
     return {
       id: String(row.id),
-      companyId: row.company_id ?? null,
+      companyId: cid == null ? null : String(cid),
       name: String(row.name ?? ''),
       status: String(row.status ?? 'active'),
       metadata,
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-    } satisfies AtlasProject;
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+      updatedAt: String(row.updated_at ?? row.created_at ?? new Date().toISOString()),
+    };
   });
 }
 

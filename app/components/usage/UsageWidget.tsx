@@ -32,9 +32,18 @@ export function UsageWidget() {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  const plan = useMemo(() => getActivePlan(), [tick]);
-  const usage = useMemo(() => getUsage(), [tick]);
-  const limits = useMemo(() => getEffectivePlanLimits(plan), [plan, tick]);
+  const plan = useMemo(() => {
+    void tick;
+    return getActivePlan();
+  }, [tick]);
+  const usage = useMemo(() => {
+    void tick;
+    return getUsage();
+  }, [tick]);
+  const limits = useMemo(() => {
+    void tick;
+    return getEffectivePlanLimits(plan);
+  }, [plan, tick]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

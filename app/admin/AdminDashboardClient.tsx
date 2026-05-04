@@ -32,15 +32,6 @@ type DashboardStats = {
   warnings?: string[];
 };
 
-type PendingPaymentStatus = 'pending' | 'paid' | 'active' | 'rejected';
-type PendingSubscription = { id: string; status: PendingPaymentStatus };
-type ActiveSubscription = { id: string; status: 'active'; paymentReference: string };
-
-const STORAGE = {
-  pending: 'atlas_pending_subscriptions',
-  active: 'atlas_active_subscriptions',
-} as const;
-
 const LOCAL_ADMIN_ROLE_KEY = 'atlas_user_role';
 
 function isLocalDevAdminEnabled(): boolean {
@@ -50,18 +41,6 @@ function isLocalDevAdminEnabled(): boolean {
 function hasLocalAdminRole(): boolean {
   if (typeof window === 'undefined') return false;
   return (localStorage.getItem(LOCAL_ADMIN_ROLE_KEY) ?? '').trim() === 'admin';
-}
-
-function readJsonArray<T>(key: string): T[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
 }
 
 function Card(props: { title: string; value: string | number; icon: React.ReactNode; hint?: string; href?: string }) {
@@ -125,7 +104,7 @@ export default function AdminDashboardClient() {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          const json = (await res.json().catch(() => ({}))) as any;
+          const json: unknown = await res.json().catch(() => ({}));
           if (!res.ok) {
             router.push('/access-denied');
             return;
@@ -141,17 +120,14 @@ export default function AdminDashboardClient() {
           return;
         }
 
-        const pending = readJsonArray<PendingSubscription>(STORAGE.pending);
-        const active = readJsonArray<ActiveSubscription>(STORAGE.active);
-
-        const pendingCount = pending.filter((p) => p.status === 'pending').length;
-        const paidCount = pending.filter((p) => p.status === 'paid').length;
-        const rejectedCount = pending.filter((p) => p.status === 'rejected').length;
-        const activeCount = active.filter((s) => s.status === 'active').length;
+        const pendingCount = 0;
+        const paidCount = 0;
+        const rejectedCount = 0;
+        const activeCount = 0;
 
         const localStats: DashboardStats = {
-          paymentRequests: { pending: pendingCount, paid: paidCount, rejected: rejectedCount, total: pending.length },
-          subscriptions: { active: activeCount, trial: 0, cancelled: 0, total: active.length },
+          paymentRequests: { pending: pendingCount, paid: paidCount, rejected: rejectedCount, total: 0 },
+          subscriptions: { active: activeCount, trial: 0, cancelled: 0, total: 0 },
           users: { total: 0, active: 0, trial: 0, paid: 0 },
           companies: { total: 0, byPlan: {} },
           system: { backend: atlasDataBackend(), localAdminMode: true },

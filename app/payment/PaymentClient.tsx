@@ -26,23 +26,9 @@ type PendingSubscription = {
   addonId?: string;
 };
 
-const PENDING_SUBSCRIPTIONS_STORAGE_KEY = 'atlas_pending_subscriptions';
-
 function createReferenceId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `atlas_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}
-
-function writePendingSubscription(order: PendingSubscription): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const raw = localStorage.getItem(PENDING_SUBSCRIPTIONS_STORAGE_KEY);
-    const existing = raw ? (JSON.parse(raw) as PendingSubscription[]) : [];
-    const next = Array.isArray(existing) ? [order, ...existing] : [order];
-    localStorage.setItem(PENDING_SUBSCRIPTIONS_STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    localStorage.setItem(PENDING_SUBSCRIPTIONS_STORAGE_KEY, JSON.stringify([order]));
-  }
 }
 
 export default function PaymentClient() {
@@ -117,7 +103,7 @@ export default function PaymentClient() {
           createdAt: new Date().toISOString(),
           addonId: addon.id,
         };
-        writePendingSubscription(pending);
+        void pending;
         router.push(`/payment/success?ref=${encodeURIComponent(id)}&addon=${encodeURIComponent(addon.id)}`);
         return;
       }
@@ -140,12 +126,17 @@ export default function PaymentClient() {
           },
           body: JSON.stringify({ planId: plan.id, provider: manualProvider }),
         });
-        const json = (await res.json().catch(() => ({}))) as any;
+        const json: unknown = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(typeof json?.error === 'string' ? json.error : 'Erreur paiement');
+          const msg =
+            typeof json === 'object' && json && 'error' in json && typeof (json as { error?: unknown }).error === 'string'
+              ? String((json as { error?: unknown }).error)
+              : 'Erreur paiement';
+          setError(msg);
           return;
         }
-        const id = String(json.id || '');
+        const id =
+          typeof json === 'object' && json && 'id' in json ? String((json as { id?: unknown }).id ?? '') : '';
         if (!id) {
           setError('Erreur paiement');
           return;
@@ -168,7 +159,7 @@ export default function PaymentClient() {
         manualProvider,
         createdAt: new Date().toISOString(),
       };
-      writePendingSubscription(pending);
+      void pending;
       router.push(`/payment/success?ref=${encodeURIComponent(id)}`);
     } finally {
       setSubmitting(false);

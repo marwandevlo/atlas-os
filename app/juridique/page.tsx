@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, Download, Scale, Search, Building2, RefreshCw, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
+import type { ParagraphChild } from 'docx';
+import { ArrowLeft, FileText, Download, Search, Building2, RefreshCw, ChevronRight, CheckCircle, Loader2 } from 'lucide-react';
 import { fetchAi } from '../lib/fetch-ai';
 import { createAtlasLink } from '@/app/lib/atlas-links-repository';
 import { createDocument } from '@/app/lib/atlas-documents-repository';
@@ -97,12 +98,12 @@ const generateDepotLegalWord = async (company: Company, formData: FormData, gera
 
   const border = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
   const borders = { top: border, bottom: border, left: border, right: border };
-  const noBorders = { top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } };
 
   const bold = (text: string, size = 20) => new TextRun({ text, bold: true, size, font: 'Arial' });
   const normal = (text: string, size = 18) => new TextRun({ text, size, font: 'Arial' });
-  const center = (children: any[], spacing = { after: 80 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
-  const left = (children: any[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
+  const center = (children: ParagraphChild[], spacing = { after: 80 }) =>
+    new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
+  const left = (children: ParagraphChild[], spacing = { after: 80 }) => new Paragraph({ children, spacing });
 
   const children = [
     // Header
@@ -265,7 +266,7 @@ const generateDepotLegalWord = async (company: Company, formData: FormData, gera
 
 const generateRCWord = async (company: Company, formData: FormData) => {
   const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    AlignmentType, BorderStyle, WidthType, ShadingType, PageBreak, PageOrientation } = await import('docx');
+    AlignmentType, BorderStyle, WidthType, ShadingType, PageOrientation } = await import('docx');
 
   const border = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
   const borders = { top: border, bottom: border, left: border, right: border };
@@ -274,8 +275,9 @@ const generateRCWord = async (company: Company, formData: FormData) => {
 
   const b = (text: string, size = 18) => new TextRun({ text, bold: true, size, font: 'Arial' });
   const n = (text: string, size = 16) => new TextRun({ text, size, font: 'Arial' });
-  const pc = (children: any[], spacing = { after: 60 }) => new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
-  const pl = (children: any[], spacing = { after: 60 }) => new Paragraph({ children, spacing });
+  const pc = (children: ParagraphChild[], spacing = { after: 60 }) =>
+    new Paragraph({ alignment: AlignmentType.CENTER, children, spacing });
+  const pl = (children: ParagraphChild[], spacing = { after: 60 }) => new Paragraph({ children, spacing });
 
   // ======= PAGE 1: GAUCHE (NOTA + Cadres) =======
   const page1Children = [
@@ -1087,7 +1089,7 @@ EN-TETE: ${header}
             <div key={f.key}>
               <label className="text-xs font-semibold text-gray-600 mb-1 block">{f.label}</label>
               <input
-                value={String((manualCompany as any)[f.key] ?? '')}
+                value={String(manualCompany[f.key as keyof Company] ?? '')}
                 onChange={(e) => setManualCompany((prev) => ({ ...prev, [f.key]: e.target.value }))}
                 placeholder={f.placeholder}
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-blue-400"
@@ -1199,7 +1201,7 @@ export default function JuridiquePage() {
 
   useEffect(() => {
     const saved = localStorage.getItem('atlas_companies');
-    if (saved) setCompanies(JSON.parse(saved));
+    if (saved) queueMicrotask(() => setCompanies(JSON.parse(saved) as Company[]));
   }, []);
 
   return (

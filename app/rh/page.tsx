@@ -2,6 +2,7 @@
 import { fetchAi } from '../lib/fetch-ai';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import type { LucideIcon } from 'lucide-react';
 import { ArrowLeft, FileText, Download, Bot, User, Send, Users, Briefcase, Award, FileCheck, Search, Share2 } from 'lucide-react';
 import { createAtlasLink } from '@/app/lib/atlas-links-repository';
 import { createDocument } from '@/app/lib/atlas-documents-repository';
@@ -398,7 +399,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
     }
   };
 
-  const categoryIcons: Record<string, any> = {
+  const categoryIcons: Record<string, LucideIcon> = {
     'Attestations': Award,
     'Contrats de travail': Briefcase,
     'Fin de contrat': FileCheck,
@@ -643,7 +644,7 @@ Genere UNIQUEMENT le document en texte propre, sans commentaires.`,
                         <div key={f.key}>
                           <label className="text-xs text-gray-500 mb-1 block">{f.label}</label>
                           <input
-                            value={String((manualCompany as any)[f.key] ?? '')}
+                            value={String(manualCompany[f.key as keyof Company] ?? '')}
                             onChange={(e) => setManualCompany((prev) => ({ ...prev, [f.key]: e.target.value }))}
                             placeholder={f.placeholder}
                             className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-green-400"

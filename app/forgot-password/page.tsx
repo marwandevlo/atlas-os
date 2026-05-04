@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
 import { supabase } from '@/app/lib/supabase';
+import { getAuthSiteUrl } from '@/app/lib/site-url';
 import { PublicFooter } from '@/app/components/public/PublicFooter';
 
 function isValidEmail(email: string): boolean {
@@ -23,8 +24,9 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       // Do not reveal whether the email exists.
+      const siteUrl = getAuthSiteUrl();
       await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${siteUrl}/reset-password`,
       });
       setDone(true);
     } finally {

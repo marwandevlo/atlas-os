@@ -40,19 +40,20 @@ export async function listAtlasLinks(params?: { fromType?: string; fromId?: stri
     return readLinksFromLocalStorage();
   }
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row: Record<string, unknown>): AtlasLink => {
     const metadata = asRecord(row.metadata);
+    const cid = row.company_id;
     return {
       id: String(row.id),
-      companyId: row.company_id ?? null,
+      companyId: cid == null ? null : String(cid),
       fromType: String(row.from_type),
       fromId: String(row.from_id),
       toType: String(row.to_type),
       toId: String(row.to_id),
       relation: String(row.relation ?? 'relates_to'),
       metadata,
-      createdAt: row.created_at ?? new Date().toISOString(),
-    } satisfies AtlasLink;
+      createdAt: String(row.created_at ?? new Date().toISOString()),
+    };
   });
 }
 

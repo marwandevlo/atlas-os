@@ -29,7 +29,7 @@ export function TrialOnboardingChecklist({ lang }: Props) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (sessionStorage.getItem(SESSION_KEY) === '1') setVisible(true);
+    if (sessionStorage.getItem(SESSION_KEY) === '1') queueMicrotask(() => setVisible(true));
   }, []);
 
   useEffect(() => {

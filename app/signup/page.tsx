@@ -45,7 +45,6 @@ type ActiveSubscription = {
 
 const STORAGE = {
   userProfile: 'atlas_user_profile',
-  activeSubs: 'atlas_active_subscriptions',
 } as const;
 
 function isValidEmail(email: string): boolean {
@@ -60,23 +59,6 @@ function isValidPhone(phone: string): boolean {
   const p = normalizePhone(phone);
   // simple: accept +212XXXXXXXXX or 0XXXXXXXXX, 9-15 digits
   return /^(\+?\d{9,15}|0\d{8,14})$/.test(p);
-}
-
-function readJsonArray<T>(key: string): T[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeJsonArray<T>(key: string, value: T[]): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(key, JSON.stringify(value));
 }
 
 export default function SignUpPage() {
@@ -176,8 +158,7 @@ export default function SignUpPage() {
       paymentReference: 'signup',
       createdAt: new Date().toISOString(),
     };
-    const existing = readJsonArray<ActiveSubscription>(STORAGE.activeSubs);
-    writeJsonArray(STORAGE.activeSubs, [order, ...existing]);
+    void order;
   };
 
   const storeUserProfile = () => {
@@ -210,10 +191,40 @@ export default function SignUpPage() {
     setLoading(true);
     try {
       // Do not break existing auth logic: keep Supabase signup.
-      const { data: signUpData, error } = await supabase.auth.signUp({ email: email.trim(), password });
+      const trimmedEmail = email.trim();
+      const trimmedFullName = fullName.trim();
+      const { data: signUpData, error } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+      });
       if (error) {
-        setError(error.message);
+        const msg = String(error.message ?? '');
+        const lower = msg.toLowerCase();
+        if (lower.includes('already registered') || lower.includes('already exists')) {
+          setError('Cet e-mail est déjà utilisé. Connectez-vous ou utilisez un autre e-mail.');
+        } else if (lower.includes('password') && (lower.includes('weak') || lower.includes('at least') || lower.includes('length'))) {
+          setError('Mot de passe trop faible. Utilisez au moins 8 caractères.');
+        } else {
+          setError(msg || 'Erreur inscription.');
+        }
         return;
+      }
+
+      // Persist profile data (main user source). In Supabase mode, prefer writing `profiles` immediately.
+      if (isAtlasSupabaseDataEnabled() && signUpData.session?.user?.id) {
+        const u = signUpData.session.user;
+        const { error: profileErr } = await supabase.from('profiles').upsert(
+          {
+            id: u.id,
+            email: u.email ?? trimmedEmail,
+            full_name: trimmedFullName,
+          },
+          { onConflict: 'id' },
+        );
+        if (profileErr) {
+          // Do not block signup success; user can retry after login if needed.
+          console.warn('[signup] profile upsert failed', profileErr.message);
+        }
       }
 
       // Demo/localStorage seeding must never run in production (prevents accidental "Pro" defaults).

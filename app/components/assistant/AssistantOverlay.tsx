@@ -32,18 +32,20 @@ async function ttsSpeak(text: string): Promise<void> {
   await audio.play().catch(() => {});
 }
 
-function normalizeAssistantPayload(payload: any): AtlasAssistantResponse {
+function normalizeAssistantPayload(payload: unknown): AtlasAssistantResponse {
   if (payload && typeof payload === 'object') {
-    const response = typeof payload.response === 'string' ? payload.response : '';
-    const actionsRaw = Array.isArray(payload.actions) ? payload.actions : [];
+    const p = payload as Record<string, unknown>;
+    const response = typeof p.response === 'string' ? p.response : '';
+    const actionsRaw = Array.isArray(p.actions) ? p.actions : [];
     const actions: AtlasAssistantAction[] = actionsRaw
-      .map((a: any) => {
+      .map((a: unknown) => {
         if (!a || typeof a !== 'object') return null;
-        const action = typeof a.action === 'string' ? a.action : '';
+        const act = a as Record<string, unknown>;
+        const action = typeof act.action === 'string' ? act.action : '';
         if (!action) return null;
-        const data = a.data && typeof a.data === 'object' ? (a.data as Record<string, unknown>) : undefined;
-        const confidence = typeof a.confidence === 'number' ? a.confidence : undefined;
-        const requiresConfirmation = typeof a.requiresConfirmation === 'boolean' ? a.requiresConfirmation : true;
+        const data = act.data && typeof act.data === 'object' ? (act.data as Record<string, unknown>) : undefined;
+        const confidence = typeof act.confidence === 'number' ? act.confidence : undefined;
+        const requiresConfirmation = typeof act.requiresConfirmation === 'boolean' ? act.requiresConfirmation : true;
         return { action, data, confidence, requiresConfirmation } satisfies AtlasAssistantAction;
       })
       .filter(Boolean) as AtlasAssistantAction[];

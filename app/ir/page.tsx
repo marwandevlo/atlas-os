@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, Users, FileCode, Globe, Download, CheckCircle } from 'lucide-react';
+import { Plus, FileCode, Globe, CheckCircle } from 'lucide-react';
 import { AppSidebar } from '@/app/components/shell/AppSidebar';
 
 type Employe = {
@@ -37,7 +37,6 @@ export default function IRPage() {
   ]);
   const [form, setForm] = useState({ nom: '', cin: '', matriculeCNSS: '', salaireBrut: '' });
   const [showForm, setShowForm] = useState(false);
-  const [declared, setDeclared] = useState(false);
   const [xmlGenerated, setXmlGenerated] = useState(false);
 
   const addEmploye = () => {

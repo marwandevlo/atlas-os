@@ -38,21 +38,21 @@ export async function listAtlasClients(): Promise<AtlasClient[]> {
     return readClientsFromLocalStorage();
   }
 
-  return (data ?? []).map((row: any) => {
+  return (data ?? []).map((row: Record<string, unknown>) => {
     const metadata = asRecord(row.metadata);
-    return {
+    const base: AtlasClient = {
       id: String(row.id),
       name: String(row.name ?? ''),
-      email: row.email ?? undefined,
-      phone: row.phone ?? undefined,
-      address: row.address ?? undefined,
-      city: row.city ?? undefined,
+      email: (row.email as string | undefined) ?? undefined,
+      phone: (row.phone as string | undefined) ?? undefined,
+      address: (row.address as string | undefined) ?? undefined,
+      city: (row.city as string | undefined) ?? undefined,
       paymentTerms: { kind: 'custom', days: Number(row.payment_terms_days ?? 30) },
       balance: Number(row.balance_mad ?? 0),
-      createdAt: row.created_at ?? new Date().toISOString(),
-      updatedAt: row.updated_at ?? row.created_at ?? new Date().toISOString(),
-      ...(metadata ? { metadata } as any : {}),
-    } satisfies AtlasClient;
+      createdAt: (row.created_at as string | undefined) ?? new Date().toISOString(),
+      updatedAt: (row.updated_at as string | undefined) ?? (row.created_at as string | undefined) ?? new Date().toISOString(),
+    };
+    return metadata && Object.keys(metadata).length > 0 ? ({ ...base, metadata } as AtlasClient) : base;
   });
 }
 
@@ -81,7 +81,7 @@ export async function upsertAtlasClient(client: AtlasClient, opts?: { companyId?
     city: client.city ?? null,
     payment_terms_days: (client.paymentTerms?.days ?? 30),
     balance_mad: client.balance ?? 0,
-    metadata: (client as any).metadata ?? {},
+    metadata: (client as AtlasClient & { metadata?: Record<string, unknown> }).metadata ?? {},
     updated_at: new Date().toISOString(),
   });
 
